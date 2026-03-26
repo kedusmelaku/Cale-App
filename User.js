@@ -7,11 +7,11 @@ class User{
         this.name = name;
         this.days = [];
         this.points = 0;
-        this.hours = Array.from({ length: hoursAv.length }, () => []);
+        this.hours = [];
         
         for (let i = 0; i < hoursAv.length; i++) {
-            if(!(hoursAv[i].length < 3)){ //check if hours are specified
             this.hours.push([]);
+            if(!(hoursAv[i].length < 3)){ //check if hours are specified
             for (let hour = hoursAv[i][1]; hour <= hoursAv[i][2]; hour++) { //if hours are specified, add them
             if (hour >= 3 && hour <= 8){
             this.hours[i].push(hour.toString());

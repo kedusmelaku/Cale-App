@@ -94,41 +94,46 @@ class Day{
     }
 
     willWork(week){
-        for (let k = 0; k < week.length; k++){// for each day
-            let day = week[k];
-
-            for (let i = 0; i < day.slots.length; i++){//for each slot
-                let workersTemp = day.slots[i].workers;//creates a copy of the array so it only adds the workers needed to the actual array
-                day.slots[i].workers = [];
-                let workersNeeded = Math.ceil(day.slots[i].students /3); //number of instructors needed based on the ratio of 1:3 instructors to students
-                let current = 0; //defined before the loop so it doesnt add workers if the number of workers is the same
-                    for (; current < workersNeeded && current < workersTemp.length; current++){
-                        day.slots[i].workers.push(workersTemp[current]);//add instructors from the list of workers available that hour
-                        workersTemp[current].working[workersTemp[current].days.indexOf(day.dayName.toLowerCase())][0] = day.slots[i].time; //for each of the workers, set the time they start
-                    }
-                if (workersNeeded + 2 < current){//checks if the workers needed changes drastically (change in 2 or more), if so remove until satisfied
-                    while (workersNeeded + 2 < current){
-                        let removed = day.slots[i].workers.pop();
-                        removed.working[removed.days.indexOf(day.dayName.toLowerCase())][1] = day.slots[i].time;
-                        current--;
-                    }
+    for (let k = 0; k < week.length; k++){// for each day
+        let day = week[k];
+        let prevWorkers = 0;//stores the amount of workers from previous slot in order to be able to detect a change
+        for (let i = 0; i < day.slots.length; i++){//for each slot
+            let workersTemp = day.slots[i].workers;//creates a copy of the array so it only adds the workers needed to the actual array
+            day.slots[i].workers = [];
+            let workersNeeded = Math.ceil(day.slots[i].students / 3); //number of instructors needed based on the ratio of 1:3 instructors to students
+            let current = 0; //amount of current workers; defined before the loop so it doesnt add workers if the number of workers is the same
+            for (; current < workersNeeded && current < workersTemp.length; current++){//keep adding workers until worker amount satisfied or run out of workers
+                day.slots[i].workers.push(workersTemp[current]);//add instructors from the list of workers available that hour
+            }
+            if (prevWorkers > workersNeeded + 2){//checks if the workers needed changes drastically (change in 2 or more), if so end the extra workers' shifts
+                for (let w = current; w < workersTemp.length && w < prevWorkers; w++){
+                    workersTemp[w].working[workersTemp[w].days.indexOf(day.dayName.toLowerCase())][1] = day.slots[i].time;
                 }
-
             }
-    }
-        
-    }
-
-
-    createSchedule(week, users){
-        for(let i = 0; i < this.week.length; i++){
-            for (let j = 0; j < users.length; j++){
-                this.week.canWork[users[j]];
-            }
-            week.week[i].willWork
+            prevWorkers = current;//update prevWorkers for next slot
         }
-        
+        for (let worker of day.totalWorkers) {//for each worker that worked that day, assign their start and end times
+            let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
+            let times = [];
+            for (let slot of day.slots) {//find all slots the worker was assigned to
+                if (slot.workers.includes(worker)) times.push(timeToNum(slot.time));
+            }
+            if (times.length > 0) {//if the worker was assigned to any slots, set their start and end times
+                worker.working[dayIndex][0] = numToTime(Math.min(...times));//set start time to earliest slot
+                worker.working[dayIndex][1] = numToTime(Math.max(...times) + 0.5);//set end time to latest slot + 0.5 (end of that half hour block)
+            }
+        }
+    }
+}
 
+    timeToNum(t) {
+    let [h, m] = t.split(':');
+    return parseInt(h) + (m === '30' ? 0.5 : 0);
+    }
+
+    numToTime(n) {
+    let h = Math.floor(n);
+    return n % 1 === 0.5 ? h + ":30" : h.toString();
     }
 
     resetAllWorkers(){
@@ -147,14 +152,14 @@ class Day{
 
     resetAllStudents(){
         for (let i = 0; i < this.slots.length; i++) {
-            this.slots[i].students = [];
+            this.slots[i].students = 0;
         }
     }
 
     resetStudents(hour){ //to signify a half hour, use .5 (ex. 6.5 for 6:30)
         if (Number(hour) >= 3 && Number(hour) <= 8){
        let index = Math.floor(hour * 2) - 6; // adjust calculation to match array index
-        this.slots[index].students = [];
+        this.slots[index].students = 0;
         }
 
     }

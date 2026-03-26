@@ -1,3 +1,4 @@
+
 const Day = require('./Day');
 const User = require('./User');
 //const Week = require('./Week');
@@ -36,12 +37,7 @@ class Week{
             str += "Hours for " + day.dayName + ": \n";
             str += "\n";
             for (let i = 0; i < day.totalWorkers.length; i++){//for each person working that day
-                let end = day.totalWorkers[i].hoursWorking(day.totalWorkers[i], day)
-                if (end == undefined){
-                    end = 8;
-                }else{
-                    end = day.totalWorkers[i].hoursWorking(day.totalWorkers[i], day);
-                }
+               let end = day.totalWorkers[i].hoursWorking(day.totalWorkers[i], day) || "8";
                 str += day.totalWorkers[i].uppercaseName(day.totalWorkers[i]) + ": " + end + "\n";
             }
             str += "\n";
