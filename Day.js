@@ -119,8 +119,8 @@ class Day{
                 if (slot.workers.includes(worker)) times.push(timeToNum(slot.time));
             }
             if (times.length > 0) {//if the worker was assigned to any slots, set their start and end times
-                worker.working[dayIndex][0] = numToTime(Math.min(...times));//set start time to earliest slot
-                worker.working[dayIndex][1] = numToTime(Math.max(...times) + 0.5);//set end time to latest slot + 0.5 (end of that half hour block)
+                worker.working[dayIndex][0] = this.numToTime(Math.min(...times));//set start time to earliest slot
+                worker.working[dayIndex][1] = this.numToTime(Math.max(...times) + 0.5);//set end time to latest slot + 0.5 (end of that half hour block)
             }
         }
     }

@@ -13,10 +13,10 @@ class User{
             this.hours.push([]);
             if(!(hoursAv[i].length < 3)){ //check if hours are specified
             for (let hour = hoursAv[i][1]; hour <= hoursAv[i][2]; hour++) { //if hours are specified, add them
-            if (hour >= 3 && hour <= 8){
-            this.hours[i].push(hour.toString());
-            this.hours[i].push(hour+":30");
-            }
+                if (hour >= 3 && hour <= 8){
+                    this.hours[i].push(hour.toString());
+                    if (hour < hoursAv[i][2]) this.hours[i].push(hour + ":30");
+                }
             }
         }else{
             for (let item of defaultHours)
