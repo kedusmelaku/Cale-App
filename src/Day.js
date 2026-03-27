@@ -77,7 +77,6 @@ class Day{
 
                         if (user.hours[dayIndex].includes(time)) {//if the user's hours includes the current time, add them to that slot
                             day.slots[i].workers.push(user);//add to slot
-                            user.points += 0.5;//add points if added to slot, 0.5 to represent every half hour
 
                             if (!(day.totalWorkers.includes(user))){//add to total workers of the day
                                 day.totalWorkers.push(user);
@@ -98,7 +97,7 @@ class Day{
         let day = week[k];
         let prevWorkers = 0;//stores the amount of workers from previous slot in order to be able to detect a change
         for (let i = 0; i < day.slots.length; i++){//for each slot
-            let workersTemp = day.slots[i].workers;//creates a copy of the array so it only adds the workers needed to the actual array
+            let workersTemp = [...day.slots[i].workers]; // actual copy//creates a copy of the array so it only adds the workers needed to the actual array
             day.slots[i].workers = [];
             let workersNeeded = Math.ceil(day.slots[i].students / 3); //number of instructors needed based on the ratio of 1:3 instructors to students
             let current = 0; //amount of current workers; defined before the loop so it doesnt add workers if the number of workers is the same
@@ -116,11 +115,11 @@ class Day{
             let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
             let times = [];
             for (let slot of day.slots) {//find all slots the worker was assigned to
-                if (slot.workers.includes(worker)) times.push(timeToNum(slot.time));
+                if (slot.workers.includes(worker)) times.push(this.timeToNum(slot.time));
             }
             if (times.length > 0) {//if the worker was assigned to any slots, set their start and end times
                 worker.working[dayIndex][0] = this.numToTime(Math.min(...times));//set start time to earliest slot
-                worker.working[dayIndex][1] = this.numToTime(Math.max(...times) + 0.5);//set end time to latest slot + 0.5 (end of that half hour block)
+                worker.working[dayIndex][1] = this.numToTime(Math.max(...times));//set end time to latest slot + 0.5 (end of that half hour block)
             }
         }
     }
