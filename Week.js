@@ -1,5 +1,5 @@
 
-const Day = require('./src/Day');
+const Day = require('./Day');
 const User = require('./User');
 //const Week = require('./Week');
 class Week{
