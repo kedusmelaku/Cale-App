@@ -20,6 +20,10 @@ class Week{
             let day = this.week[i];
             for (let j = 0; j < day.slots.length; j++){
                 day.slots[j].students = Math.floor(Math.random() * 8) + 1;
+                if (Math.random() < 0.1 && j < day.slots.length - 1) {// 10% chance, not last slot
+                  day.slots[j].oneOnOne = true;
+                  day.slots[j + 1].oneOnOne = true; // flag next slot too since it's 1 hour
+                }
             }
         }
     }

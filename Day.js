@@ -18,46 +18,64 @@ class Day {
           time: "10",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null, 
         },
         {
           time: "10:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "11",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "11:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "12",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "12:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "1",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "1:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "2",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
       ];
     } else {
@@ -66,73 +84,92 @@ class Day {
           time: "3",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "3:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "4",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "4:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "5",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "5:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "6",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "6:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "7",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "7:30",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
         {
           time: "8",
           students: 0,
           workers: [],
+          oneOnOne: false,
+          oneOnOneWorker: null,
         },
       ];
     }
   }
 
   canWork(week, users) {
-    for (let k = 0; k < week.length; k++) {
-      //for each day
+    for (let k = 0; k < week.length; k++) {//for each day
       let day = week[k];
       for (let u = 0; u < users.length; u++) {
         let user = users[u];
         let dayIndex = user.days.indexOf(day.dayName.toLowerCase());
         if (dayIndex !== -1) {
-          for (let i = 0; i < day.slots.length; i++) {
-            //for each slot
+          for (let i = 0; i < day.slots.length; i++) {//for each slot
             const time = day.slots[i].time;
-
             if (user.hours[dayIndex].includes(time)) {
               //if the user's hours includes the current time, add them to that slot
               day.slots[i].workers.push(user); //add to slot
@@ -154,8 +191,7 @@ class Day {
   }
 
   willWork(week) {
-    for (let k = 0; k < week.length; k++) {
-      // for each day
+    for (let k = 0; k < week.length; k++) {//for each day
       let day = week[k];
       let prevWorkers = 0; //stores the amount of workers from previous slot in order to be able to detect a change
       for (let i = 0; i < day.slots.length; i++) {

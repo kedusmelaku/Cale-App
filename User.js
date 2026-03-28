@@ -1,69 +1,50 @@
-//const Day = require('./Day');
-//const User = require('./User');
-//const Week = require('./Week');
 class User {
   constructor(name, hoursAv) {
-    let defaultHours = [
-      "4",
-      "4:30",
-      "5",
-      "5:30",
-      "6",
-      "6:30",
-      "7",
-      "7:30",
-      "8",
-    ];
     this.name = name;
     this.days = [];
     this.points = 0;
-    this.priority = 0; // 0 = normal, 1 = priority, 2 = high priority
+    this.priority = 0;
     this.hours = [];
 
-    for (let i = 0; i < hoursAv.length; i++) {
+    for (let i = 0; i < hoursAv.length; i++) { //creates the available hours
       this.hours.push([]);
 
-      let isSaturday = hoursAv[i][0].toLowerCase() === "saturday"; // check if saturday
+      let isSaturday = hoursAv[i][0].toLowerCase() === "saturday";
       let defaultHours = isSaturday
-        ? ["10", "10:30", "11", "11:30", "12", "12:30", "1", "1:30", "2"] // saturday defaults
-        : ["4", "4:30", "5", "5:30", "6", "6:30", "7", "7:30", "8"]; // weekday defaults
+        ? ["10", "10:30", "11", "11:30", "12", "12:30", "1", "1:30", "2"]
+        : ["4", "4:30", "5", "5:30", "6", "6:30", "7", "7:30", "8"];
 
-      if (!(hoursAv[i].length < 3)) {
-        //check if hours are specified
+      if (!(hoursAv[i].length < 3)) {//if hours are specified
         for (let hour = hoursAv[i][1]; hour <= hoursAv[i][2]; hour++) {
-          //if hours are specified, add them
           if (isSaturday ? hour >= 10 && hour <= 14 : hour >= 3 && hour <= 8) {
-            let displayHour = hour > 12 ? hour - 12 : hour; // convert 13 to 1, 14 to 2
+            let displayHour = hour > 12 ? hour - 12 : hour; //if hour is greater than 12, convert to pm form (like 1 pm instead of 13)
             this.hours[i].push(displayHour.toString());
             if (hour < hoursAv[i][2]) {
-              this.hours[i].push(hour + ":30");
+              this.hours[i].push(displayHour + ":30"); 
             }
           }
         }
       } else {
-        for (let item of defaultHours) this.hours[i].push(item); //if no hours are specified, assume all hours
+        for (let item of defaultHours) this.hours[i].push(item); // adds each of the default hours
       }
 
-      this.days.push(hoursAv[i][0].toLowerCase()); //initialize 2d array of days with available hours
+      this.days.push(hoursAv[i][0].toLowerCase());
     }
 
     for (let i = 0; i < this.hours.length; i++) {
-      //calculate points from total availability
       this.points += this.hours[i].length * 0.5;
     }
 
-    this.working = Array.from({ length: this.days.length }, () => []); //hours working, [0] is start time, [1] is end time
+    this.working = Array.from({ length: this.days.length }, () => []);
   }
 
-  uppercaseName(user) {
-    //returns the name with the first letter capitalized for final schedule purposes
+  uppercaseName(user) {//changes the first letter of a name to uppercase
     let name = user.name;
     name = name.charAt(0).toUpperCase() + name.slice(1);
     return name;
   }
 
   hoursWorking(user, day) {
-    //returns a string of the range of hours working (ie 4-6)
     let dayIndex = user.days.indexOf(day.dayName.toLowerCase());
     let str = "";
     let start = user.working[dayIndex][0];
@@ -76,19 +57,16 @@ class User {
   }
 
   setPriority(level) {
-    // sets priority level 0-2
     this.priority = level;
     this.applyPriority();
   }
 
   applyPriority() {
-    // applies priority to points
     if (this.priority === 1) {
       this.points = 0;
     } else if (this.priority === 2) {
       this.points = -10;
     }
-    // priority 0 keeps the availability-calculated points
   }
 }
 
