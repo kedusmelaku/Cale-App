@@ -58,8 +58,23 @@ class SimplifiedDay extends Day {
 
       for (let block of this.blocks) {
         // for each shift block
-        let peak = this.findPeak(day, block); // find peak workers needed for this block
+        let peak = this.findPeak(day, block);
         if (peak === 0) continue; // skip blocks with no students
+
+        // count how many already-assigned workers cover this block
+        let alreadyCovered = day.totalWorkers.filter((worker) => {
+          let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
+          if (worker.working[dayIndex][0] === undefined) return false;
+          let assignedStart = this.timeToNum(worker.working[dayIndex][0]);
+          let assignedEnd = this.timeToNum(worker.working[dayIndex][1]);
+          return (
+            assignedStart <= this.timeToNum(block.start) &&
+            assignedEnd >= this.timeToNum(block.end)
+          );
+        }).length;
+
+        if (alreadyCovered >= peak) continue; // block already staffed, skip it
+        let stillNeeded = peak - alreadyCovered;
 
         // find workers available for this entire block and not yet assigned
         let availableWorkers = [];
@@ -79,24 +94,20 @@ class SimplifiedDay extends Day {
             workerEnd >= blockEnd &&
             worker.working[dayIndex][0] === undefined
           ) {
-            availableWorkers.push(worker); // only add if both conditions met
+            availableWorkers.push(worker);
           }
         }
-
-        
 
         // sort by points so highest priority workers are first
         availableWorkers.sort((a, b) => a.points - b.points);
 
-       
-
-        // assign workers up to peak
+        // assign workers up to stillNeeded
         let assigned = 0;
         for (let worker of availableWorkers) {
-          if (assigned >= peak) break; // stop if we have enough workers
+          if (assigned >= stillNeeded) break;
           let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
-          worker.working[dayIndex][0] = block.start; // set start time
-          worker.working[dayIndex][1] = block.end; // set end time
+          worker.working[dayIndex][0] = block.start;
+          worker.working[dayIndex][1] = block.end;
           assigned++;
         }
       }

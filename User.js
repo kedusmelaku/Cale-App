@@ -34,7 +34,7 @@ class User {
           //if hours are specified, add them
           if (isSaturday ? hour >= 10 && hour <= 14 : hour >= 3 && hour <= 8) {
             let displayHour = hour > 12 ? hour - 12 : hour; // convert 13 to 1, 14 to 2
-            this.hours[i].push(hour.toString());
+            this.hours[i].push(displayHour.toString());
             if (hour < hoursAv[i][2]) {
               this.hours[i].push(hour + ":30");
             }
