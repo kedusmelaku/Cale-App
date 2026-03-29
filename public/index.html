@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scheduler</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ── Screen 1: Workers ── -->
+    <div id="screen-workers" class="screen active">
+      <header>
+        <span class="header-title">Scheduler</span>
+        <button class="btn-primary" onclick="goToSchedule()">
+          Build Schedule →
+        </button>
+      </header>
+      <div class="page-body">
+        <div class="page-intro">
+          <h1>Employees</h1>
+          <p>
+            Add your team here. They'll be saved automatically for next time.
+          </p>
+        </div>
+        <div class="worker-grid" id="worker-grid"></div>
+        <button class="btn-add-worker" onclick="openModal()">
+          + Add Employee
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Screen 2: Schedule ── -->
+    <div id="screen-schedule" class="screen">
+      <header>
+        <button class="btn-back" onclick="goToWorkers()">← Employees</button>
+        <span class="header-title">Scheduler</span>
+        <div class="header-actions">
+          <button
+            class="btn-secondary"
+            id="copy-btn"
+            disabled
+            onclick="copyToClipboard()"
+          >
+            Copy to Clipboard
+          </button>
+          <button class="btn-primary" onclick="generate()">
+            Generate Schedule
+          </button>
+        </div>
+      </header>
+      <div class="page-body schedule-layout">
+        <!-- Availability -->
+        <div class="availability-panel">
+          <h2 class="panel-title">Availability</h2>
+          <p class="panel-subtitle">
+            Select which days each worker is available this week.
+          </p>
+          <div id="availability-list"></div>
+        </div>
+        <!-- Output -->
+        <div class="output-panel">
+          <div class="output-panel-header">
+            <h2 class="panel-title">Schedule</h2>
+            <div class="output-controls">
+              <div class="date-field">
+                <label class="date-label">Week of (Monday)</label>
+                <input type="date" id="week-date" />
+              </div>
+              <button
+                class="btn-edit"
+                id="edit-btn"
+                disabled
+                onclick="goToEdit()"
+              >
+                Edit Schedule
+              </button>
+            </div>
+          </div>
+          <div class="schedule-grid">
+            <div class="empty-state" id="empty-state">
+              Enter a date and click <strong>Generate Schedule</strong>.
+            </div>
+            <div id="schedule-output" style="display: none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Screen 3: Edit ── -->
+    <div id="screen-edit" class="screen">
+      <header>
+        <button class="btn-back" onclick="showScreen('screen-schedule')">← Schedule</button>
+        <span class="header-title">Edit Schedule</span>
+        <div class="header-actions">
+          <button class="btn-secondary" onclick="copyToClipboard()">
+            Copy to Clipboard
+          </button>
+          <button class="btn-primary" onclick="finishEdit()">Finish →</button>
+        </div>
+      </header>
+      <div id="oob-banner" class="oob-banner" style="display: none"></div>
+      <div class="edit-body">
+        <div class="edit-timeline-wrap">
+          <div id="edit-timeline"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Add Worker Modal ── -->
+    <div class="modal-overlay" id="modal">
+      <div class="modal">
+        <h3>Add Employee</h3>
+        <label class="field-label">Name</label>
+        <input type="text" id="new-worker-name" placeholder="Full name" />
+        <label class="field-label"
+          >Priority
+          <span class="info-tag"
+            >i
+            <span class="info-tooltip">
+              <strong>Normal:</strong> High schoolers or people with limited
+              availability.<br />
+              <strong>Priority:</strong> Adults with moderate availability.<br />
+              <strong>High Priority:</strong> Adults who are usually fully
+              available.
+            </span>
+          </span></label
+        >
+        <div class="priority-picker">
+          <button
+            class="priority-opt active"
+            data-val="0"
+            onclick="selectPriority(0)"
+          >
+            Normal
+          </button>
+          <button class="priority-opt" data-val="1" onclick="selectPriority(1)">
+            Priority
+          </button>
+          <button class="priority-opt" data-val="2" onclick="selectPriority(2)">
+            High Priority
+          </button>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-confirm" onclick="addWorker()">
+            Add Employee
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Add Worker to Day Modal ── -->
+    <div class="modal-overlay" id="add-shift-modal">
+      <div class="modal">
+        <h3>Add Employee to <span id="add-shift-day-name"></span></h3>
+        <label class="field-label">Employee</label>
+        <select id="add-shift-worker" class="field-select"></select>
+        <label class="field-label" style="margin-top: 14px">Start</label>
+        <select id="add-shift-start" class="field-select"></select>
+        <label class="field-label" style="margin-top: 14px">End</label>
+        <select id="add-shift-end" class="field-select"></select>
+        <div class="modal-actions" style="margin-top: 20px">
+          <button class="btn-cancel" onclick="closeAddShiftModal()">
+            Cancel
+          </button>
+          <button class="btn-confirm" onclick="confirmAddShift()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Edit Employee Modal ── -->
+    <div class="modal-overlay" id="edit-employee-modal">
+      <div class="modal">
+        <h3>Edit Employee</h3>
+        <label class="field-label">Name</label>
+        <input type="text" id="edit-employee-name" placeholder="Full name" />
+        <label class="field-label"
+          >Priority
+          <span class="info-tag"
+            >i
+            <span class="info-tooltip">
+              <strong>Normal:</strong> High schoolers or people with limited
+              availability.<br />
+              <strong>Priority:</strong> Adults with moderate availability.<br />
+              <strong>High Priority:</strong> Adults who are usually fully
+              available.
+            </span>
+          </span></label
+        >
+        <div class="priority-picker" id="edit-priority-picker">
+          <button
+            class="priority-opt active"
+            data-val="0"
+            onclick="selectEditPriority(0)"
+          >
+            Normal
+          </button>
+          <button
+            class="priority-opt"
+            data-val="1"
+            onclick="selectEditPriority(1)"
+          >
+            Priority
+          </button>
+          <button
+            class="priority-opt"
+            data-val="2"
+            onclick="selectEditPriority(2)"
+          >
+            High Priority
+          </button>
+        </div>
+        <label class="field-label" style="margin-top: 14px"
+          >Default Hours</label
+        >
+        <div class="av-time-inputs" style="margin-bottom: 4px">
+          <input
+            type="number"
+            id="edit-default-start"
+            min="3"
+            max="14"
+            style="width: 60px"
+          />
+          <span>–</span>
+          <input
+            type="number"
+            id="edit-default-end"
+            min="3"
+            max="14"
+            style="width: 60px"
+          />
+        </div>
+        <p
+          style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px"
+        >
+          Used when "Default hours" is checked on the availability screen.
+        </p>
+        <div class="modal-actions" style="margin-top: 20px">
+          <button class="btn-cancel" onclick="closeEditEmployeeModal()">
+            Cancel
+          </button>
+          <button class="btn-confirm" onclick="confirmEditEmployee()">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ── Constants ──────────────────────────────────────────
+      const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
+      const DAY_FULL = {
+        monday: "Monday",
+        tuesday: "Tuesday",
+        wednesday: "Wednesday",
+        thursday: "Thursday",
+        saturday: "Saturday",
+      };
+      const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
+      const PRIORITY_CLASSES = ["", "p1", "p2"];
+      const WORKER_COLORS = [
+        "#4f86c6",
+        "#e05c5c",
+        "#3aaa72",
+        "#e08c2a",
+        "#8a6bbf",
+        "#2aaab4",
+        "#c47a2a",
+        "#5a8a5a",
+        "#c45a8a",
+        "#2a7ac4",
+        "#7aaa3a",
+      ];
+      const WEEKDAY_SLOTS = [
+        "3",
+        "3:30",
+        "4",
+        "4:30",
+        "5",
+        "5:30",
+        "6",
+        "6:30",
+        "7",
+        "7:30",
+        "8",
+      ];
+      const SAT_SLOTS = [
+        "10",
+        "10:30",
+        "11",
+        "11:30",
+        "12",
+        "12:30",
+        "1",
+        "1:30",
+        "2",
+      ];
+      const SLOT_H = 40;
+
+      // ── State ──────────────────────────────────────────────
+      let workers = JSON.parse(
+        localStorage.getItem("scheduler-workers") || "[]",
+      );
+      let availability = {};
+      let newWorkerPriority = 0;
+      let scheduleData = []; // [{ day, date, assignments: [{name,start,end,priority}] }]
+      let addShiftTarget = null; // { dayIndex }
+
+      // ── Persistence ────────────────────────────────────────
+      function saveWorkers() {
+        localStorage.setItem("scheduler-workers", JSON.stringify(workers));
+      }
+
+      // ── Helpers ────────────────────────────────────────────
+      function getWorkerColor(name) {
+        const sorted = workers.map((w) => w.name).sort();
+        return WORKER_COLORS[sorted.indexOf(name) % WORKER_COLORS.length];
+      }
+
+      function slotList(isSat) {
+        return isSat ? SAT_SLOTS : WEEKDAY_SLOTS;
+      }
+
+      function timeToIndex(time, isSat) {
+        const [h, m] = time.split(":").map(Number);
+        let hour = h;
+        if (isSat && hour < 10) hour += 12;
+        return (hour - (isSat ? 10 : 3)) * 2 + (m === 30 ? 1 : 0);
+      }
+
+      function indexToTime(idx, isSat) {
+        const base = isSat ? 10 : 3;
+        const totalHalfHours = base * 2 + idx;
+        const h = Math.floor(totalHalfHours / 2);
+        const m = totalHalfHours % 2 === 1 ? 30 : 0;
+        if (isSat && h > 12) return h - 12 + (m ? ":30" : "");
+        return h + (m ? ":30" : "");
+      }
+
+      function getDatesForWeek(mondayStr) {
+        // returns { monday: "3/30", tuesday: "3/31", ... }
+        if (!mondayStr) return {};
+        const base = new Date(mondayStr + "T00:00:00");
+        const offsets = {
+          monday: 0,
+          tuesday: 1,
+          wednesday: 2,
+          thursday: 3,
+          saturday: 5,
+        };
+        const result = {};
+        for (const [day, offset] of Object.entries(offsets)) {
+          const d = new Date(base);
+          d.setDate(d.getDate() + offset);
+          result[day] = `${d.getMonth() + 1}/${d.getDate()}`;
+        }
+        return result;
+      }
+
+      function buildClipboardText() {
+        let text = "";
+        for (const day of scheduleData) {
+          if (day.assignments.length === 0) continue;
+          const dateStr = day.date ? ` (${day.date})` : "";
+          text += `Hours for ${day.day}${dateStr}:\n`;
+          for (const a of day.assignments) {
+            const name = a.name.charAt(0).toUpperCase() + a.name.slice(1);
+            text += `${name}: ${a.start}-${a.end}\n`;
+          }
+          text += "\n";
+        }
+        return text;
+      }
+
+      function getOutOfBoundsWorkers() {
+        const warnings = [];
+        for (const day of scheduleData) {
+          const isSat = day.day === "Saturday";
+          for (const a of day.assignments) {
+            if (a.availStart === null || a.availEnd === null) continue; // default hours, skip
+            const shiftStart = timeToIndex(a.start, isSat);
+            const shiftEnd = timeToIndex(a.end, isSat);
+            // availStart/availEnd are raw hour numbers, convert to index
+            const avStartIdx = timeToIndex(a.availStart.toString(), isSat);
+            const avEndIdx = timeToIndex(a.availEnd.toString(), isSat);
+            if (shiftStart < avStartIdx || shiftEnd > avEndIdx) {
+              warnings.push(
+                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
+              );
+            }
+          }
+        }
+        return warnings;
+      }
+
+      // ── Navigation ─────────────────────────────────────────
+      function showScreen(id) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+      }
+
+      function goToWorkers() {
+        showScreen("screen-workers");
+      }
+
+      function goToSchedule() {
+        if (workers.length === 0)
+          return alert("Add at least one worker first.");
+        buildAvailability();
+        showScreen("screen-schedule");
+      }
+
+      function goToEdit() {
+        renderEditScreen();
+        showScreen("screen-edit");
+      }
+
+      function finishEdit() {
+        const warnings = getOutOfBoundsWorkers();
+        const warnText =
+          warnings.length > 0
+            ? `\n\n⚠️ Warning: the following workers are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
+            : "";
+        if (!confirm(`${warnText}Finish editing and return to the start?`))
+          return;
+        showScreen("screen-workers");
+      }
+
+      // ── Workers Screen ─────────────────────────────────────
+      function renderWorkers() {
+        const grid = document.getElementById("worker-grid");
+        grid.innerHTML = "";
+        if (workers.length === 0) {
+          grid.innerHTML = `<p class="empty-workers">No workers yet. Add one below.</p>`;
+          return;
+        }
+        workers.forEach((w, wi) => {
+          const card = document.createElement("div");
+          card.className = "wcard";
+          card.innerHTML = `
+        <div class="wcard-color" style="background:${getWorkerColor(w.name)}"></div>
+        <div class="wcard-body">
+          <div class="wcard-header">
+            <span class="wcard-name">${w.name}</span>
+            <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
+<span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:4px;">
+  <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
+  <button class="btn-remove" onclick="removeWorker(${wi})">Remove</button>
+</div>
+        </div>`;
+          grid.appendChild(card);
+        });
+      }
+
+      function removeWorker(wi) {
+        if (!confirm(`Remove ${workers[wi].name}?`)) return;
+        workers.splice(wi, 1);
+        saveWorkers();
+        renderWorkers();
+      }
+
+      // ── Add Worker Modal ───────────────────────────────────
+      function openModal() {
+        document.getElementById("new-worker-name").value = "";
+        selectPriority(0);
+        document.getElementById("modal").classList.add("open");
+        setTimeout(
+          () => document.getElementById("new-worker-name").focus(),
+          50,
+        );
+      }
+
+      function closeModal() {
+        document.getElementById("modal").classList.remove("open");
+      }
+
+      function selectPriority(val) {
+        newWorkerPriority = val;
+        document
+          .querySelectorAll(".priority-opt")
+          .forEach((btn) =>
+            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
+          );
+      }
+
+      function addWorker() {
+        const name = document.getElementById("new-worker-name").value.trim();
+        if (!name) return alert("Enter a name.");
+        if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
+          return alert("A worker with that name already exists.");
+        workers.push({ name, priority: newWorkerPriority });
+        saveWorkers();
+        renderWorkers();
+        closeModal();
+      }
+
+      document.getElementById("modal").addEventListener("click", function (e) {
+        if (e.target === this) closeModal();
+      });
+
+      // ── Availability Screen ────────────────────────────────
+      function buildAvailability() {
+        availability = {};
+        workers.forEach((w) => {
+          availability[w.name] = DAYS.map((d) => ({
+            day: d,
+            selected: false,
+            allDay: true,
+            start:
+              d === "saturday"
+                ? 10
+                : (w.defaultStart ?? (w.priority === 2 ? 3 : 4)),
+            end: d === "saturday" ? 14 : (w.defaultEnd ?? 8),
+          }));
+        });
+        renderAvailability();
+      }
+
+      function renderAvailability() {
+        const list = document.getElementById("availability-list");
+        list.innerHTML = "";
+        workers.forEach((w) => {
+          const av = availability[w.name];
+          const allSelected = av.every((d) => d.selected);
+          const section = document.createElement("div");
+          section.className = "av-section";
+          section.innerHTML = `
+        <div class="av-worker-header">
+          <div class="av-color" style="background:${getWorkerColor(w.name)}"></div>
+          <span class="av-name">${w.name}</span>
+          <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
+<span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+          <label class="av-select-all">
+            <input type="checkbox" ${allSelected ? "checked" : ""}
+              onchange="toggleAllDays('${w.name}', this.checked)">
+            <span>All days</span>
+          </label>
+        </div>
+        <div class="av-days">
+          ${av
+            .map(
+              (d, di) => `
+            <div class="av-day-row ${d.selected ? "selected" : ""}">
+              <label class="av-day-check">
+                <input type="checkbox" ${d.selected ? "checked" : ""}
+                  onchange="toggleDay('${w.name}', ${di}, this.checked)">
+                <span class="av-day-label">${DAY_FULL[d.day]}</span>
+              </label>
+              ${
+                d.selected
+                  ? `
+                <div class="av-hours">
+                  <label class="av-hours-check">
+                    <input type="checkbox" ${d.allDay ? "checked" : ""}
+                      onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
+                    <span>Default hours</span>
+                  </label>
+                  ${
+                    !d.allDay
+                      ? `
+                    <div class="av-time-inputs">
+                      <input type="number" value="${d.start}" min="3" max="14"
+                        onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
+                      <span>–</span>
+                      <input type="number" value="${d.end}" min="3" max="14"
+                        onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
+                    </div>
+                  `
+                      : ""
+                  }
+                </div>
+              `
+                  : ""
+              }
+            </div>
+          `,
+            )
+            .join("")}
+        </div>`;
+          list.appendChild(section);
+        });
+      }
+
+      function toggleAllDays(name, checked) {
+        availability[name].forEach((d) => (d.selected = checked));
+        renderAvailability();
+      }
+
+      function toggleDay(name, di, checked) {
+        availability[name][di].selected = checked;
+        renderAvailability();
+      }
+
+      function toggleAllDay(name, di, checked) {
+        availability[name][di].allDay = checked;
+        renderAvailability();
+      }
+
+      function updateHour(name, di, field, val) {
+        availability[name][di][field] = parseInt(val);
+      }
+
+      // ── Generate ───────────────────────────────────────────
+      async function generate() {
+        const mondayVal = document.getElementById("week-date").value;
+        if (!mondayVal)
+          return alert("Please enter the Monday date for this week.");
+
+        const payload = workers
+          .map((w) => {
+            const days = availability[w.name]
+              .filter((d) => d.selected)
+              .map((d) => ({
+                day: d.day,
+                allDay: d.allDay,
+                start: d.start,
+                end: d.end,
+              }));
+            return { name: w.name, priority: w.priority, days };
+          })
+          .filter((w) => w.days.length > 0);
+
+        if (payload.length === 0) return alert("No availability set.");
+
+        const res = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workers: payload }),
+        });
+        const data = await res.json();
+
+        // attach dates to schedule
+        const dates = getDatesForWeek(mondayVal);
+        scheduleData = data.schedule.map((d) => ({
+          ...d,
+          date: dates[d.day.toLowerCase()] || "",
+          assignments: d.assignments.map((a) => {
+            const worker = workers.find((w) => w.name === a.name);
+            const av = worker ? availability[worker.name] : null;
+            const avDay = av
+              ? av.find((x) => x.day === d.day.toLowerCase())
+              : null;
+            return {
+              ...a,
+              availStart: avDay && !avDay.allDay ? avDay.start : null, // null = default/unknown
+              availEnd: avDay && !avDay.allDay ? avDay.end : null,
+            };
+          }),
+        }));
+
+        renderSchedule();
+        document.getElementById("copy-btn").disabled = false;
+        document.getElementById("edit-btn").disabled = false;
+      }
+
+      // ── Schedule View (screen 2) ───────────────────────────
+      function renderSchedule() {
+        document.getElementById("empty-state").style.display = "none";
+        const output = document.getElementById("schedule-output");
+        output.style.display = "block";
+        output.innerHTML = buildTimelineHTML(scheduleData, false);
+      }
+
+      function buildTimelineHTML(data, isEdit) {
+        let html = `<div class="timeline${isEdit ? " timeline-edit" : ""}">`;
+        data.forEach((day, di) => {
+          const isSat = day.day === "Saturday";
+          const slots = slotList(isSat);
+          const slotLabels = slots
+            .map((s) => `<div class="timeline-slot-label">${s}</div>`)
+            .join("");
+          const gridLines = slots
+            .map(() => `<div class="timeline-grid-line"></div>`)
+            .join("");
+          const totalSlots = slots.length;
+
+          const workerCols = day.assignments
+            .map((a, ai) => {
+              const si = timeToIndex(a.start, isSat);
+              const ei = timeToIndex(a.end, isSat);
+              const color = getWorkerColor(a.name);
+              const draggable = isEdit
+                ? `data-day="${di}" data-ai="${ai}"`
+                : "";
+              const resizable = isEdit
+                ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
+                : "";
+              const removable = isEdit
+                ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>`
+                : "";
+              // calculate out-of-bounds overlay
+              const isSatDay = scheduleData[di]
+                ? scheduleData[di].day === "Saturday"
+                : false;
+              let oobOverlay = "";
+              if (a.availStart !== null && a.availEnd !== null) {
+                const avSi = timeToIndex(a.availStart.toString(), isSatDay);
+                const avEi = timeToIndex(a.availEnd.toString(), isSatDay);
+                // top overflow (before availStart)
+                if (si < avSi) {
+                  const overlapH = Math.min(avSi - si, ei - si) * SLOT_H;
+                  oobOverlay += `<div class="oob-overlay" style="top:0; height:${overlapH}px;"></div>`;
+                }
+                // bottom overflow (after availEnd)
+                if (ei > avEi) {
+                  const overlapStart = Math.max(avEi - si, 0) * SLOT_H;
+                  const overlapH = (ei - Math.max(avEi, si)) * SLOT_H;
+                  oobOverlay += `<div class="oob-overlay" style="top:${overlapStart}px; height:${overlapH}px;"></div>`;
+                }
+              }
+              return `
+  <div class="timeline-worker-col">
+    <div class="timeline-grid-lines">${gridLines}</div>
+    <div class="worker-block ${isEdit ? "draggable" : ""}"
+      style="top:${si * SLOT_H}px; height:${(ei - si) * SLOT_H}px; background:${color};"
+      title="${a.name}: ${a.start}–${a.end}"
+      ${draggable}>${a.name}${oobOverlay}${resizable}${removable}
+    </div>
+  </div>`;
+            })
+            .join("");
+
+          const addBtn = isEdit
+            ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>`
+            : "";
+
+          const dateStr = day.date
+            ? ` <span class="day-date">${day.date}</span>`
+            : "";
+          html += `
+        <div class="timeline-day">
+          <div class="timeline-day-header">${day.day}${dateStr}</div>
+          <div class="timeline-body">
+            <div class="timeline-slots">${slotLabels}</div>
+            <div class="timeline-workers" style="min-height:${totalSlots * SLOT_H}px;">${workerCols}</div>
+          </div>
+          ${addBtn}
+        </div>`;
+        });
+        html += `</div>`;
+        return html;
+      }
+
+      // ── Edit Screen ────────────────────────────────────────
+      function renderEditScreen() {
+        const wrap = document.getElementById("edit-timeline");
+        wrap.innerHTML = buildTimelineHTML(scheduleData, true);
+        attachDragHandlers();
+        updateOobBanner();
+      }
+
+      function updateOobBanner() {
+        const banner = document.getElementById("oob-banner");
+        const warnings = getOutOfBoundsWorkers();
+        if (warnings.length === 0) {
+          banner.style.display = "none";
+        } else {
+          banner.style.display = "block";
+          banner.innerHTML = `⚠️ Scheduled outside availability: ${warnings.join(", ")}`;
+        }
+      }
+
+      function attachDragHandlers() {
+        // drag to move blocks
+        document
+          .querySelectorAll(".worker-block.draggable")
+          .forEach((block) => {
+            block.addEventListener("mousedown", onBlockMouseDown);
+          });
+        // drag to resize
+        document.querySelectorAll(".resize-handle").forEach((handle) => {
+          handle.addEventListener("mousedown", onResizeMouseDown);
+        });
+      }
+
+      let dragState = null;
+
+      function onBlockMouseDown(e) {
+        if (e.target.classList.contains("resize-handle")) return;
+        if (e.target.classList.contains("remove-btn")) return;
+        if (e.target.classList.contains("add-shift-btn")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const block = e.currentTarget;
+        const di = parseInt(block.dataset.day);
+        const ai = parseInt(block.dataset.ai);
+        const col = block.closest(".timeline-worker-col");
+        const colRect = col.getBoundingClientRect();
+        const startY = e.clientY;
+        const startTop = parseInt(block.style.top);
+        dragState = { type: "move", block, di, ai, startY, startTop, colRect };
+        document.addEventListener("mousemove", onDragMove);
+        document.addEventListener("mouseup", cancelDrag);
+      }
+
+      function onResizeMouseDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const handle = e.currentTarget;
+        const di = parseInt(handle.dataset.day);
+        const ai = parseInt(handle.dataset.ai);
+        const block = handle.closest(".worker-block");
+        const startY = e.clientY;
+        const startHeight = parseInt(block.style.height);
+        dragState = { type: "resize", block, di, ai, startY, startHeight };
+        document.addEventListener("mousemove", onDragMove);
+        document.addEventListener("mouseup", cancelDrag);
+      }
+
+      function onDragMove(e) {
+        if (!dragState) return;
+        const isSat = scheduleData[dragState.di].day === "Saturday";
+        const slots = slotList(isSat);
+        const totalSlots = slots.length;
+
+        if (dragState.type === "move") {
+          const dy = e.clientY - dragState.startY;
+          let newTop = dragState.startTop + dy;
+          // snap to slot
+          newTop = Math.round(newTop / SLOT_H) * SLOT_H;
+          // clamp
+          const blockH = parseInt(dragState.block.style.height);
+          newTop = Math.max(0, Math.min(newTop, totalSlots * SLOT_H - blockH));
+          dragState.block.style.top = newTop + "px";
+        } else {
+          const dy = e.clientY - dragState.startY;
+          let newH = dragState.startHeight + dy;
+          newH = Math.round(newH / SLOT_H) * SLOT_H;
+          newH = Math.max(SLOT_H, newH);
+          // clamp to not exceed bottom
+          const top = parseInt(dragState.block.style.top);
+          newH = Math.min(newH, totalSlots * SLOT_H - top);
+          dragState.block.style.height = newH + "px";
+        }
+      }
+
+      function cancelDrag() {
+        if (!dragState) return;
+        const { di, ai, block, type } = dragState;
+        const isSat = scheduleData[di].day === "Saturday";
+
+        const top = parseInt(block.style.top);
+        const height = parseInt(block.style.height);
+        const startIdx = Math.round(top / SLOT_H);
+        const endIdx = Math.round((top + height) / SLOT_H);
+
+        const newStart = indexToTime(startIdx, isSat);
+        const newEnd = indexToTime(endIdx, isSat);
+
+        scheduleData[di].assignments[ai].start = newStart;
+        scheduleData[di].assignments[ai].end = newEnd;
+
+        renderEditScreen();
+        renderSchedule();
+
+        document.removeEventListener("mousemove", onDragMove);
+        document.removeEventListener("mouseup", cancelDrag);
+        dragState = null;
+      }
+
+      function removeShift(di, ai) {
+        const name = scheduleData[di].assignments[ai].name;
+        if (!confirm(`Remove ${name} from ${scheduleData[di].day}?`)) return;
+        scheduleData[di].assignments.splice(ai, 1);
+        renderEditScreen();
+        renderSchedule();
+      }
+
+      // ── Add Shift Modal ────────────────────────────────────
+      function openAddShiftModal(di) {
+        addShiftTarget = di;
+        const day = scheduleData[di];
+        const isSat = day.day === "Saturday";
+        const slots = slotList(isSat);
+
+        document.getElementById("add-shift-day-name").textContent = day.day;
+
+        // workers not already assigned this day
+        const assigned = new Set(day.assignments.map((a) => a.name));
+        const available = workers.filter((w) => !assigned.has(w.name));
+        const workerSel = document.getElementById("add-shift-worker");
+        workerSel.innerHTML =
+          available.length === 0
+            ? `<option value="">No workers available</option>`
+            : available
+                .map((w) => `<option value="${w.name}">${w.name}</option>`)
+                .join("");
+
+        // start/end selects
+        const startSel = document.getElementById("add-shift-start");
+        const endSel = document.getElementById("add-shift-end");
+        startSel.innerHTML = slots
+          .map((s) => `<option value="${s}">${s}</option>`)
+          .join("");
+        endSel.innerHTML = slots
+          .map((s) => `<option value="${s}">${s}</option>`)
+          .join("");
+        endSel.selectedIndex = Math.min(2, slots.length - 1);
+
+        document.getElementById("add-shift-modal").classList.add("open");
+      }
+
+      function closeAddShiftModal() {
+        document.getElementById("add-shift-modal").classList.remove("open");
+        addShiftTarget = null;
+      }
+
+      function confirmAddShift() {
+        const name = document.getElementById("add-shift-worker").value;
+        if (!name) return alert("No employee selected.");
+        const start = document.getElementById("add-shift-start").value;
+        const end = document.getElementById("add-shift-end").value;
+        const di = addShiftTarget;
+        const isSat = scheduleData[di].day === "Saturday";
+        if (timeToIndex(start, isSat) >= timeToIndex(end, isSat))
+          return alert("End time must be after start time.");
+        const worker = workers.find((w) => w.name === name);
+
+        // close modal and clear target BEFORE modifying data and re-rendering
+        closeAddShiftModal();
+
+        scheduleData[di].assignments.push({
+          name,
+          start,
+          end,
+          priority: worker ? worker.priority : 0,
+          availStart: (() => {
+            const av = availability[name];
+            if (!av) return null;
+            const avDay = av.find(
+              (x) => x.day === scheduleData[di].day.toLowerCase(),
+            );
+            return avDay && !avDay.allDay ? avDay.start : null;
+          })(),
+          availEnd: (() => {
+            const av = availability[name];
+            if (!av) return null;
+            const avDay = av.find(
+              (x) => x.day === scheduleData[di].day.toLowerCase(),
+            );
+            return avDay && !avDay.allDay ? avDay.end : null;
+          })(),
+        });
+
+        // defer render to next tick so no active mousedown bleeds into new handlers
+        setTimeout(() => {
+          renderEditScreen();
+          renderSchedule();
+        }, 0);
+      }
+
+      document
+        .getElementById("add-shift-modal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeAddShiftModal();
+        });
+
+      // ── Clipboard ──────────────────────────────────────────
+      function copyToClipboard() {
+        const warnings = getOutOfBoundsWorkers();
+        if (warnings.length > 0) {
+          const proceed = confirm(
+            `⚠️ The following workers are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`,
+          );
+          if (!proceed) return;
+        }
+        const text = buildClipboardText();
+        navigator.clipboard.writeText(text).then(() => {
+          document.querySelectorAll("#copy-btn").forEach((btn) => {
+            btn.textContent = "Copied!";
+            setTimeout(() => (btn.textContent = "Copy to Clipboard"), 2000);
+          });
+        });
+      }
+
+      let editEmployeeIndex = null;
+      let editEmployeePriority = 0;
+
+      function openEditEmployeeModal(wi) {
+        editEmployeeIndex = wi;
+        const w = workers[wi];
+        editEmployeePriority = w.priority;
+        document.getElementById("edit-employee-name").value = w.name;
+        document.getElementById("edit-default-start").value =
+          w.defaultStart ?? (w.priority === 2 ? 3 : 4);
+        document.getElementById("edit-default-end").value = w.defaultEnd ?? 8;
+        selectEditPriority(w.priority);
+        document.getElementById("edit-employee-modal").classList.add("open");
+      }
+
+      function closeEditEmployeeModal() {
+        document.getElementById("edit-employee-modal").classList.remove("open");
+        editEmployeeIndex = null;
+      }
+
+      function selectEditPriority(val) {
+        editEmployeePriority = val;
+        document
+          .querySelectorAll("#edit-priority-picker .priority-opt")
+          .forEach((btn) =>
+            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
+          );
+      }
+
+      function confirmEditEmployee() {
+        const name = document.getElementById("edit-employee-name").value.trim();
+        if (!name) return alert("Enter a name.");
+        const start = parseInt(
+          document.getElementById("edit-default-start").value,
+        );
+        const end = parseInt(document.getElementById("edit-default-end").value);
+        if (isNaN(start) || isNaN(end) || start >= end)
+          return alert("Enter valid default hours.");
+        const existing = workers.find(
+          (w, i) =>
+            w.name.toLowerCase() === name.toLowerCase() &&
+            i !== editEmployeeIndex,
+        );
+        if (existing)
+          return alert("Another employee with that name already exists.");
+        workers[editEmployeeIndex].name = name;
+        workers[editEmployeeIndex].priority = editEmployeePriority;
+        workers[editEmployeeIndex].defaultStart = start;
+        workers[editEmployeeIndex].defaultEnd = end;
+        saveWorkers();
+        renderWorkers();
+        closeEditEmployeeModal();
+      }
+
+      document
+        .getElementById("edit-employee-modal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeEditEmployeeModal();
+        });
+      // ── Init ───────────────────────────────────────────────
+      renderWorkers();
+    </script>
+  </body>
+</html>

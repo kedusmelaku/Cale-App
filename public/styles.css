@@ -197,7 +197,7 @@ header {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--shadow);
   display: flex;
   transition: box-shadow 0.15s;
@@ -576,12 +576,15 @@ header {
   display: flex;
   flex: 1;
   position: relative;
+  overflow-x: auto;
+  min-width: 0;
 }
 
 .timeline-worker-col {
-  flex: 1;
   position: relative;
-  min-width: 24px;
+  min-width: 32px;
+  /* minimum before scrolling kicks in */
+  flex: 1;
 }
 
 .timeline-grid-lines {
@@ -617,3 +620,289 @@ header {
 }
 
 .worker-block:hover { opacity: 1; }
+
+/* ── Output panel header ── */
+.output-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.output-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-mid);
+}
+
+input[type="date"] {
+  padding: 7px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface2);
+  transition: border-color 0.15s;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.btn-edit {
+  padding: 9px 18px;
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-edit:hover { background: var(--accent-light); }
+.btn-edit:disabled { color: var(--text-muted); border-color: var(--border); cursor: default; background: transparent; }
+
+/* ── Day date label ── */
+.day-date {
+  font-size: 0.72rem;
+  font-weight: 400;
+  opacity: 0.85;
+  margin-left: 5px;
+}
+
+/* ── Edit screen ── */
+.edit-body {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 24px;
+}
+
+.edit-timeline-wrap {
+  min-width: 800px;
+}
+
+.timeline-edit .timeline-day {
+  min-width: 160px;
+}
+
+.timeline-workers {
+  position: relative;
+}
+
+/* ── Draggable blocks ── */
+.worker-block.draggable {
+  cursor: grab;
+  user-select: none;
+}
+
+.worker-block.draggable:active { cursor: grabbing; }
+
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  cursor: ns-resize;
+  background: rgba(0,0,0,0.15);
+  border-radius: 0 0 4px 4px;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 0.65rem;
+  color: white;
+  cursor: pointer;
+  opacity: 0.7;
+  line-height: 1;
+  writing-mode: horizontal-tb;
+}
+
+.remove-btn:hover { opacity: 1; }
+
+/* ── Add shift button ── */
+.add-shift-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.add-shift-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Field select (modal) ── */
+.field-select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 0.85rem;
+  transition: border-color 0.15s;
+  margin-bottom: 2px;
+}
+
+.field-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── Select all days ── */
+.av-select-all {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.av-select-all input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Out of bounds overlay ── */
+.oob-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(45deg,
+      rgba(0, 0, 0, 0.25),
+      rgba(0, 0, 0, 0.25) 4px,
+      transparent 4px,
+      transparent 10px);
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+/* ── Warning banner ── */
+.oob-banner {
+  background: #fff8e1;
+  border-bottom: 2px solid #f9a825;
+  color: #7a5c00;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  position: sticky;
+  top: 57px;
+  /* below header */
+  z-index: 9;
+}
+
+/* ── Info tag ── */
+.info-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 99px;
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.info-tag:hover .info-tooltip {
+  display: block;
+}
+
+.info-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 400;
+  padding: 7px 10px;
+  border-radius: 6px;
+  width: 220px;
+  line-height: 1.5;
+  z-index: 50;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.info-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--text);
+}
+
+.btn-edit-emp {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: 'Noto Sans', sans-serif;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.btn-edit-emp:hover {
+  color: var(--accent-hover);
+}
+
+.priority-opt {
+  text-transform: none;
+  letter-spacing: ;
+}
+
+.info-tooltip {
+  text-transform: none;
+  font-weight: 400;
+  letter-spacing: 0;
+}

@@ -1,11 +1,11 @@
 const express = require("express");
 const path = require("path");
-const User = require("./User");
-const SimplifiedWeek = require("./SimplifiedWeek");
+const User = require("../User");
+const SimplifiedWeek = require("../SimplifiedWeek");
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(__dirname));
 
 app.post("/generate", (req, res) => {
   const { workers } = req.body;
