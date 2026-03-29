@@ -7,16 +7,29 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div id="demo-banner" style="display: none">
+      <span>⚡ Demo Mode</span>
+      <button
+        onclick="
+          setDemo(false);
+          document.getElementById('demo-toggle').checked = false;
+        "
+      >
+        Exit Demo
+      </button>
+    </div>
     <!-- ── Screen 1: Workers ── -->
     <div id="screen-workers" class="screen active">
       <header>
         <span class="header-title">Scheduler</span>
-        <button class="btn-primary" onclick="goToSchedule()">
-          Build Schedule →
-        </button>
-        <button class="btn-gear" onclick="openSettings()" title="Settings">
-          ⚙
-        </button>
+        <div class="header-actions">
+          <button class="btn-primary" onclick="goToSchedule()">
+            Build Schedule →
+          </button>
+          <button class="btn-gear" onclick="openSettings()" title="Settings">
+            ⚙
+          </button>
+        </div>
       </header>
       <div class="page-body">
         <div class="page-intro">
@@ -59,7 +72,7 @@
         <div class="availability-panel">
           <h2 class="panel-title">Availability</h2>
           <p class="panel-subtitle">
-            Select which days each worker is available this week.
+            Select which days each employee is available this week.
           </p>
           <div id="availability-list"></div>
         </div>
@@ -96,9 +109,11 @@
     <div id="screen-auth" class="screen">
       <header>
         <span class="header-title">Scheduler</span>
-        <button class="btn-gear" onclick="openSettings()" title="Settings">
-          ⚙
-        </button>
+        <div class="header-actions">
+          <button class="btn-gear" onclick="openSettings()" title="Settings">
+            ⚙
+          </button>
+        </div>
       </header>
       <div class="page-body" style="max-width: 520px">
         <div class="page-intro">
@@ -197,7 +212,7 @@
             <div>
               <div class="settings-label">Demo Mode</div>
               <div class="settings-sublabel">
-                Load a premade roster with fake availability and student counts
+                Load a premade team with fake availability and student counts
               </div>
             </div>
             <label class="switch">
@@ -560,7 +575,7 @@
 
       function goToSchedule() {
         if (workers.length === 0)
-          return alert("Add at least one worker first.");
+          return alert("Add at least one employee first.");
         buildAvailability();
         showScreen("screen-schedule");
       }
@@ -574,7 +589,7 @@
         const warnings = getOutOfBoundsWorkers();
         const warnText =
           warnings.length > 0
-            ? `\n\n⚠️ Warning: the following workers are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
+            ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
             : "";
         if (!confirm(`${warnText}Finish editing and return to the start?`))
           return;
@@ -586,7 +601,7 @@
         const grid = document.getElementById("worker-grid");
         grid.innerHTML = "";
         if (workers.length === 0) {
-          grid.innerHTML = `<p class="empty-workers">No workers yet. Add one below.</p>`;
+          grid.innerHTML = `<p class="empty-workers">No employees yet. Add one below.</p>`;
           return;
         }
         sortedWorkers().forEach((w) => {
@@ -643,9 +658,9 @@
 
       function addWorker() {
         const name = document.getElementById("new-worker-name").value.trim();
-        if (!name) return alert("Enter a name.");
+        if (!name) return alert("Enter a name");
         if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
-          return alert("A worker with that name already exists.");
+          return alert("An employee with that name already exists.");
         workers.push({ name, priority: newWorkerPriority });
         saveWorkers();
         renderWorkers();
@@ -785,7 +800,12 @@
         let oneOnOneData = null;
 
         try {
-          if (window._skipCalendar || settings.inputMode === "manual") throw new Error("skipped");
+          if (
+            window._skipCalendar ||
+            settings.inputMode === "manual" ||
+            settings.demo
+          )
+            throw new Error("skipped");
           const eventsRes = await fetch(`/events/mock?monday=${mondayVal}`); //change back to const eventsRes = await fetch(`/events?monday=${mondayVal}`); once done
           if (eventsRes.status === 401) {
             // auth failure — show auth screen
@@ -1184,7 +1204,7 @@
 
       function confirmEditEmployee() {
         const name = document.getElementById("edit-employee-name").value.trim();
-        if (!name) return alert("Enter a name.");
+        if (!name) return alert("Enter a name");
         const start = parseInt(
           document.getElementById("edit-default-start").value,
         );
@@ -1294,15 +1314,22 @@
           .classList.toggle("active", val === "manual");
       }
 
+      let _realWorkers = null; // stores real team while in demo mode
+
       function setDemo(checked) {
         settings.demo = checked;
         saveSettings();
+        document.getElementById("demo-banner").style.display = checked
+          ? "flex"
+          : "none";
         if (checked) activateDemo();
         else deactivateDemo();
       }
 
       function activateDemo() {
-        // load fake employees
+        // store real team before overwriting
+        _realWorkers = JSON.parse(JSON.stringify(workers));
+
         workers = [
           { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
           { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
@@ -1311,12 +1338,67 @@
           { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
           { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
         ];
-        saveWorkers();
+
+        // premade availability for demo
+        availability = {
+          Alex: DAYS.map((d) => ({
+            day: d,
+            selected: true,
+            allDay: false,
+            start: d === "saturday" ? 10 : 3,
+            end: d === "saturday" ? 14 : 8,
+          })),
+          Jordan: DAYS.map((d) => ({
+            day: d,
+            selected: d !== "wednesday",
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+          })),
+          Taylor: DAYS.map((d) => ({
+            day: d,
+            selected: d !== "thursday",
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+          })),
+          Morgan: DAYS.map((d) => ({
+            day: d,
+            selected: ["monday", "wednesday", "saturday"].includes(d),
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+          })),
+          Casey: DAYS.map((d) => ({
+            day: d,
+            selected: ["tuesday", "thursday"].includes(d),
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+          })),
+          Riley: DAYS.map((d) => ({
+            day: d,
+            selected: ["monday", "tuesday", "saturday"].includes(d),
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+          })),
+        };
+
         renderWorkers();
       }
 
       function deactivateDemo() {
-        workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
+        // restore real team
+        if (_realWorkers !== null) {
+          workers = _realWorkers;
+          _realWorkers = null;
+        } else {
+          workers = JSON.parse(
+            localStorage.getItem("scheduler-workers") || "[]",
+          );
+        }
+        availability = {};
         renderWorkers();
       }
 
@@ -1335,6 +1417,12 @@
           if (b.priority !== a.priority) return b.priority - a.priority;
           return a.name.localeCompare(b.name);
         });
+      }
+
+      // restore demo banner if demo was active
+      if (settings.demo) {
+        document.getElementById("demo-banner").style.display = "flex";
+        activateDemo();
       }
       // ── Init ───────────────────────────────────────────────
       renderWorkers();

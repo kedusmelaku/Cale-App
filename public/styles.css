@@ -1173,7 +1173,7 @@ input[type="date"]:focus {
 /* ── Dark mode ── */
 body.dark {
   --bg: #0f0f13;
-  --surface: #18181f;
+  --surface: #262631;
   --surface2: #21212b;
   --border: #2a2a38;
   --border-strong: #3a3a50;
@@ -1182,4 +1182,36 @@ body.dark {
   --text-muted: #6b6b80;
   --accent-light: #1a1a35;
   --green-bg: #0a1f12;
+}
+
+/* ── Demo banner ── */
+#demo-banner {
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  color: #856404;
+  padding: 5px 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 11;
+}
+
+#demo-banner button {
+  background: none;
+  border: 1px solid #856404;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+#demo-banner button:hover {
+  background: #ffc107;
+  color: #333;
 }
