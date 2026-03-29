@@ -221,6 +221,7 @@ header {
   font-size: 0.88rem;
   padding: 12px 0;
   grid-column: 1 / -1;
+  font-style: italic;
 }
 
 .wcard {
@@ -930,16 +931,16 @@ input[type="date"]:focus {
   justify-content: center;
   width: 15px;
   height: 15px;
-  border-radius: 99px;
+  border-radius: 50%;
   border: 1.5px solid var(--border-strong);
   color: var(--text-muted);
   font-size: 0.6rem;
   font-weight: 700;
   cursor: pointer;
   position: relative;
-  vertical-align: middle;
-  margin-left: 4px;
+  padding: 1px;
   flex-shrink: 0;
+  text-transform: lowercase
 }
 
 .info-tag:hover .info-tooltip {
