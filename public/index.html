@@ -14,6 +14,9 @@
         <button class="btn-primary" onclick="goToSchedule()">
           Build Schedule →
         </button>
+        <button class="btn-gear" onclick="openSettings()" title="Settings">
+          ⚙
+        </button>
       </header>
       <div class="page-body">
         <div class="page-intro">
@@ -45,6 +48,9 @@
           </button>
           <button class="btn-primary" onclick="generate()">
             Generate Schedule
+          </button>
+          <button class="btn-gear" onclick="openSettings()" title="Settings">
+            ⚙
           </button>
         </div>
       </header>
@@ -86,10 +92,157 @@
       </div>
     </div>
 
+    <!-- ── Screen: Auth Failure ── -->
+    <div id="screen-auth" class="screen">
+      <header>
+        <span class="header-title">Scheduler</span>
+        <button class="btn-gear" onclick="openSettings()" title="Settings">
+          ⚙
+        </button>
+      </header>
+      <div class="page-body" style="max-width: 520px">
+        <div class="page-intro">
+          <h1>Google Calendar Access Needed</h1>
+          <p>
+            Scheduler uses Google Calendar to read student bookings and
+            automatically fill in student counts when generating a schedule.
+          </p>
+        </div>
+        <div class="auth-card">
+          <p>To grant access:</p>
+          <ol style="margin: 12px 0 12px 18px; line-height: 2">
+            <li>Stop the server</li>
+            <li>Delete <code>token.json</code> from the project folder</li>
+            <li>
+              Restart with <code>node server.js</code> and follow the URL it
+              prints
+            </li>
+          </ol>
+          <p>
+            If you'd prefer not to connect Google Calendar, you can continue and
+            enter student counts manually.
+          </p>
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 24px">
+          <button class="btn-primary" onclick="continueWithoutCalendar()">
+            Continue without Calendar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Settings Panel ── -->
+    <div class="modal-overlay" id="settings-panel">
+      <div class="settings-modal">
+        <div class="settings-header">
+          <span class="settings-title">Settings</span>
+          <button class="btn-back" onclick="closeSettings()">✕</button>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">Appearance</h3>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Theme</div>
+              <div class="settings-sublabel">
+                Switch between light and dark mode
+              </div>
+            </div>
+            <div class="toggle-group">
+              <button
+                class="toggle-opt active"
+                id="theme-light"
+                onclick="setTheme('light')"
+              >
+                Light
+              </button>
+              <button
+                class="toggle-opt"
+                id="theme-dark"
+                onclick="setTheme('dark')"
+              >
+                Dark
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">Model</h3>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Scheduling Mode</div>
+              <div class="settings-sublabel">
+                Choose how the schedule is generated
+              </div>
+            </div>
+            <div class="toggle-group">
+              <button
+                class="toggle-opt active"
+                id="mode-simplified"
+                onclick="setMode('simplified')"
+              >
+                Simplified
+              </button>
+              <button class="toggle-opt disabled" title="Coming soon">
+                Ultra-efficient <span class="coming-soon">Soon</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">Other</h3>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Demo Mode</div>
+              <div class="settings-sublabel">
+                Load a premade roster with fake availability and student counts
+              </div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                id="demo-toggle"
+                onchange="setDemo(this.checked)"
+              />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row" style="margin-top: 14px">
+            <div>
+              <div class="settings-label">Student Input</div>
+              <div class="settings-sublabel">
+                Where student counts come from when generating
+              </div>
+            </div>
+            <div class="toggle-group">
+              <button
+                class="toggle-opt active"
+                id="input-calendar"
+                onclick="setInputMode('calendar')"
+              >
+                Google Calendar
+              </button>
+              <button
+                class="toggle-opt"
+                id="input-manual"
+                onclick="setInputMode('manual')"
+              >
+                Manual
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Screen 3: Edit ── -->
     <div id="screen-edit" class="screen">
       <header>
-        <button class="btn-back" onclick="showScreen('screen-schedule')">← Schedule</button>
+        <button class="btn-back" onclick="showScreen('screen-schedule')">
+          ← Schedule
+        </button>
         <span class="header-title">Edit Schedule</span>
         <div class="header-actions">
           <button class="btn-secondary" onclick="copyToClipboard()">
@@ -436,7 +589,8 @@
           grid.innerHTML = `<p class="empty-workers">No workers yet. Add one below.</p>`;
           return;
         }
-        workers.forEach((w, wi) => {
+        sortedWorkers().forEach((w) => {
+          const wi = workers.indexOf(w);
           const card = document.createElement("div");
           card.className = "wcard";
           card.innerHTML = `
@@ -523,7 +677,7 @@
       function renderAvailability() {
         const list = document.getElementById("availability-list");
         list.innerHTML = "";
-        workers.forEach((w) => {
+        sortedWorkers().forEach((w) => {
           const av = availability[w.name];
           const allSelected = av.every((d) => d.selected);
           const section = document.createElement("div");
@@ -626,14 +780,36 @@
 
         if (payload.length === 0) return alert("No availability set.");
 
+        // fetch calendar events first
+        let studentData = null;
+        let oneOnOneData = null;
+
+        try {
+          if (window._skipCalendar || settings.inputMode === "manual") throw new Error("skipped");
+          const eventsRes = await fetch(`/events/mock?monday=${mondayVal}`); //change back to const eventsRes = await fetch(`/events?monday=${mondayVal}`); once done
+          if (eventsRes.status === 401) {
+            // auth failure — show auth screen
+            showScreen("screen-auth");
+            return;
+          }
+          if (eventsRes.ok) {
+            const eventsData = await eventsRes.json();
+            studentData = eventsData.studentData;
+            oneOnOneData = eventsData.oneOnOneData;
+          }
+        } catch (err) {
+          console.warn("Calendar fetch failed, using manual mode:", err);
+          // network error — continue without calendar data
+        }
+
         const res = await fetch("/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workers: payload }),
+          body: JSON.stringify({ workers: payload, studentData, oneOnOneData }),
         });
         const data = await res.json();
 
-        // attach dates to schedule
+        // attach dates
         const dates = getDatesForWeek(mondayVal);
         scheduleData = data.schedule.map((d) => ({
           ...d,
@@ -646,7 +822,7 @@
               : null;
             return {
               ...a,
-              availStart: avDay && !avDay.allDay ? avDay.start : null, // null = default/unknown
+              availStart: avDay && !avDay.allDay ? avDay.start : null,
               availEnd: avDay && !avDay.allDay ? avDay.end : null,
             };
           }),
@@ -1036,6 +1212,130 @@
         .addEventListener("click", function (e) {
           if (e.target === this) closeEditEmployeeModal();
         });
+
+      function continueWithoutCalendar() {
+        // go back to schedule screen, generate will skip calendar fetch next time
+        // set a flag so generate skips the calendar call
+        window._skipCalendar = true;
+        showScreen("screen-schedule");
+      }
+
+      // ── Settings ───────────────────────────────────────────
+      let settings = JSON.parse(
+        localStorage.getItem("scheduler-settings") || "{}",
+      );
+      settings = {
+        theme: "light",
+        mode: "simplified",
+        inputMode: "calendar",
+        demo: false,
+        ...settings,
+      };
+
+      function saveSettings() {
+        localStorage.setItem("scheduler-settings", JSON.stringify(settings));
+      }
+
+      function openSettings() {
+        // sync UI to current settings
+        document
+          .getElementById("theme-light")
+          .classList.toggle("active", settings.theme === "light");
+        document
+          .getElementById("theme-dark")
+          .classList.toggle("active", settings.theme === "dark");
+        document
+          .getElementById("mode-simplified")
+          .classList.toggle("active", settings.mode === "simplified");
+        document
+          .getElementById("input-calendar")
+          .classList.toggle("active", settings.inputMode === "calendar");
+        document
+          .getElementById("input-manual")
+          .classList.toggle("active", settings.inputMode === "manual");
+        document.getElementById("demo-toggle").checked = settings.demo;
+        document.getElementById("settings-panel").classList.add("open");
+      }
+
+      function closeSettings() {
+        document.getElementById("settings-panel").classList.remove("open");
+      }
+
+      function setTheme(val) {
+        settings.theme = val;
+        saveSettings();
+        applyTheme();
+        document
+          .getElementById("theme-light")
+          .classList.toggle("active", val === "light");
+        document
+          .getElementById("theme-dark")
+          .classList.toggle("active", val === "dark");
+      }
+
+      function applyTheme() {
+        document.body.classList.toggle("dark", settings.theme === "dark");
+      }
+
+      function setMode(val) {
+        settings.mode = val;
+        saveSettings();
+      }
+
+      function setInputMode(val) {
+        settings.inputMode = val;
+        saveSettings();
+        window._skipCalendar = val === "manual";
+        document
+          .getElementById("input-calendar")
+          .classList.toggle("active", val === "calendar");
+        document
+          .getElementById("input-manual")
+          .classList.toggle("active", val === "manual");
+      }
+
+      function setDemo(checked) {
+        settings.demo = checked;
+        saveSettings();
+        if (checked) activateDemo();
+        else deactivateDemo();
+      }
+
+      function activateDemo() {
+        // load fake employees
+        workers = [
+          { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
+          { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
+          { name: "Taylor", priority: 1, defaultStart: 4, defaultEnd: 8 },
+          { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
+          { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
+          { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        ];
+        saveWorkers();
+        renderWorkers();
+      }
+
+      function deactivateDemo() {
+        workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
+        renderWorkers();
+      }
+
+      // close settings on overlay click
+      document
+        .getElementById("settings-panel")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeSettings();
+        });
+
+      // apply theme on load
+      applyTheme();
+
+      function sortedWorkers() {
+        return [...workers].sort((a, b) => {
+          if (b.priority !== a.priority) return b.priority - a.priority;
+          return a.name.localeCompare(b.name);
+        });
+      }
       // ── Init ───────────────────────────────────────────────
       renderWorkers();
     </script>

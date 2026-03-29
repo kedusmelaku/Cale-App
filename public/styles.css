@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap");
 
 /* ── Variables ── */
 :root {
@@ -18,15 +18,21 @@
   --green-bg: #eaf4ef;
   --radius: 8px;
   --slot-h: 40px;
-  --shadow: 0 1px 4px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 /* ── Reset ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -35,8 +41,14 @@ body {
 }
 
 /* ── Screens ── */
-.screen { display: none; min-height: 100vh; flex-direction: column; }
-.screen.active { display: flex; }
+.screen {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+}
+.screen.active {
+  display: flex;
+}
 
 /* ── Header ── */
 header {
@@ -50,10 +62,12 @@ header {
   top: 0;
   z-index: 10;
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .header-title {
-  font-family: 'Noto Serif', serif;
+  font-family: "Noto Serif", serif;
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--text);
@@ -80,7 +94,7 @@ header {
 }
 
 .page-intro h1 {
-  font-family: 'Noto Serif', serif;
+  font-family: "Noto Serif", serif;
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--text);
@@ -108,14 +122,16 @@ header {
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: background 0.15s;
   white-space: nowrap;
 }
 
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
 
 .btn-secondary {
   padding: 9px 18px;
@@ -124,15 +140,22 @@ header {
   border: 1.5px solid var(--green);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: all 0.15s;
   white-space: nowrap;
 }
 
-.btn-secondary:hover { background: var(--green-bg); }
-.btn-secondary:disabled { color: var(--text-muted); border-color: var(--border); cursor: default; background: transparent; }
+.btn-secondary:hover {
+  background: var(--green-bg);
+}
+.btn-secondary:disabled {
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: default;
+  background: transparent;
+}
 
 .btn-back {
   padding: 8px 14px;
@@ -141,14 +164,17 @@ header {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
   transition: all 0.15s;
   white-space: nowrap;
 }
 
-.btn-back:hover { border-color: var(--border-strong); color: var(--text); }
+.btn-back:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
 
 .btn-add-worker {
   margin-top: 20px;
@@ -158,13 +184,15 @@ header {
   border: 1.5px dashed var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.88rem;
   font-weight: 600;
   transition: all 0.15s;
 }
 
-.btn-add-worker:hover { background: var(--accent-light); }
+.btn-add-worker:hover {
+  background: var(--accent-light);
+}
 
 .btn-remove {
   background: none;
@@ -172,12 +200,14 @@ header {
   color: var(--text-muted);
   cursor: pointer;
   font-size: 0.78rem;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   padding: 0;
   transition: color 0.15s;
 }
 
-.btn-remove:hover { color: var(--danger); }
+.btn-remove:hover {
+  color: var(--danger);
+}
 
 /* ── Worker Grid (screen 1) ── */
 .worker-grid {
@@ -203,7 +233,9 @@ header {
   transition: box-shadow 0.15s;
 }
 
-.wcard:hover { box-shadow: var(--shadow-md); }
+.wcard:hover {
+  box-shadow: var(--shadow-md);
+}
 
 .wcard-color {
   width: 6px;
@@ -239,21 +271,31 @@ header {
   font-weight: 500;
 }
 
-.wcard-priority.p1 { background: var(--green-bg); border-color: var(--green); color: var(--green); }
-.wcard-priority.p2 { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.wcard-priority.p1 {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
+}
+.wcard-priority.p2 {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 /* ── Modal ── */
 .modal-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   z-index: 100;
   justify-content: center;
   align-items: center;
 }
 
-.modal-overlay.open { display: flex; }
+.modal-overlay.open {
+  display: flex;
+}
 
 .modal {
   background: var(--surface);
@@ -265,7 +307,7 @@ header {
 }
 
 .modal h3 {
-  font-family: 'Noto Serif', serif;
+  font-family: "Noto Serif", serif;
   font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 20px;
@@ -289,7 +331,7 @@ header {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.88rem;
   margin-bottom: 18px;
   transition: border-color 0.15s;
@@ -313,14 +355,17 @@ header {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-mid);
   transition: all 0.15s;
 }
 
-.priority-opt:hover { border-color: var(--accent); color: var(--accent); }
+.priority-opt:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 .priority-opt.active {
   background: var(--accent-light);
@@ -342,12 +387,15 @@ header {
   border-radius: var(--radius);
   color: var(--text-mid);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.85rem;
   transition: all 0.15s;
 }
 
-.btn-cancel:hover { border-color: var(--border-strong); color: var(--text); }
+.btn-cancel:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
 
 .btn-confirm {
   padding: 9px 20px;
@@ -356,13 +404,15 @@ header {
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: background 0.15s;
 }
 
-.btn-confirm:hover { background: var(--accent-hover); }
+.btn-confirm:hover {
+  background: var(--accent-hover);
+}
 
 /* ── Availability Panel ── */
 .availability-panel {
@@ -371,10 +421,14 @@ header {
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: var(--shadow);
+  position: sticky;
+  top: 57px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
 }
 
 .panel-title {
-  font-family: 'Noto Serif', serif;
+  font-family: "Noto Serif", serif;
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
@@ -392,7 +446,9 @@ header {
   padding: 14px 0;
 }
 
-.av-section:last-child { border-bottom: none; }
+.av-section:last-child {
+  border-bottom: none;
+}
 
 .av-worker-header {
   display: flex;
@@ -424,10 +480,22 @@ header {
   font-weight: 500;
 }
 
-.av-priority.p1 { background: var(--green-bg); border-color: var(--green); color: var(--green); }
-.av-priority.p2 { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.av-priority.p1 {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
+}
+.av-priority.p2 {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
-.av-days { display: flex; flex-direction: column; gap: 4px; }
+.av-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .av-day-row {
   border-radius: 6px;
@@ -435,7 +503,9 @@ header {
   transition: background 0.1s;
 }
 
-.av-day-row.selected { background: var(--accent-light); }
+.av-day-row.selected {
+  background: var(--accent-light);
+}
 
 .av-day-check {
   display: flex;
@@ -494,7 +564,7 @@ header {
   border: 1.5px solid var(--border);
   border-radius: 5px;
   color: var(--text);
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.82rem;
   transition: border-color 0.15s;
 }
@@ -513,7 +583,9 @@ header {
   box-shadow: var(--shadow);
 }
 
-.schedule-grid { overflow-x: auto; }
+.schedule-grid {
+  overflow-x: auto;
+}
 
 .empty-state {
   text-align: center;
@@ -530,7 +602,10 @@ header {
   min-width: 500px;
 }
 
-.timeline-day { flex: 1; min-width: 120px; }
+.timeline-day {
+  flex: 1;
+  min-width: 120px;
+}
 
 .timeline-day-header {
   background: var(--accent);
@@ -570,7 +645,9 @@ header {
   border-bottom: 1px solid var(--border);
 }
 
-.timeline-slot-label:last-child { border-bottom: none; }
+.timeline-slot-label:last-child {
+  border-bottom: none;
+}
 
 .timeline-workers {
   display: flex;
@@ -598,7 +675,9 @@ header {
   border-bottom: 1px solid var(--border);
 }
 
-.timeline-grid-line:last-child { border-bottom: none; }
+.timeline-grid-line:last-child {
+  border-bottom: none;
+}
 
 .worker-block {
   position: absolute;
@@ -619,7 +698,9 @@ header {
   transition: opacity 0.15s;
 }
 
-.worker-block:hover { opacity: 1; }
+.worker-block:hover {
+  opacity: 1;
+}
 
 /* ── Output panel header ── */
 .output-panel-header {
@@ -656,7 +737,7 @@ input[type="date"] {
   padding: 7px 10px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.85rem;
   color: var(--text);
   background: var(--surface2);
@@ -675,15 +756,22 @@ input[type="date"]:focus {
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: all 0.15s;
   white-space: nowrap;
 }
 
-.btn-edit:hover { background: var(--accent-light); }
-.btn-edit:disabled { color: var(--text-muted); border-color: var(--border); cursor: default; background: transparent; }
+.btn-edit:hover {
+  background: var(--accent-light);
+}
+.btn-edit:disabled {
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: default;
+  background: transparent;
+}
 
 /* ── Day date label ── */
 .day-date {
@@ -718,7 +806,9 @@ input[type="date"]:focus {
   user-select: none;
 }
 
-.worker-block.draggable:active { cursor: grabbing; }
+.worker-block.draggable:active {
+  cursor: grabbing;
+}
 
 .resize-handle {
   position: absolute;
@@ -727,7 +817,7 @@ input[type="date"]:focus {
   right: 0;
   height: 10px;
   cursor: ns-resize;
-  background: rgba(0,0,0,0.15);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 0 0 4px 4px;
 }
 
@@ -743,7 +833,9 @@ input[type="date"]:focus {
   writing-mode: horizontal-tb;
 }
 
-.remove-btn:hover { opacity: 1; }
+.remove-btn:hover {
+  opacity: 1;
+}
 
 /* ── Add shift button ── */
 .add-shift-btn {
@@ -754,7 +846,7 @@ input[type="date"]:focus {
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
   color: var(--text-muted);
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.78rem;
   cursor: pointer;
   transition: all 0.15s;
@@ -773,7 +865,7 @@ input[type="date"]:focus {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   font-size: 0.85rem;
   transition: border-color 0.15s;
   margin-bottom: 2px;
@@ -806,11 +898,13 @@ input[type="date"]:focus {
   position: absolute;
   left: 0;
   right: 0;
-  background: repeating-linear-gradient(45deg,
-      rgba(0, 0, 0, 0.25),
-      rgba(0, 0, 0, 0.25) 4px,
-      transparent 4px,
-      transparent 10px);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.25),
+    rgba(0, 0, 0, 0.25) 4px,
+    transparent 4px,
+    transparent 10px
+  );
   pointer-events: none;
   border-radius: 4px;
 }
@@ -887,7 +981,7 @@ input[type="date"]:focus {
   color: var(--accent);
   cursor: pointer;
   font-size: 0.78rem;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: "Noto Sans", sans-serif;
   padding: 0;
   transition: color 0.15s;
 }
@@ -905,4 +999,187 @@ input[type="date"]:focus {
   text-transform: none;
   font-weight: 400;
   letter-spacing: 0;
+}
+
+/* ── Auth card ── */
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-top: 20px;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--text-mid);
+}
+
+.auth-card code {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+/* ── Settings ── */
+.btn-gear {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  transition: color 0.15s;
+  margin-left: 4px;
+}
+
+.btn-gear:hover { color: var(--text); }
+
+.settings-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-md);
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.settings-title {
+  font-family: 'Noto Serif', serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.settings-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-section:last-child { border-bottom: none; }
+
+.settings-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.settings-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 2px;
+}
+
+.settings-sublabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+.toggle-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.toggle-opt {
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  border-right: 1px solid var(--border);
+}
+
+.toggle-opt:last-child { border-right: none; }
+.toggle-opt.active { background: var(--accent); color: white; font-weight: 600; }
+.toggle-opt.disabled { opacity: 0.4; cursor: not-allowed; }
+.toggle-opt:not(.active):not(.disabled):hover { background: var(--surface2); color: var(--text); }
+
+.coming-soon {
+  font-size: 0.6rem;
+  background: var(--border);
+  padding: 1px 5px;
+  border-radius: 99px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* ── Toggle switch ── */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.switch-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.switch-slider::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 99px;
+  transition: transform 0.2s;
+}
+
+.switch input:checked + .switch-slider { background: var(--accent); }
+.switch input:checked + .switch-slider::before { transform: translateX(18px); }
+
+/* ── Dark mode ── */
+body.dark {
+  --bg: #0f0f13;
+  --surface: #18181f;
+  --surface2: #21212b;
+  --border: #2a2a38;
+  --border-strong: #3a3a50;
+  --text: #e8e8f0;
+  --text-mid: #a0a0b8;
+  --text-muted: #6b6b80;
+  --accent-light: #1a1a35;
+  --green-bg: #0a1f12;
 }
