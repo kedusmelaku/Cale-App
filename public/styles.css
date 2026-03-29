@@ -954,7 +954,7 @@ input[type="date"]:focus {
   left: 50%;
   transform: translateX(-50%);
   background: var(--text);
-  color: white;
+  color: var(--surface);
   font-size: 0.75rem;
   font-weight: 400;
   padding: 7px 10px;
@@ -1176,7 +1176,7 @@ body.dark {
   --bg: #0f0f13;
   --surface: #262631;
   --surface2: #21212b;
-  --border: #2a2a38;
+  --border: #4b4b63;
   --border-strong: #3a3a50;
   --text: #e8e8f0;
   --text-mid: #a0a0b8;
