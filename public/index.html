@@ -7,41 +7,29 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="demo-banner" style="display: none">
-      <span>⚡ Demo Mode</span>
-      <button
-        onclick="
-          setDemo(false);
-          document.getElementById('demo-toggle').checked = false;
-        "
-      >
-        Exit Demo
-      </button>
+
+    <!-- Demo banner — outside screens so always visible -->
+    <div id="demo-banner">
+      <span>⚡ Demo Mode — changes are not saved</span>
+      <button onclick="exitDemo()">Exit Demo</button>
     </div>
-    <!-- ── Screen 1: Workers ── -->
+
+    <!-- ── Screen 1: Employees ── -->
     <div id="screen-workers" class="screen active">
       <header>
         <span class="header-title">Scheduler</span>
         <div class="header-actions">
-          <button class="btn-primary" onclick="goToSchedule()">
-            Build Schedule →
-          </button>
-          <button class="btn-gear" onclick="openSettings()" title="Settings">
-            ⚙
-          </button>
+          <button class="btn-primary" onclick="goToSchedule()">Build Schedule →</button>
+          <button class="btn-gear" onclick="openSettings()" title="Settings">⚙</button>
         </div>
       </header>
       <div class="page-body">
         <div class="page-intro">
           <h1>Employees</h1>
-          <p>
-            Add your team here. They'll be saved automatically for next time.
-          </p>
+          <p>Add your team here. They'll be saved automatically for next time.</p>
         </div>
         <div class="worker-grid" id="worker-grid"></div>
-        <button class="btn-add-worker" onclick="openModal()">
-          + Add Employee
-        </button>
+        <button class="btn-add-worker" onclick="openModal()">+ Add Employee</button>
       </div>
     </div>
 
@@ -51,32 +39,17 @@
         <button class="btn-back" onclick="goToWorkers()">← Employees</button>
         <span class="header-title">Scheduler</span>
         <div class="header-actions">
-          <button
-            class="btn-secondary"
-            id="copy-btn"
-            disabled
-            onclick="copyToClipboard()"
-          >
-            Copy to Clipboard
-          </button>
-          <button class="btn-primary" onclick="generate()">
-            Generate Schedule
-          </button>
-          <button class="btn-gear" onclick="openSettings()" title="Settings">
-            ⚙
-          </button>
+          <button class="btn-secondary" id="copy-btn" disabled onclick="copyToClipboard()">Copy to Clipboard</button>
+          <button class="btn-primary" onclick="generate()">Generate Schedule</button>
+          <button class="btn-gear" onclick="openSettings()" title="Settings">⚙</button>
         </div>
       </header>
       <div class="page-body schedule-layout">
-        <!-- Availability -->
         <div class="availability-panel">
           <h2 class="panel-title">Availability</h2>
-          <p class="panel-subtitle">
-            Select which days each employee is available this week.
-          </p>
+          <p class="panel-subtitle">Select which days each employee is available this week.</p>
           <div id="availability-list"></div>
         </div>
-        <!-- Output -->
         <div class="output-panel">
           <div class="output-panel-header">
             <h2 class="panel-title">Schedule</h2>
@@ -85,22 +58,31 @@
                 <label class="date-label">Week of (Monday)</label>
                 <input type="date" id="week-date" />
               </div>
-              <button
-                class="btn-edit"
-                id="edit-btn"
-                disabled
-                onclick="goToEdit()"
-              >
-                Edit Schedule
-              </button>
+              <button class="btn-edit" id="edit-btn" disabled onclick="goToEdit()">Edit Schedule</button>
             </div>
           </div>
           <div class="schedule-grid">
-            <div class="empty-state" id="empty-state">
-              Enter a date and click <strong>Generate Schedule</strong>.
-            </div>
-            <div id="schedule-output" style="display: none"></div>
+            <div class="empty-state" id="empty-state">Enter a date and click <strong>Generate Schedule</strong>.</div>
+            <div id="schedule-output" style="display:none;"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Screen 3: Edit ── -->
+    <div id="screen-edit" class="screen">
+      <header>
+        <button class="btn-back" onclick="showScreen('screen-schedule')">← Schedule</button>
+        <span class="header-title">Edit Schedule</span>
+        <div class="header-actions">
+          <button class="btn-secondary" onclick="copyToClipboard()">Copy to Clipboard</button>
+          <button class="btn-primary" onclick="finishEdit()">Finish →</button>
+        </div>
+      </header>
+      <div id="oob-banner" class="oob-banner" style="display:none;"></div>
+      <div class="edit-body">
+        <div class="edit-timeline-wrap">
+          <div id="edit-timeline"></div>
         </div>
       </div>
     </div>
@@ -110,38 +92,25 @@
       <header>
         <span class="header-title">Scheduler</span>
         <div class="header-actions">
-          <button class="btn-gear" onclick="openSettings()" title="Settings">
-            ⚙
-          </button>
+          <button class="btn-gear" onclick="openSettings()" title="Settings">⚙</button>
         </div>
       </header>
-      <div class="page-body" style="max-width: 520px">
+      <div class="page-body" style="max-width:520px;">
         <div class="page-intro">
           <h1>Google Calendar Access Needed</h1>
-          <p>
-            Scheduler uses Google Calendar to read student bookings and
-            automatically fill in student counts when generating a schedule.
-          </p>
+          <p>Scheduler uses Google Calendar to read student bookings and automatically fill in student counts when generating a schedule.</p>
         </div>
         <div class="auth-card">
           <p>To grant access:</p>
-          <ol style="margin: 12px 0 12px 18px; line-height: 2">
+          <ol style="margin:12px 0 12px 18px; line-height:2;">
             <li>Stop the server</li>
             <li>Delete <code>token.json</code> from the project folder</li>
-            <li>
-              Restart with <code>node server.js</code> and follow the URL it
-              prints
-            </li>
+            <li>Restart with <code>node server.js</code> and follow the URL it prints</li>
           </ol>
-          <p>
-            If you'd prefer not to connect Google Calendar, you can continue and
-            enter student counts manually.
-          </p>
+          <p>If you'd prefer not to connect Google Calendar, you can continue and enter student counts manually.</p>
         </div>
-        <div style="display: flex; gap: 12px; margin-top: 24px">
-          <button class="btn-primary" onclick="continueWithoutCalendar()">
-            Continue without Calendar
-          </button>
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button class="btn-primary" onclick="continueWithoutCalendar()">Continue without Calendar</button>
         </div>
       </div>
     </div>
@@ -153,184 +122,89 @@
           <span class="settings-title">Settings</span>
           <button class="btn-back" onclick="closeSettings()">✕</button>
         </div>
-
         <div class="settings-section">
           <h3 class="settings-section-title">Appearance</h3>
           <div class="settings-row">
             <div>
               <div class="settings-label">Theme</div>
-              <div class="settings-sublabel">
-                Switch between light and dark mode
-              </div>
+              <div class="settings-sublabel">Switch between light and dark mode</div>
             </div>
             <div class="toggle-group">
-              <button
-                class="toggle-opt active"
-                id="theme-light"
-                onclick="setTheme('light')"
-              >
-                Light
-              </button>
-              <button
-                class="toggle-opt"
-                id="theme-dark"
-                onclick="setTheme('dark')"
-              >
-                Dark
-              </button>
+              <button class="toggle-opt active" id="theme-light" onclick="setTheme('light')">Light</button>
+              <button class="toggle-opt" id="theme-dark" onclick="setTheme('dark')">Dark</button>
             </div>
           </div>
         </div>
-
         <div class="settings-section">
           <h3 class="settings-section-title">Model</h3>
           <div class="settings-row">
             <div>
               <div class="settings-label">Scheduling Mode</div>
-              <div class="settings-sublabel">
-                Choose how the schedule is generated
-              </div>
+              <div class="settings-sublabel">Choose how the schedule is generated</div>
             </div>
             <div class="toggle-group">
-              <button
-                class="toggle-opt active"
-                id="mode-simplified"
-                onclick="setMode('simplified')"
-              >
-                Simplified
-              </button>
-              <button class="toggle-opt disabled" title="Coming soon">
-                Ultra-efficient <span class="coming-soon">Soon</span>
-              </button>
+              <button class="toggle-opt active" id="mode-simplified" onclick="setMode('simplified')">Simplified</button>
+              <button class="toggle-opt disabled" title="Coming soon">Ultra-efficient <span class="coming-soon">Soon</span></button>
             </div>
           </div>
         </div>
-
         <div class="settings-section">
           <h3 class="settings-section-title">Other</h3>
           <div class="settings-row">
             <div>
               <div class="settings-label">Demo Mode</div>
-              <div class="settings-sublabel">
-                Load a premade team with fake availability and student counts
-              </div>
+              <div class="settings-sublabel">Load a premade team with fake availability and student counts</div>
             </div>
             <label class="switch">
-              <input
-                type="checkbox"
-                id="demo-toggle"
-                onchange="setDemo(this.checked)"
-              />
+              <input type="checkbox" id="demo-toggle" onchange="setDemo(this.checked)" />
               <span class="switch-slider"></span>
             </label>
           </div>
-          <div class="settings-row" style="margin-top: 14px">
+          <div class="settings-row" style="margin-top:14px;">
             <div>
               <div class="settings-label">Student Input</div>
-              <div class="settings-sublabel">
-                Where student counts come from when generating
-              </div>
+              <div class="settings-sublabel">Where student counts come from when generating</div>
             </div>
             <div class="toggle-group">
-              <button
-                class="toggle-opt active"
-                id="input-calendar"
-                onclick="setInputMode('calendar')"
-              >
-                Google Calendar
-              </button>
-              <button
-                class="toggle-opt"
-                id="input-manual"
-                onclick="setInputMode('manual')"
-              >
-                Manual
-              </button>
+              <button class="toggle-opt active" id="input-calendar" onclick="setInputMode('calendar')">Google Calendar</button>
+              <button class="toggle-opt" id="input-manual" onclick="setInputMode('manual')">Manual</button>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Screen 3: Edit ── -->
-    <div id="screen-edit" class="screen">
-      <header>
-        <button class="btn-back" onclick="showScreen('screen-schedule')">
-          ← Schedule
-        </button>
-        <span class="header-title">Edit Schedule</span>
-        <div class="header-actions">
-          <button class="btn-secondary" onclick="copyToClipboard()">
-            Copy to Clipboard
-          </button>
-          <button class="btn-primary" onclick="finishEdit()">Finish →</button>
-        </div>
-      </header>
-      <div id="oob-banner" class="oob-banner" style="display: none"></div>
-      <div class="edit-body">
-        <div class="edit-timeline-wrap">
-          <div id="edit-timeline"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Add Worker Modal ── -->
+    <!-- ── Add Employee Modal ── -->
     <div class="modal-overlay" id="modal">
       <div class="modal">
         <h3>Add Employee</h3>
         <label class="field-label">Name</label>
         <input type="text" id="new-worker-name" placeholder="Full name" />
-        <label class="field-label"
-          >Priority
-          <span class="info-tag"
-            >i
-            <span class="info-tooltip">
-              <strong>Normal:</strong> High schoolers or people with limited
-              availability.<br />
-              <strong>Priority:</strong> Adults with moderate availability.<br />
-              <strong>High Priority:</strong> Adults who are usually fully
-              available.
-            </span>
-          </span></label
-        >
+        <label class="field-label">Priority <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span></label>
         <div class="priority-picker">
-          <button
-            class="priority-opt active"
-            data-val="0"
-            onclick="selectPriority(0)"
-          >
-            Normal
-          </button>
-          <button class="priority-opt" data-val="1" onclick="selectPriority(1)">
-            Priority
-          </button>
-          <button class="priority-opt" data-val="2" onclick="selectPriority(2)">
-            High Priority
-          </button>
+          <button class="priority-opt active" data-val="0" onclick="selectPriority(0)">Normal</button>
+          <button class="priority-opt" data-val="1" onclick="selectPriority(1)">Priority</button>
+          <button class="priority-opt" data-val="2" onclick="selectPriority(2)">High Priority</button>
         </div>
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-          <button class="btn-confirm" onclick="addWorker()">
-            Add Employee
-          </button>
+          <button class="btn-confirm" onclick="addWorker()">Add Employee</button>
         </div>
       </div>
     </div>
 
-    <!-- ── Add Worker to Day Modal ── -->
+    <!-- ── Add Employee to Day Modal ── -->
     <div class="modal-overlay" id="add-shift-modal">
       <div class="modal">
         <h3>Add Employee to <span id="add-shift-day-name"></span></h3>
         <label class="field-label">Employee</label>
         <select id="add-shift-worker" class="field-select"></select>
-        <label class="field-label" style="margin-top: 14px">Start</label>
+        <label class="field-label" style="margin-top:14px;">Start</label>
         <select id="add-shift-start" class="field-select"></select>
-        <label class="field-label" style="margin-top: 14px">End</label>
+        <label class="field-label" style="margin-top:14px;">End</label>
         <select id="add-shift-end" class="field-select"></select>
-        <div class="modal-actions" style="margin-top: 20px">
-          <button class="btn-cancel" onclick="closeAddShiftModal()">
-            Cancel
-          </button>
+        <div class="modal-actions" style="margin-top:20px;">
+          <button class="btn-cancel" onclick="closeAddShiftModal()">Cancel</button>
           <button class="btn-confirm" onclick="confirmAddShift()">Add</button>
         </div>
       </div>
@@ -342,158 +216,179 @@
         <h3>Edit Employee</h3>
         <label class="field-label">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
-        <label class="field-label"
-          >Priority
-          <span class="info-tag"
-            >i
-            <span class="info-tooltip">
-              <strong>Normal:</strong> High schoolers or people with limited
-              availability.<br />
-              <strong>Priority:</strong> Adults with moderate availability.<br />
-              <strong>High Priority:</strong> Adults who are usually fully
-              available.
-            </span>
-          </span></label
-        >
+        <label class="field-label">Priority <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span></label>
         <div class="priority-picker" id="edit-priority-picker">
-          <button
-            class="priority-opt active"
-            data-val="0"
-            onclick="selectEditPriority(0)"
-          >
-            Normal
-          </button>
-          <button
-            class="priority-opt"
-            data-val="1"
-            onclick="selectEditPriority(1)"
-          >
-            Priority
-          </button>
-          <button
-            class="priority-opt"
-            data-val="2"
-            onclick="selectEditPriority(2)"
-          >
-            High Priority
-          </button>
+          <button class="priority-opt active" data-val="0" onclick="selectEditPriority(0)">Normal</button>
+          <button class="priority-opt" data-val="1" onclick="selectEditPriority(1)">Priority</button>
+          <button class="priority-opt" data-val="2" onclick="selectEditPriority(2)">High Priority</button>
         </div>
-        <label class="field-label" style="margin-top: 14px"
-          >Default Hours</label
-        >
-        <div class="av-time-inputs" style="margin-bottom: 4px">
-          <input
-            type="number"
-            id="edit-default-start"
-            min="3"
-            max="14"
-            style="width: 60px"
-          />
+        <label class="field-label" style="margin-top:14px;">Default Hours</label>
+        <div class="av-time-inputs" style="margin-bottom:4px;">
+          <input type="number" id="edit-default-start" min="3" max="14" style="width:60px;" />
           <span>–</span>
-          <input
-            type="number"
-            id="edit-default-end"
-            min="3"
-            max="14"
-            style="width: 60px"
-          />
+          <input type="number" id="edit-default-end" min="3" max="14" style="width:60px;" />
         </div>
-        <p
-          style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px"
-        >
-          Used when "Default hours" is checked on the availability screen.
-        </p>
-        <div class="modal-actions" style="margin-top: 20px">
-          <button class="btn-cancel" onclick="closeEditEmployeeModal()">
-            Cancel
-          </button>
-          <button class="btn-confirm" onclick="confirmEditEmployee()">
-            Save
-          </button>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Used when "Default hours" is checked on the availability screen.</p>
+        <div class="modal-actions" style="margin-top:20px;">
+          <button class="btn-cancel" onclick="closeEditEmployeeModal()">Cancel</button>
+          <button class="btn-confirm" onclick="confirmEditEmployee()">Save</button>
         </div>
       </div>
     </div>
 
     <script>
       // ── Constants ──────────────────────────────────────────
-      const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
-      const DAY_FULL = {
-        monday: "Monday",
-        tuesday: "Tuesday",
-        wednesday: "Wednesday",
-        thursday: "Thursday",
-        saturday: "Saturday",
-      };
-      const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
-      const PRIORITY_CLASSES = ["", "p1", "p2"];
-      const WORKER_COLORS = [
-        "#4f86c6",
-        "#e05c5c",
-        "#3aaa72",
-        "#e08c2a",
-        "#8a6bbf",
-        "#2aaab4",
-        "#c47a2a",
-        "#5a8a5a",
-        "#c45a8a",
-        "#2a7ac4",
-        "#7aaa3a",
-      ];
-      const WEEKDAY_SLOTS = [
-        "3",
-        "3:30",
-        "4",
-        "4:30",
-        "5",
-        "5:30",
-        "6",
-        "6:30",
-        "7",
-        "7:30",
-        "8",
-      ];
-      const SAT_SLOTS = [
-        "10",
-        "10:30",
-        "11",
-        "11:30",
-        "12",
-        "12:30",
-        "1",
-        "1:30",
-        "2",
-      ];
+      const DAYS = ["monday","tuesday","wednesday","thursday","saturday"];
+      const DAY_FULL = { monday:"Monday", tuesday:"Tuesday", wednesday:"Wednesday", thursday:"Thursday", saturday:"Saturday" };
+      const PRIORITY_LABELS = ["Normal","Priority","High Priority"];
+      const PRIORITY_CLASSES = ["","p1","p2"];
+      const WORKER_COLORS = ["#4f86c6","#e05c5c","#3aaa72","#e08c2a","#8a6bbf","#2aaab4","#c47a2a","#5a8a5a","#c45a8a","#2a7ac4","#7aaa3a"];
+      const WEEKDAY_SLOTS = ["3","3:30","4","4:30","5","5:30","6","6:30","7","7:30","8"];
+      const SAT_SLOTS     = ["10","10:30","11","11:30","12","12:30","1","1:30","2"];
       const SLOT_H = 40;
 
+      const DEMO_WORKERS = [
+        { name:"Alex",   priority:2, defaultStart:3, defaultEnd:8 },
+        { name:"Jordan", priority:1, defaultStart:4, defaultEnd:8 },
+        { name:"Taylor", priority:1, defaultStart:4, defaultEnd:8 },
+        { name:"Morgan", priority:0, defaultStart:4, defaultEnd:8 },
+        { name:"Casey",  priority:0, defaultStart:4, defaultEnd:8 },
+        { name:"Riley",  priority:0, defaultStart:4, defaultEnd:8 },
+      ];
+
+      function buildDemoAvailability() {
+        return {
+          Alex:   DAYS.map(d => ({ day:d, selected:true,  allDay:false, start:d==="saturday"?10:3,  end:d==="saturday"?14:8,  startMinute:0, endMinute:0 })),
+          Jordan: DAYS.map(d => ({ day:d, selected:d!=="wednesday", allDay:true,  start:d==="saturday"?10:4,  end:d==="saturday"?14:8,  startMinute:0, endMinute:0 })),
+          Taylor: DAYS.map(d => ({ day:d, selected:d!=="thursday",  allDay:true,  start:d==="saturday"?10:4,  end:d==="saturday"?14:8,  startMinute:0, endMinute:0 })),
+          Morgan: DAYS.map(d => ({ day:d, selected:["monday","wednesday","saturday"].includes(d), allDay:true, start:d==="saturday"?10:4, end:d==="saturday"?14:8, startMinute:0, endMinute:0 })),
+          Casey:  DAYS.map(d => ({ day:d, selected:["tuesday","thursday"].includes(d), allDay:true, start:d==="saturday"?10:4, end:d==="saturday"?14:8, startMinute:0, endMinute:0 })),
+          Riley:  DAYS.map(d => ({ day:d, selected:["monday","tuesday","saturday"].includes(d), allDay:true, start:d==="saturday"?10:4, end:d==="saturday"?14:8, startMinute:0, endMinute:0 })),
+        };
+      }
+
+      // ── Settings ───────────────────────────────────────────
+      let settings = {
+        theme: "light",
+        mode: "simplified",
+        inputMode: "calendar",
+        demo: false,
+        ...JSON.parse(localStorage.getItem("scheduler-settings") || "{}"),
+      };
+
+      function saveSettings() { localStorage.setItem("scheduler-settings", JSON.stringify(settings)); }
+
+      function applyTheme() { document.body.classList.toggle("dark", settings.theme === "dark"); }
+
+      function openSettings() {
+        document.getElementById("theme-light").classList.toggle("active", settings.theme === "light");
+        document.getElementById("theme-dark").classList.toggle("active", settings.theme === "dark");
+        document.getElementById("mode-simplified").classList.toggle("active", settings.mode === "simplified");
+        document.getElementById("input-calendar").classList.toggle("active", settings.inputMode === "calendar");
+        document.getElementById("input-manual").classList.toggle("active", settings.inputMode === "manual");
+        document.getElementById("demo-toggle").checked = settings.demo;
+        document.getElementById("settings-panel").classList.add("open");
+      }
+
+      function closeSettings() { document.getElementById("settings-panel").classList.remove("open"); }
+
+      function setTheme(val) {
+        settings.theme = val;
+        saveSettings();
+        applyTheme();
+        document.getElementById("theme-light").classList.toggle("active", val === "light");
+        document.getElementById("theme-dark").classList.toggle("active", val === "dark");
+      }
+
+      function setMode(val) { settings.mode = val; saveSettings(); }
+
+      function setInputMode(val) {
+        settings.inputMode = val;
+        saveSettings();
+        window._skipCalendar = val === "manual";
+        document.getElementById("input-calendar").classList.toggle("active", val === "calendar");
+        document.getElementById("input-manual").classList.toggle("active", val === "manual");
+      }
+
+      function setDemo(checked) {
+        settings.demo = checked;
+        saveSettings();
+        document.getElementById("demo-banner").style.display = checked ? "flex" : "none";
+        if (checked) activateDemo();
+        else deactivateDemo();
+      }
+
+      function exitDemo() {
+        settings.demo = false;
+        saveSettings();
+        document.getElementById("demo-toggle").checked = false;
+        document.getElementById("demo-banner").style.display = "none";
+        deactivateDemo();
+      }
+
+      document.getElementById("settings-panel").addEventListener("click", function(e) {
+        if (e.target === this) closeSettings();
+      });
+
       // ── State ──────────────────────────────────────────────
-      let workers = JSON.parse(
-        localStorage.getItem("scheduler-workers") || "[]",
-      );
+      let workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
       let availability = {};
       let newWorkerPriority = 0;
-      let scheduleData = []; // [{ day, date, assignments: [{name,start,end,priority}] }]
-      let addShiftTarget = null; // { dayIndex }
+      let scheduleData = [];
+      let addShiftTarget = null;
+      let editEmployeeIndex = null;
+      let editEmployeePriority = 0;
+      let dragState = null;
 
-      // ── Persistence ────────────────────────────────────────
-      function saveWorkers() {
-        localStorage.setItem("scheduler-workers", JSON.stringify(workers));
+      function saveWorkers() { localStorage.setItem("scheduler-workers", JSON.stringify(workers)); }
+
+      // ── Demo ───────────────────────────────────────────────
+      function activateDemo() {
+        workers = JSON.parse(JSON.stringify(DEMO_WORKERS));
+        availability = buildDemoAvailability();
+        scheduleData = [];
+        renderWorkers();
+        // reset schedule screen
+        document.getElementById("empty-state").style.display = "block";
+        document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("copy-btn").disabled = true;
+        document.getElementById("edit-btn").disabled = true;
+      }
+
+      function deactivateDemo() {
+        // restore real saved workers, clear everything else
+        workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
+        availability = {};
+        scheduleData = [];
+        renderWorkers();
+        document.getElementById("empty-state").style.display = "block";
+        document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("copy-btn").disabled = true;
+        document.getElementById("edit-btn").disabled = true;
+        showScreen("screen-workers");
       }
 
       // ── Helpers ────────────────────────────────────────────
       function getWorkerColor(name) {
-        const sorted = workers.map((w) => w.name).sort();
+        const sorted = [...workers].map(w => w.name).sort();
         return WORKER_COLORS[sorted.indexOf(name) % WORKER_COLORS.length];
       }
 
-      function slotList(isSat) {
-        return isSat ? SAT_SLOTS : WEEKDAY_SLOTS;
+      function sortedWorkers() {
+        return [...workers].sort((a, b) => {
+          if (b.priority !== a.priority) return b.priority - a.priority;
+          return a.name.localeCompare(b.name);
+        });
       }
 
+      function slotList(isSat) { return isSat ? SAT_SLOTS : WEEKDAY_SLOTS; }
+
       function timeToIndex(time, isSat) {
-        const [h, m] = time.split(":").map(Number);
-        let hour = h;
+        const parts = time.split(":");
+        let hour = parseInt(parts[0]);
+        const mins = parts[1] ? parseInt(parts[1]) : 0;
         if (isSat && hour < 10) hour += 12;
-        return (hour - (isSat ? 10 : 3)) * 2 + (m === 30 ? 1 : 0);
+        return (hour - (isSat ? 10 : 3)) * 2 + (mins === 30 ? 1 : 0);
       }
 
       function indexToTime(idx, isSat) {
@@ -501,29 +396,56 @@
         const totalHalfHours = base * 2 + idx;
         const h = Math.floor(totalHalfHours / 2);
         const m = totalHalfHours % 2 === 1 ? 30 : 0;
-        if (isSat && h > 12) return h - 12 + (m ? ":30" : "");
+        if (isSat && h > 12) return (h - 12) + (m ? ":30" : "");
         return h + (m ? ":30" : "");
       }
 
       function getDatesForWeek(mondayStr) {
-        // returns { monday: "3/30", tuesday: "3/31", ... }
         if (!mondayStr) return {};
         const base = new Date(mondayStr + "T00:00:00");
-        const offsets = {
-          monday: 0,
-          tuesday: 1,
-          wednesday: 2,
-          thursday: 3,
-          saturday: 5,
-        };
+        const offsets = { monday:0, tuesday:1, wednesday:2, thursday:3, saturday:5 };
         const result = {};
         for (const [day, offset] of Object.entries(offsets)) {
           const d = new Date(base);
           d.setDate(d.getDate() + offset);
-          result[day] = `${d.getMonth() + 1}/${d.getDate()}`;
+          result[day] = `${d.getMonth()+1}/${d.getDate()}`;
         }
         return result;
       }
+
+      function getNextMonday() {
+        const today = new Date();
+        const day = today.getDay();
+        const daysUntil = day === 1 ? 0 : (8 - day) % 7;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + daysUntil);
+        const y = monday.getFullYear();
+        const m = String(monday.getMonth() + 1).padStart(2, "0");
+        const d = String(monday.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      // time option helpers
+      function timeOptions(isSaturday) {
+        const options = [];
+        const start = isSaturday ? 10 : 3;
+        const end   = isSaturday ? 14 : 8;
+        for (let h = start; h <= end; h++) {
+          for (let m of [0, 30]) {
+            if (h === end && m === 30) break;
+            const totalMins = h * 60 + m;
+            const displayH = h > 12 ? h - 12 : h;
+            const displayM = m === 0 ? "00" : "30";
+            const ampm = h >= 12 ? "PM" : "AM";
+            options.push({ value: totalMins, hour: h, minute: m, label: `${displayH}:${displayM} ${ampm}` });
+          }
+        }
+        return options;
+      }
+
+      function minsToHour(mins)       { return Math.floor(mins / 60); }
+      function minsToMinute(mins)     { return mins % 60; }
+      function hourMinToMins(h, m)    { return h * 60 + (m || 0); }
 
       function buildClipboardText() {
         let text = "";
@@ -545,16 +467,13 @@
         for (const day of scheduleData) {
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            if (a.availStart === null || a.availEnd === null) continue; // default hours, skip
+            if (a.availStart === null || a.availEnd === null) continue;
             const shiftStart = timeToIndex(a.start, isSat);
-            const shiftEnd = timeToIndex(a.end, isSat);
-            // availStart/availEnd are raw hour numbers, convert to index
+            const shiftEnd   = timeToIndex(a.end,   isSat);
             const avStartIdx = timeToIndex(a.availStart.toString(), isSat);
-            const avEndIdx = timeToIndex(a.availEnd.toString(), isSat);
+            const avEndIdx   = timeToIndex(a.availEnd.toString(),   isSat);
             if (shiftStart < avStartIdx || shiftEnd > avEndIdx) {
-              warnings.push(
-                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
-              );
+              warnings.push(`${a.name} on ${day.day}${day.date ? " ("+day.date+")" : ""}`);
             }
           }
         }
@@ -562,55 +481,44 @@
       }
 
       // ── Navigation ─────────────────────────────────────────
-      const SCREEN_ORDER = [
-  "screen-workers",
-  "screen-schedule", 
-  "screen-edit",
-  "screen-auth"
-];
+      const SCREEN_ORDER = ["screen-workers","screen-schedule","screen-edit","screen-auth"];
 
-function showScreen(newId) {
-  const current = document.querySelector(".screen.active");
-  const next = document.getElementById(newId);
-  if (!current || current === next) return;
+      function showScreen(newId) {
+        const current = document.querySelector(".screen.active");
+        const next = document.getElementById(newId);
+        if (!current || current === next) return;
 
-  const currentIdx = SCREEN_ORDER.indexOf(current.id);
-  const nextIdx = SCREEN_ORDER.indexOf(newId);
-  const goingForward = nextIdx > currentIdx;
+        const currentIdx = SCREEN_ORDER.indexOf(current.id);
+        const nextIdx    = SCREEN_ORDER.indexOf(newId);
+        const forward    = nextIdx > currentIdx;
 
-  // position next screen off-screen in the right direction
-  next.style.transform = goingForward ? "translateX(100%)" : "translateX(-100%)";
-  next.style.display = "flex";
+        next.style.transform  = forward ? "translateX(100%)" : "translateX(-100%)";
+        next.style.display    = "flex";
+        next.offsetHeight; // force reflow
 
-  // force reflow
-  next.offsetHeight;
+        next.style.transition    = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
+        current.style.transition = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
+        next.style.transform     = "translateX(0%)";
+        current.style.transform  = forward ? "translateX(-100%)" : "translateX(100%)";
 
-  // slide both
-  next.style.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
-  current.style.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
-
-  next.style.transform = "translateX(0%)";
-  current.style.transform = goingForward ? "translateX(-100%)" : "translateX(100%)";
-
-  setTimeout(() => {
-    current.classList.remove("active");
-    current.style.display = "none";
-    current.style.transform = "";
-    current.style.transition = "";
-    next.classList.add("active");
-    next.style.transition = "";
-  }, 300);
-}
-
-      function goToWorkers() {
-        showScreen("screen-workers");
+        setTimeout(() => {
+          current.classList.remove("active");
+          current.style.cssText = "";
+          next.classList.add("active");
+          next.style.transition = "";
+        }, 300);
       }
 
+      function goToWorkers() { showScreen("screen-workers"); }
+
       function goToSchedule() {
-        if (workers.length === 0)
-          return alert("Add at least one employee first.");
-        if (Object.keys(availability).length === 0) buildAvailability();
-        // auto-set Monday date if not already set
+        if (workers.length === 0) return alert("Add at least one employee first.");
+        // always rebuild availability when entering schedule screen
+        // but preserve existing if same workers (not demo reset)
+        if (Object.keys(availability).length === 0 ||
+            !workers.every(w => availability[w.name])) {
+          buildAvailability();
+        }
         const dateInput = document.getElementById("week-date");
         if (!dateInput.value) dateInput.value = getNextMonday();
         showScreen("screen-schedule");
@@ -623,16 +531,20 @@ function showScreen(newId) {
 
       function finishEdit() {
         const warnings = getOutOfBoundsWorkers();
-        const warnText =
-          warnings.length > 0
-            ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
-            : "";
-        if (!confirm(`${warnText}Finish editing and return to the start?`))
-          return;
+        const warnText = warnings.length > 0
+          ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
+          : "";
+        if (!confirm(`${warnText}Finish editing and return to start?`)) return;
+        // clear schedule and go back to screen 1
+        scheduleData = [];
+        document.getElementById("empty-state").style.display = "block";
+        document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("copy-btn").disabled = true;
+        document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
       }
 
-      // ── Workers Screen ─────────────────────────────────────
+      // ── Screen 1: Employees ────────────────────────────────
       function renderWorkers() {
         const grid = document.getElementById("worker-grid");
         grid.innerHTML = "";
@@ -640,23 +552,23 @@ function showScreen(newId) {
           grid.innerHTML = `<p class="empty-workers">No employees yet. Add one below.</p>`;
           return;
         }
-        sortedWorkers().forEach((w) => {
+        sortedWorkers().forEach(w => {
           const wi = workers.indexOf(w);
           const card = document.createElement("div");
           card.className = "wcard";
           card.innerHTML = `
-        <div class="wcard-color" style="background:${getWorkerColor(w.name)}"></div>
-        <div class="wcard-body">
-          <div class="wcard-header">
-            <span class="wcard-name">${w.name}</span>
-            <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-<span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
-          </div>
-          <div style="display:flex; gap:8px; margin-top:4px;">
-  <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
-  <button class="btn-remove" onclick="removeWorker(${wi})">Remove</button>
-</div>
-        </div>`;
+            <div class="wcard-color" style="background:${getWorkerColor(w.name)}"></div>
+            <div class="wcard-body">
+              <div class="wcard-header">
+                <span class="wcard-name">${w.name}</span>
+                <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
+                <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:4px;">
+                <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
+                <button class="btn-remove" onclick="removeWorker(${wi})">Remove</button>
+              </div>
+            </div>`;
           grid.appendChild(card);
         });
       }
@@ -668,34 +580,27 @@ function showScreen(newId) {
         renderWorkers();
       }
 
-      // ── Add Worker Modal ───────────────────────────────────
+      // ── Add Employee Modal ─────────────────────────────────
       function openModal() {
         document.getElementById("new-worker-name").value = "";
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
-        setTimeout(
-          () => document.getElementById("new-worker-name").focus(),
-          50,
-        );
+        setTimeout(() => document.getElementById("new-worker-name").focus(), 50);
       }
 
-      function closeModal() {
-        document.getElementById("modal").classList.remove("open");
-      }
+      function closeModal() { document.getElementById("modal").classList.remove("open"); }
 
       function selectPriority(val) {
         newWorkerPriority = val;
-        document
-          .querySelectorAll(".priority-opt")
-          .forEach((btn) =>
-            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
-          );
+        document.querySelectorAll("#modal .priority-opt").forEach(btn =>
+          btn.classList.toggle("active", parseInt(btn.dataset.val) === val)
+        );
       }
 
       function addWorker() {
         const name = document.getElementById("new-worker-name").value.trim();
-        if (!name) return alert("Enter a name");
-        if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
+        if (!name) return alert("Enter a name.");
+        if (workers.find(w => w.name.toLowerCase() === name.toLowerCase()))
           return alert("An employee with that name already exists.");
         workers.push({ name, priority: newWorkerPriority });
         saveWorkers();
@@ -703,25 +608,67 @@ function showScreen(newId) {
         closeModal();
       }
 
-      document.getElementById("modal").addEventListener("click", function (e) {
+      document.getElementById("modal").addEventListener("click", function(e) {
         if (e.target === this) closeModal();
       });
 
-      // ── Availability Screen ────────────────────────────────
+      // ── Edit Employee Modal ────────────────────────────────
+      function openEditEmployeeModal(wi) {
+        editEmployeeIndex = wi;
+        const w = workers[wi];
+        editEmployeePriority = w.priority;
+        document.getElementById("edit-employee-name").value = w.name;
+        document.getElementById("edit-default-start").value = w.defaultStart ?? (w.priority === 2 ? 3 : 4);
+        document.getElementById("edit-default-end").value   = w.defaultEnd ?? 8;
+        selectEditPriority(w.priority);
+        document.getElementById("edit-employee-modal").classList.add("open");
+      }
+
+      function closeEditEmployeeModal() {
+        document.getElementById("edit-employee-modal").classList.remove("open");
+        editEmployeeIndex = null;
+      }
+
+      function selectEditPriority(val) {
+        editEmployeePriority = val;
+        document.querySelectorAll("#edit-priority-picker .priority-opt").forEach(btn =>
+          btn.classList.toggle("active", parseInt(btn.dataset.val) === val)
+        );
+      }
+
+      function confirmEditEmployee() {
+        const name = document.getElementById("edit-employee-name").value.trim();
+        if (!name) return alert("Enter a name.");
+        const start = parseInt(document.getElementById("edit-default-start").value);
+        const end   = parseInt(document.getElementById("edit-default-end").value);
+        if (isNaN(start) || isNaN(end) || start >= end) return alert("Enter valid default hours.");
+        const existing = workers.find((w, i) => w.name.toLowerCase() === name.toLowerCase() && i !== editEmployeeIndex);
+        if (existing) return alert("Another employee with that name already exists.");
+        workers[editEmployeeIndex].name         = name;
+        workers[editEmployeeIndex].priority     = editEmployeePriority;
+        workers[editEmployeeIndex].defaultStart = start;
+        workers[editEmployeeIndex].defaultEnd   = end;
+        saveWorkers();
+        renderWorkers();
+        closeEditEmployeeModal();
+      }
+
+      document.getElementById("edit-employee-modal").addEventListener("click", function(e) {
+        if (e.target === this) closeEditEmployeeModal();
+      });
+
+      // ── Availability ───────────────────────────────────────
       function buildAvailability() {
         availability = {};
-        workers.forEach((w) => {
-          availability[w.name] = DAYS.map((d) => ({
+        workers.forEach(w => {
+          availability[w.name] = DAYS.map(d => ({
             day: d,
             selected: false,
             allDay: true,
-            start:
-              d === "saturday"
-                ? 10
-                : (w.defaultStart ?? (w.priority === 2 ? 3 : 4)),
-            end: d === "saturday" ? 14 : (w.defaultEnd ?? 8),
+            start:       d === "saturday" ? 10 : (w.defaultStart ?? (w.priority === 2 ? 3 : 4)),
+            end:         d === "saturday" ? 14 : (w.defaultEnd   ?? 8),
             startMinute: 0,
-            endMinute: 0,
+            endMinute:   0,
           }));
         });
         renderAvailability();
@@ -730,86 +677,64 @@ function showScreen(newId) {
       function renderAvailability() {
         const list = document.getElementById("availability-list");
         list.innerHTML = "";
-        sortedWorkers().forEach((w) => {
+        sortedWorkers().forEach(w => {
           const av = availability[w.name];
-          const allSelected = av.every((d) => d.selected);
+          if (!av) return;
+          const allSelected = av.every(d => d.selected);
           const section = document.createElement("div");
           section.className = "av-section";
           section.innerHTML = `
-        <div class="av-worker-header">
-          <div class="av-color" style="background:${getWorkerColor(w.name)}"></div>
-          <span class="av-name">${w.name}</span>
-          <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-<span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
-          <label class="av-select-all">
-            <input type="checkbox" ${allSelected ? "checked" : ""}
-              onchange="toggleAllDays('${w.name}', this.checked)">
-            <span>All days</span>
-          </label>
-        </div>
-        <div class="av-days">
-          ${av
-            .map(
-              (d, di) => `
-            <div class="av-day-row ${d.selected ? "selected" : ""}">
-              <label class="av-day-check">
-                <input type="checkbox" ${d.selected ? "checked" : ""}
-                  onchange="toggleDay('${w.name}', ${di}, this.checked)">
-                <span class="av-day-label">${DAY_FULL[d.day]}</span>
+            <div class="av-worker-header">
+              <div class="av-color" style="background:${getWorkerColor(w.name)}"></div>
+              <span class="av-name">${w.name}</span>
+              <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
+              <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+              <label class="av-select-all">
+                <input type="checkbox" ${allSelected ? "checked" : ""} onchange="toggleAllDays('${w.name}', this.checked)">
+                <span>All days</span>
               </label>
-              ${
-                d.selected
-                  ? `
-                <div class="av-hours">
-                  <label class="av-hours-check">
-                    <input type="checkbox" ${d.allDay ? "checked" : ""}
-                      onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
-                    <span>Default hours</span>
-                  </label>
-                  ${
-                    !d.allDay
-                      ? `
-  <div class="av-time-inputs">
-    <select onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
-  ${timeOptions(d.day === 'saturday').map(o =>
-    `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? 'selected' : ''}>${o.label}</option>`
-  ).join('')}
-</select>
-<span>–</span>
-<select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
-  ${timeOptions(d.day === 'saturday').map(o =>
-    `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? 'selected' : ''}>${o.label}</option>`
-  ).join('')}
-</select>
-    <span>–</span>
-    <select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
-      ${timeOptions(d.day === "saturday")
-        .map(
-          (o) =>
-            `<option value="${o.hour}" ${o.hour === d.end && o.minute === 0 ? "selected" : ""}
-          data-minute="${o.minute}">${o.label}</option>`,
-        )
-        .join("")}
-    </select>
-  </div>
-`
-                      : ""
-                  }
-                </div>
-              `
-                  : ""
-              }
             </div>
-          `,
-            )
-            .join("")}
-        </div>`;
+            <div class="av-days">
+              ${av.map((d, di) => `
+                <div class="av-day-row ${d.selected ? "selected" : ""}">
+                  <label class="av-day-check">
+                    <input type="checkbox" ${d.selected ? "checked" : ""}
+                      onchange="toggleDay('${w.name}', ${di}, this.checked)">
+                    <span class="av-day-label">${DAY_FULL[d.day]}</span>
+                  </label>
+                  ${d.selected ? `
+                    <div class="av-hours">
+                      <label class="av-hours-check">
+                        <input type="checkbox" ${d.allDay ? "checked" : ""}
+                          onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
+                        <span>Default hours</span>
+                      </label>
+                      ${!d.allDay ? `
+                        <div class="av-time-inputs">
+                          <select onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
+                            ${timeOptions(d.day === "saturday").map(o =>
+                              `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute||0) ? "selected" : ""}>${o.label}</option>`
+                            ).join("")}
+                          </select>
+                          <span>–</span>
+                          <select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
+                            ${timeOptions(d.day === "saturday").map(o =>
+                              `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute||0) ? "selected" : ""}>${o.label}</option>`
+                            ).join("")}
+                          </select>
+                        </div>
+                      ` : ""}
+                    </div>
+                  ` : ""}
+                </div>
+              `).join("")}
+            </div>`;
           list.appendChild(section);
         });
       }
 
       function toggleAllDays(name, checked) {
-        availability[name].forEach((d) => (d.selected = checked));
+        availability[name].forEach(d => d.selected = checked);
         renderAvailability();
       }
 
@@ -826,62 +751,39 @@ function showScreen(newId) {
       function updateHour(name, di, field, val) {
         const totalMins = parseInt(val);
         availability[name][di][field] = minsToHour(totalMins);
-        // store minutes too for half-hour support
-        if (field === "start")
-          availability[name][di].startMinute = minsToMinute(totalMins);
-        if (field === "end")
-          availability[name][di].endMinute = minsToMinute(totalMins);
+        if (field === "start") availability[name][di].startMinute = minsToMinute(totalMins);
+        if (field === "end")   availability[name][di].endMinute   = minsToMinute(totalMins);
       }
 
       // ── Generate ───────────────────────────────────────────
       async function generate() {
         const mondayVal = document.getElementById("week-date").value;
-        if (!mondayVal)
-          return alert("Please enter the Monday date for this week.");
+        if (!mondayVal) return alert("Please enter the Monday date for this week.");
 
-        const payload = workers
-          .map((w) => {
-            const days = availability[w.name]
-              .filter((d) => d.selected)
-              .map((d) => ({
-                day: d.day,
-                allDay: d.allDay,
-                start: d.start,
-                end: d.end,
-                startMinute: d.startMinute || 0,
-                endMinute: d.endMinute || 0,
-              }));
-            return { name: w.name, priority: w.priority, days };
-          })
-          .filter((w) => w.days.length > 0);
+        const payload = workers.map(w => {
+          const days = (availability[w.name] || [])
+            .filter(d => d.selected)
+            .map(d => ({ day:d.day, allDay:d.allDay, start:d.start, end:d.end, startMinute:d.startMinute||0, endMinute:d.endMinute||0 }));
+          return { name:w.name, priority:w.priority, days };
+        }).filter(w => w.days.length > 0);
 
         if (payload.length === 0) return alert("No availability set.");
 
-        // fetch calendar events first
         let studentData = null;
         let oneOnOneData = null;
 
         try {
-          if (
-            window._skipCalendar ||
-            settings.inputMode === "manual" ||
-            settings.demo
-          )
+          if (window._skipCalendar || settings.inputMode === "manual" || settings.demo)
             throw new Error("skipped");
-          const eventsRes = await fetch(`/events/mock?monday=${mondayVal}`); //change back to const eventsRes = await fetch(`/events?monday=${mondayVal}`); once done
-          if (eventsRes.status === 401) {
-            // auth failure — show auth screen
-            showScreen("screen-auth");
-            return;
-          }
+          const eventsRes = await fetch(`/events/mock?monday=${mondayVal}`); // swap to /events when ready
+          if (eventsRes.status === 401) { showScreen("screen-auth"); return; }
           if (eventsRes.ok) {
             const eventsData = await eventsRes.json();
-            studentData = eventsData.studentData;
+            studentData  = eventsData.studentData;
             oneOnOneData = eventsData.oneOnOneData;
           }
-        } catch (err) {
-          console.warn("Calendar fetch failed, using manual mode:", err);
-          // network error — continue without calendar data
+        } catch(err) {
+          console.warn("Calendar fetch skipped or failed:", err.message);
         }
 
         const res = await fetch("/generate", {
@@ -891,21 +793,18 @@ function showScreen(newId) {
         });
         const data = await res.json();
 
-        // attach dates
         const dates = getDatesForWeek(mondayVal);
-        scheduleData = data.schedule.map((d) => ({
+        scheduleData = data.schedule.map(d => ({
           ...d,
           date: dates[d.day.toLowerCase()] || "",
-          assignments: d.assignments.map((a) => {
-            const worker = workers.find((w) => w.name === a.name);
-            const av = worker ? availability[worker.name] : null;
-            const avDay = av
-              ? av.find((x) => x.day === d.day.toLowerCase())
-              : null;
+          assignments: d.assignments.map(a => {
+            const worker = workers.find(w => w.name === a.name);
+            const av     = worker ? availability[worker.name] : null;
+            const avDay  = av ? av.find(x => x.day === d.day.toLowerCase()) : null;
             return {
               ...a,
               availStart: avDay && !avDay.allDay ? avDay.start : null,
-              availEnd: avDay && !avDay.allDay ? avDay.end : null,
+              availEnd:   avDay && !avDay.allDay ? avDay.end   : null,
             };
           }),
         }));
@@ -915,7 +814,7 @@ function showScreen(newId) {
         document.getElementById("edit-btn").disabled = false;
       }
 
-      // ── Schedule View (screen 2) ───────────────────────────
+      // ── Schedule View ──────────────────────────────────────
       function renderSchedule() {
         document.getElementById("empty-state").style.display = "none";
         const output = document.getElementById("schedule-output");
@@ -928,76 +827,56 @@ function showScreen(newId) {
         data.forEach((day, di) => {
           const isSat = day.day === "Saturday";
           const slots = slotList(isSat);
-          const slotLabels = slots
-            .map((s) => `<div class="timeline-slot-label">${s}</div>`)
-            .join("");
-          const gridLines = slots
-            .map(() => `<div class="timeline-grid-line"></div>`)
-            .join("");
+          const slotLabels = slots.map(s => `<div class="timeline-slot-label">${s}</div>`).join("");
+          const gridLines  = slots.map(() => `<div class="timeline-grid-line"></div>`).join("");
           const totalSlots = slots.length;
 
-          const workerCols = day.assignments
-            .map((a, ai) => {
-              const si = timeToIndex(a.start, isSat);
-              const ei = timeToIndex(a.end, isSat);
-              const color = getWorkerColor(a.name);
-              const draggable = isEdit
-                ? `data-day="${di}" data-ai="${ai}"`
-                : "";
-              const resizable = isEdit
-                ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
-                : "";
-              const removable = isEdit
-                ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>`
-                : "";
-              // calculate out-of-bounds overlay
-              const isSatDay = scheduleData[di]
-                ? scheduleData[di].day === "Saturday"
-                : false;
-              let oobOverlay = "";
-              if (a.availStart !== null && a.availEnd !== null) {
-                const avSi = timeToIndex(a.availStart.toString(), isSatDay);
-                const avEi = timeToIndex(a.availEnd.toString(), isSatDay);
-                // top overflow (before availStart)
-                if (si < avSi) {
-                  const overlapH = Math.min(avSi - si, ei - si) * SLOT_H;
-                  oobOverlay += `<div class="oob-overlay" style="top:0; height:${overlapH}px;"></div>`;
-                }
-                // bottom overflow (after availEnd)
-                if (ei > avEi) {
-                  const overlapStart = Math.max(avEi - si, 0) * SLOT_H;
-                  const overlapH = (ei - Math.max(avEi, si)) * SLOT_H;
-                  oobOverlay += `<div class="oob-overlay" style="top:${overlapStart}px; height:${overlapH}px;"></div>`;
-                }
+          const workerCols = day.assignments.map((a, ai) => {
+            const si    = timeToIndex(a.start, isSat);
+            const ei    = timeToIndex(a.end,   isSat);
+            const color = getWorkerColor(a.name);
+            const draggable = isEdit ? `data-day="${di}" data-ai="${ai}"` : "";
+            const resizable = isEdit ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>` : "";
+            const removable = isEdit ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>` : "";
+
+            let oobOverlay = "";
+            if (a.availStart !== null && a.availEnd !== null) {
+              const avSi = timeToIndex(a.availStart.toString(), isSat);
+              const avEi = timeToIndex(a.availEnd.toString(),   isSat);
+              if (si < avSi) {
+                const h = Math.min(avSi - si, ei - si) * SLOT_H;
+                oobOverlay += `<div class="oob-overlay" style="top:0; height:${h}px;"></div>`;
               }
-              return `
-  <div class="timeline-worker-col">
-    <div class="timeline-grid-lines">${gridLines}</div>
-    <div class="worker-block ${isEdit ? "draggable" : ""}"
-      style="top:${si * SLOT_H}px; height:${(ei - si) * SLOT_H}px; background:${color};"
-      title="${a.name}: ${a.start}–${a.end}"
-      ${draggable}>${a.name}${oobOverlay}${resizable}${removable}
-    </div>
-  </div>`;
-            })
-            .join("");
+              if (ei > avEi) {
+                const top = Math.max(avEi - si, 0) * SLOT_H;
+                const h   = (ei - Math.max(avEi, si)) * SLOT_H;
+                oobOverlay += `<div class="oob-overlay" style="top:${top}px; height:${h}px;"></div>`;
+              }
+            }
 
-          const addBtn = isEdit
-            ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>`
-            : "";
+            return `
+              <div class="timeline-worker-col">
+                <div class="timeline-grid-lines">${gridLines}</div>
+                <div class="worker-block ${isEdit ? "draggable" : ""}"
+                  style="top:${si*SLOT_H}px; height:${(ei-si)*SLOT_H}px; background:${color};"
+                  title="${a.name}: ${a.start}–${a.end}" ${draggable}>
+                  ${a.name}${oobOverlay}${resizable}${removable}
+                </div>
+              </div>`;
+          }).join("");
 
-          const dateStr = day.date
-            ? ` <span class="day-date">${day.date}</span>`
-            : "";
+          const addBtn  = isEdit ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>` : "";
+          const dateStr = day.date ? ` <span class="day-date">${day.date}</span>` : "";
+
           html += `
-        <div class="timeline-day">
-          <div class="timeline-day-header">${day.day}${dateStr}</div>
-          <div class="timeline-body">
-            <div class="timeline-slots">${slotLabels}</div>
-            <div class="timeline-workers" style="min-height:${totalSlots * SLOT_H}px;">${workerCols}</div>
-          </div>
-          ${addBtn}
-        </div>`;
+            <div class="timeline-day">
+              <div class="timeline-day-header">${day.day}${dateStr}</div>
+              <div class="timeline-body">
+                <div class="timeline-slots">${slotLabels}</div>
+                <div class="timeline-workers" style="min-height:${totalSlots*SLOT_H}px;">${workerCols}</div>
+              </div>
+              ${addBtn}
+            </div>`;
         });
         html += `</div>`;
         return html;
@@ -1005,8 +884,7 @@ function showScreen(newId) {
 
       // ── Edit Screen ────────────────────────────────────────
       function renderEditScreen() {
-        const wrap = document.getElementById("edit-timeline");
-        wrap.innerHTML = buildTimelineHTML(scheduleData, true);
+        document.getElementById("edit-timeline").innerHTML = buildTimelineHTML(scheduleData, true);
         attachDragHandlers();
         updateOobBanner();
       }
@@ -1014,82 +892,58 @@ function showScreen(newId) {
       function updateOobBanner() {
         const banner = document.getElementById("oob-banner");
         const warnings = getOutOfBoundsWorkers();
-        if (warnings.length === 0) {
-          banner.style.display = "none";
-        } else {
-          banner.style.display = "block";
+        banner.style.display = warnings.length === 0 ? "none" : "block";
+        if (warnings.length > 0)
           banner.innerHTML = `⚠️ Scheduled outside availability: ${warnings.join(", ")}`;
-        }
       }
 
       function attachDragHandlers() {
-        // drag to move blocks
-        document
-          .querySelectorAll(".worker-block.draggable")
-          .forEach((block) => {
-            block.addEventListener("mousedown", onBlockMouseDown);
-          });
-        // drag to resize
-        document.querySelectorAll(".resize-handle").forEach((handle) => {
-          handle.addEventListener("mousedown", onResizeMouseDown);
-        });
+        document.querySelectorAll(".worker-block.draggable").forEach(block =>
+          block.addEventListener("mousedown", onBlockMouseDown)
+        );
+        document.querySelectorAll(".resize-handle").forEach(handle =>
+          handle.addEventListener("mousedown", onResizeMouseDown)
+        );
       }
-
-      let dragState = null;
 
       function onBlockMouseDown(e) {
         if (e.target.classList.contains("resize-handle")) return;
         if (e.target.classList.contains("remove-btn")) return;
-        if (e.target.classList.contains("add-shift-btn")) return;
         e.preventDefault();
         e.stopPropagation();
         const block = e.currentTarget;
         const di = parseInt(block.dataset.day);
         const ai = parseInt(block.dataset.ai);
-        const col = block.closest(".timeline-worker-col");
-        const colRect = col.getBoundingClientRect();
-        const startY = e.clientY;
-        const startTop = parseInt(block.style.top);
-        dragState = { type: "move", block, di, ai, startY, startTop, colRect };
+        dragState = { type:"move", block, di, ai, startY:e.clientY, startTop:parseInt(block.style.top) };
         document.addEventListener("mousemove", onDragMove);
-        document.addEventListener("mouseup", cancelDrag);
+        window.addEventListener("mouseup", cancelDrag);
       }
 
       function onResizeMouseDown(e) {
         e.preventDefault();
         e.stopPropagation();
-        const handle = e.currentTarget;
-        const di = parseInt(handle.dataset.day);
-        const ai = parseInt(handle.dataset.ai);
-        const block = handle.closest(".worker-block");
-        const startY = e.clientY;
-        const startHeight = parseInt(block.style.height);
-        dragState = { type: "resize", block, di, ai, startY, startHeight };
+        const di = parseInt(e.currentTarget.dataset.day);
+        const ai = parseInt(e.currentTarget.dataset.ai);
+        const block = e.currentTarget.closest(".worker-block");
+        dragState = { type:"resize", block, di, ai, startY:e.clientY, startHeight:parseInt(block.style.height) };
         document.addEventListener("mousemove", onDragMove);
-        document.addEventListener("mouseup", cancelDrag);
+        window.addEventListener("mouseup", cancelDrag);
       }
 
       function onDragMove(e) {
         if (!dragState) return;
         const isSat = scheduleData[dragState.di].day === "Saturday";
-        const slots = slotList(isSat);
-        const totalSlots = slots.length;
+        const totalSlots = slotList(isSat).length;
+        const dy = e.clientY - dragState.startY;
 
         if (dragState.type === "move") {
-          const dy = e.clientY - dragState.startY;
-          let newTop = dragState.startTop + dy;
-          // snap to slot
-          newTop = Math.round(newTop / SLOT_H) * SLOT_H;
-          // clamp
+          let newTop = Math.round((dragState.startTop + dy) / SLOT_H) * SLOT_H;
           const blockH = parseInt(dragState.block.style.height);
           newTop = Math.max(0, Math.min(newTop, totalSlots * SLOT_H - blockH));
           dragState.block.style.top = newTop + "px";
         } else {
-          const dy = e.clientY - dragState.startY;
-          let newH = dragState.startHeight + dy;
-          newH = Math.round(newH / SLOT_H) * SLOT_H;
+          let newH = Math.round((dragState.startHeight + dy) / SLOT_H) * SLOT_H;
           newH = Math.max(SLOT_H, newH);
-          // clamp to not exceed bottom
           const top = parseInt(dragState.block.style.top);
           newH = Math.min(newH, totalSlots * SLOT_H - top);
           dragState.block.style.height = newH + "px";
@@ -1098,26 +952,19 @@ function showScreen(newId) {
 
       function cancelDrag() {
         if (!dragState) return;
-        const { di, ai, block, type } = dragState;
+        const { di, ai, block } = dragState;
         const isSat = scheduleData[di].day === "Saturday";
-
-        const top = parseInt(block.style.top);
+        const top    = parseInt(block.style.top);
         const height = parseInt(block.style.height);
-        const startIdx = Math.round(top / SLOT_H);
-        const endIdx = Math.round((top + height) / SLOT_H);
-
-        const newStart = indexToTime(startIdx, isSat);
-        const newEnd = indexToTime(endIdx, isSat);
-
-        scheduleData[di].assignments[ai].start = newStart;
-        scheduleData[di].assignments[ai].end = newEnd;
-
+        const si = Math.round(top    / SLOT_H);
+        const ei = Math.round((top + height) / SLOT_H);
+        scheduleData[di].assignments[ai].start = indexToTime(si, isSat);
+        scheduleData[di].assignments[ai].end   = indexToTime(ei, isSat);
+        document.removeEventListener("mousemove", onDragMove);
+        window.removeEventListener("mouseup", cancelDrag);
+        dragState = null;
         renderEditScreen();
         renderSchedule();
-
-        document.removeEventListener("mousemove", onDragMove);
-        document.removeEventListener("mouseup", cancelDrag);
-        dragState = null;
       }
 
       function removeShift(di, ai) {
@@ -1131,32 +978,22 @@ function showScreen(newId) {
       // ── Add Shift Modal ────────────────────────────────────
       function openAddShiftModal(di) {
         addShiftTarget = di;
-        const day = scheduleData[di];
+        const day   = scheduleData[di];
         const isSat = day.day === "Saturday";
         const slots = slotList(isSat);
 
         document.getElementById("add-shift-day-name").textContent = day.day;
 
-        // workers not already assigned this day
-        const assigned = new Set(day.assignments.map((a) => a.name));
-        const available = workers.filter((w) => !assigned.has(w.name));
-        const workerSel = document.getElementById("add-shift-worker");
-        workerSel.innerHTML =
-          available.length === 0
-            ? `<option value="">No workers available</option>`
-            : available
-                .map((w) => `<option value="${w.name}">${w.name}</option>`)
-                .join("");
+        const assigned = new Set(day.assignments.map(a => a.name));
+        const available = workers.filter(w => !assigned.has(w.name));
+        document.getElementById("add-shift-worker").innerHTML = available.length === 0
+          ? `<option value="">No employees available</option>`
+          : available.map(w => `<option value="${w.name}">${w.name}</option>`).join("");
 
-        // start/end selects
-        const startSel = document.getElementById("add-shift-start");
+        const toOpt = s => `<option value="${s}">${s}</option>`;
+        document.getElementById("add-shift-start").innerHTML = slots.map(toOpt).join("");
         const endSel = document.getElementById("add-shift-end");
-        startSel.innerHTML = slots
-          .map((s) => `<option value="${s}">${s}</option>`)
-          .join("");
-        endSel.innerHTML = slots
-          .map((s) => `<option value="${s}">${s}</option>`)
-          .join("");
+        endSel.innerHTML = slots.map(toOpt).join("");
         endSel.selectedIndex = Math.min(2, slots.length - 1);
 
         document.getElementById("add-shift-modal").classList.add("open");
@@ -1168,370 +1005,64 @@ function showScreen(newId) {
       }
 
       function confirmAddShift() {
-        const name = document.getElementById("add-shift-worker").value;
+        const name  = document.getElementById("add-shift-worker").value;
         if (!name) return alert("No employee selected.");
         const start = document.getElementById("add-shift-start").value;
-        const end = document.getElementById("add-shift-end").value;
-        const di = addShiftTarget;
+        const end   = document.getElementById("add-shift-end").value;
+        const di    = addShiftTarget;
         const isSat = scheduleData[di].day === "Saturday";
         if (timeToIndex(start, isSat) >= timeToIndex(end, isSat))
           return alert("End time must be after start time.");
-        const worker = workers.find((w) => w.name === name);
 
-        // close modal and clear target BEFORE modifying data and re-rendering
+        const worker = workers.find(w => w.name === name);
+        const av     = availability[name];
+        const avDay  = av ? av.find(x => x.day === scheduleData[di].day.toLowerCase()) : null;
+
         closeAddShiftModal();
-
         scheduleData[di].assignments.push({
-          name,
-          start,
-          end,
-          priority: worker ? worker.priority : 0,
-          availStart: (() => {
-            const av = availability[name];
-            if (!av) return null;
-            const avDay = av.find(
-              (x) => x.day === scheduleData[di].day.toLowerCase(),
-            );
-            return avDay && !avDay.allDay ? avDay.start : null;
-          })(),
-          availEnd: (() => {
-            const av = availability[name];
-            if (!av) return null;
-            const avDay = av.find(
-              (x) => x.day === scheduleData[di].day.toLowerCase(),
-            );
-            return avDay && !avDay.allDay ? avDay.end : null;
-          })(),
+          name, start, end,
+          priority:   worker ? worker.priority : 0,
+          availStart: avDay && !avDay.allDay ? avDay.start : null,
+          availEnd:   avDay && !avDay.allDay ? avDay.end   : null,
         });
-        console.log(availability);
-        // defer render to next tick so no active mousedown bleeds into new handlers
-        setTimeout(() => {
-          renderEditScreen();
-          renderSchedule();
-        }, 0);
+
+        setTimeout(() => { renderEditScreen(); renderSchedule(); }, 0);
       }
 
-      document
-        .getElementById("add-shift-modal")
-        .addEventListener("click", function (e) {
-          if (e.target === this) closeAddShiftModal();
-        });
+      document.getElementById("add-shift-modal").addEventListener("click", function(e) {
+        if (e.target === this) closeAddShiftModal();
+      });
 
       // ── Clipboard ──────────────────────────────────────────
       function copyToClipboard() {
         const warnings = getOutOfBoundsWorkers();
         if (warnings.length > 0) {
-          const proceed = confirm(
-            `⚠️ The following workers are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`,
-          );
-          if (!proceed) return;
+          if (!confirm(`⚠️ The following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`)) return;
         }
-        const text = buildClipboardText();
-        navigator.clipboard.writeText(text).then(() => {
-          document.querySelectorAll("#copy-btn").forEach((btn) => {
+        navigator.clipboard.writeText(buildClipboardText()).then(() => {
+          document.querySelectorAll("#copy-btn").forEach(btn => {
             btn.textContent = "Copied!";
-            setTimeout(() => (btn.textContent = "Copy to Clipboard"), 2000);
+            setTimeout(() => btn.textContent = "Copy to Clipboard", 2000);
           });
         });
       }
 
-      let editEmployeeIndex = null;
-      let editEmployeePriority = 0;
-
-      function openEditEmployeeModal(wi) {
-        editEmployeeIndex = wi;
-        const w = workers[wi];
-        editEmployeePriority = w.priority;
-        document.getElementById("edit-employee-name").value = w.name;
-        document.getElementById("edit-default-start").value =
-          w.defaultStart ?? (w.priority === 2 ? 3 : 4);
-        document.getElementById("edit-default-end").value = w.defaultEnd ?? 8;
-        selectEditPriority(w.priority);
-        document.getElementById("edit-employee-modal").classList.add("open");
-      }
-
-      function closeEditEmployeeModal() {
-        document.getElementById("edit-employee-modal").classList.remove("open");
-        editEmployeeIndex = null;
-      }
-
-      function selectEditPriority(val) {
-        editEmployeePriority = val;
-        document
-          .querySelectorAll("#edit-priority-picker .priority-opt")
-          .forEach((btn) =>
-            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
-          );
-      }
-
-      function confirmEditEmployee() {
-        const name = document.getElementById("edit-employee-name").value.trim();
-        if (!name) return alert("Enter a name");
-        const start = parseInt(
-          document.getElementById("edit-default-start").value,
-        );
-        const end = parseInt(document.getElementById("edit-default-end").value);
-        if (isNaN(start) || isNaN(end) || start >= end)
-          return alert("Enter valid default hours.");
-        const existing = workers.find(
-          (w, i) =>
-            w.name.toLowerCase() === name.toLowerCase() &&
-            i !== editEmployeeIndex,
-        );
-        if (existing)
-          return alert("Another employee with that name already exists.");
-        workers[editEmployeeIndex].name = name;
-        workers[editEmployeeIndex].priority = editEmployeePriority;
-        workers[editEmployeeIndex].defaultStart = start;
-        workers[editEmployeeIndex].defaultEnd = end;
-        saveWorkers();
-        renderWorkers();
-        closeEditEmployeeModal();
-      }
-
-      document
-        .getElementById("edit-employee-modal")
-        .addEventListener("click", function (e) {
-          if (e.target === this) closeEditEmployeeModal();
-        });
-
       function continueWithoutCalendar() {
-        // go back to schedule screen, generate will skip calendar fetch next time
-        // set a flag so generate skips the calendar call
         window._skipCalendar = true;
         showScreen("screen-schedule");
       }
 
-      // ── Settings ───────────────────────────────────────────
-      let settings = JSON.parse(
-        localStorage.getItem("scheduler-settings") || "{}",
-      );
-      settings = {
-        theme: "light",
-        mode: "simplified",
-        inputMode: "calendar",
-        demo: false,
-        ...settings,
-      };
-
-      function saveSettings() {
-        localStorage.setItem("scheduler-settings", JSON.stringify(settings));
-      }
-
-      function openSettings() {
-        // sync UI to current settings
-        document
-          .getElementById("theme-light")
-          .classList.toggle("active", settings.theme === "light");
-        document
-          .getElementById("theme-dark")
-          .classList.toggle("active", settings.theme === "dark");
-        document
-          .getElementById("mode-simplified")
-          .classList.toggle("active", settings.mode === "simplified");
-        document
-          .getElementById("input-calendar")
-          .classList.toggle("active", settings.inputMode === "calendar");
-        document
-          .getElementById("input-manual")
-          .classList.toggle("active", settings.inputMode === "manual");
-        document.getElementById("demo-toggle").checked = settings.demo;
-        document.getElementById("settings-panel").classList.add("open");
-      }
-
-      function closeSettings() {
-        document.getElementById("settings-panel").classList.remove("open");
-      }
-
-      function setTheme(val) {
-        settings.theme = val;
-        saveSettings();
-        applyTheme();
-        document
-          .getElementById("theme-light")
-          .classList.toggle("active", val === "light");
-        document
-          .getElementById("theme-dark")
-          .classList.toggle("active", val === "dark");
-      }
-
-      function applyTheme() {
-        document.body.classList.toggle("dark", settings.theme === "dark");
-      }
-
-      function setMode(val) {
-        settings.mode = val;
-        saveSettings();
-      }
-
-      function setInputMode(val) {
-        settings.inputMode = val;
-        saveSettings();
-        window._skipCalendar = val === "manual";
-        document
-          .getElementById("input-calendar")
-          .classList.toggle("active", val === "calendar");
-        document
-          .getElementById("input-manual")
-          .classList.toggle("active", val === "manual");
-      }
-
-      let _realWorkers = null;
-
-      function setDemo(checked) {
-        settings.demo = checked;
-        saveSettings();
-        document.getElementById("demo-banner").style.display = checked
-          ? "flex"
-          : "none";
-        if (checked) activateDemo();
-        else deactivateDemo();
-      }
-
-      function activateDemo() {
-        // only save real workers if we're not already in demo mode
-        if (_realWorkers === null) {
-          _realWorkers = JSON.parse(JSON.stringify(workers));
-        }
-        workers = [
-          { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
-          { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
-          { name: "Taylor", priority: 1, defaultStart: 4, defaultEnd: 8 },
-          { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
-          { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
-          { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        ];
-        // premade availability
-        availability = {
-          Alex: DAYS.map((d) => ({
-            day: d,
-            selected: true,
-            allDay: false,
-            start: d === "saturday" ? 10 : 3,
-            end: d === "saturday" ? 14 : 8,
-          })),
-          Jordan: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "wednesday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-          })),
-          Taylor: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "thursday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-          })),
-          Morgan: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "wednesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-          })),
-          Casey: DAYS.map((d) => ({
-            day: d,
-            selected: ["tuesday", "thursday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-          })),
-          Riley: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "tuesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-          })),
-        };
-        renderWorkers();
-      }
-
-      function deactivateDemo() {
-        // always start with clean slate — ignore real workers saved before demo
-        _realWorkers = null;
-        workers = [];
-        saveWorkers(); // save empty team
-        availability = {};
-        renderWorkers();
-      }
-
-      // init demo on load
-      if (settings.demo) {
-        document.getElementById("demo-banner").style.display = "flex";
-        activateDemo();
-      }
-      // close settings on overlay click
-      document
-        .getElementById("settings-panel")
-        .addEventListener("click", function (e) {
-          if (e.target === this) closeSettings();
-        });
-
-      // apply theme on load
+      // ── Init ───────────────────────────────────────────────
       applyTheme();
 
-      function sortedWorkers() {
-        return [...workers].sort((a, b) => {
-          if (b.priority !== a.priority) return b.priority - a.priority;
-          return a.name.localeCompare(b.name);
-        });
-      }
-
-      // restore demo banner if demo was active
+      // demo banner visibility on load
       if (settings.demo) {
         document.getElementById("demo-banner").style.display = "flex";
         activateDemo();
+      } else {
+        document.getElementById("demo-banner").style.display = "none";
       }
 
-      function getNextMonday() {
-        const today = new Date();
-        const day = today.getDay(); // 0=Sun, 1=Mon, ...
-        const daysUntilMonday = day === 1 ? 0 : (8 - day) % 7;
-        const monday = new Date(today);
-        monday.setDate(today.getDate() + daysUntilMonday);
-        // format as YYYY-MM-DD for input[type=date]
-        const y = monday.getFullYear();
-        const m = String(monday.getMonth() + 1).padStart(2, "0");
-        const d = String(monday.getDate()).padStart(2, "0");
-        return `${y}-${m}-${d}`;
-      }
-      // generates time options from startHour to endHour in 30-min increments
-      // returns array of { value: 10, label: "10:00 AM" }
-      function timeOptions(isSaturday) {
-        const options = [];
-        const start = isSaturday ? 10 : 3;
-        const end = isSaturday ? 14 : 8;
-        for (let h = start; h <= end; h++) {
-          for (let m of [0, 30]) {
-            if (h === end && m === 30) break;
-            const totalMins = h * 60 + m;
-            const displayH = h > 12 ? h - 12 : h;
-            const displayM = m === 0 ? "00" : "30";
-            const ampm = h >= 12 ? "PM" : "AM";
-            options.push({
-              value: totalMins, // store as total minutes for easy comparison
-              hour: h,
-              minute: m,
-              label: `${displayH}:${displayM} ${ampm}`,
-            });
-          }
-        }
-        return options;
-      }
-
-      function minsToHour(mins) {
-        return Math.floor(mins / 60);
-      }
-      function minsToMinute(mins) {
-        return mins % 60;
-      }
-      function hourMinToMins(h, m) {
-        return h * 60 + m;
-      }
-      // ── Init ───────────────────────────────────────────────
       renderWorkers();
     </script>
   </body>
