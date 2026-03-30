@@ -45,7 +45,12 @@ body {
   display: none;
   min-height: 100vh;
   flex-direction: column;
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  will-change: transform;
 }
+
 .screen.active {
   display: flex;
 }
@@ -1216,3 +1221,4 @@ body.dark {
   background: #ffc107;
   color: #333;
 }
+

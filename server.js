@@ -97,14 +97,12 @@ app.post("/generate", (req, res) => {
   const { workers, studentData, oneOnOneData } = req.body;
 
   // build users from frontend data
-  const users = workers.map((w) => {
-    const hoursAv = w.days.map((d) => {
-      if (d.allDay) return [d.day];
-      return [d.day, d.start, d.end];
-    });
-    const user = new User(w.name, hoursAv);
-    if (w.priority) user.setPriority(w.priority);
-    return user;
+  const hoursAv = w.days.map((d) => {
+    if (d.allDay) return [d.day];
+    // convert hour + minute to decimal (e.g. 4:30 = 4.5)
+    const start = d.start + (d.startMinute === 30 ? 0.5 : 0);
+    const end = d.end + (d.endMinute === 30 ? 0.5 : 0);
+    return [d.day, start, end];
   });
 
   const week = new SimplifiedWeek(users);

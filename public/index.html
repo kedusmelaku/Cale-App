@@ -562,12 +562,45 @@
       }
 
       // ── Navigation ─────────────────────────────────────────
-      function showScreen(id) {
-        document
-          .querySelectorAll(".screen")
-          .forEach((s) => s.classList.remove("active"));
-        document.getElementById(id).classList.add("active");
-      }
+      const SCREEN_ORDER = [
+  "screen-workers",
+  "screen-schedule", 
+  "screen-edit",
+  "screen-auth"
+];
+
+function showScreen(newId) {
+  const current = document.querySelector(".screen.active");
+  const next = document.getElementById(newId);
+  if (!current || current === next) return;
+
+  const currentIdx = SCREEN_ORDER.indexOf(current.id);
+  const nextIdx = SCREEN_ORDER.indexOf(newId);
+  const goingForward = nextIdx > currentIdx;
+
+  // position next screen off-screen in the right direction
+  next.style.transform = goingForward ? "translateX(100%)" : "translateX(-100%)";
+  next.style.display = "flex";
+
+  // force reflow
+  next.offsetHeight;
+
+  // slide both
+  next.style.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+  current.style.transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+
+  next.style.transform = "translateX(0%)";
+  current.style.transform = goingForward ? "translateX(-100%)" : "translateX(100%)";
+
+  setTimeout(() => {
+    current.classList.remove("active");
+    current.style.display = "none";
+    current.style.transform = "";
+    current.style.transition = "";
+    next.classList.add("active");
+    next.style.transition = "";
+  }, 300);
+}
 
       function goToWorkers() {
         showScreen("screen-workers");
@@ -576,7 +609,10 @@
       function goToSchedule() {
         if (workers.length === 0)
           return alert("Add at least one employee first.");
-        buildAvailability();
+        if (Object.keys(availability).length === 0) buildAvailability();
+        // auto-set Monday date if not already set
+        const dateInput = document.getElementById("week-date");
+        if (!dateInput.value) dateInput.value = getNextMonday();
         showScreen("screen-schedule");
       }
 
@@ -684,6 +720,8 @@
                 ? 10
                 : (w.defaultStart ?? (w.priority === 2 ? 3 : 4)),
             end: d === "saturday" ? 14 : (w.defaultEnd ?? 8),
+            startMinute: 0,
+            endMinute: 0,
           }));
         });
         renderAvailability();
@@ -731,14 +769,30 @@
                   ${
                     !d.allDay
                       ? `
-                    <div class="av-time-inputs">
-                      <input type="number" value="${d.start}" min="3" max="14"
-                        onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
-                      <span>–</span>
-                      <input type="number" value="${d.end}" min="3" max="14"
-                        onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
-                    </div>
-                  `
+  <div class="av-time-inputs">
+    <select onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
+  ${timeOptions(d.day === 'saturday').map(o =>
+    `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? 'selected' : ''}>${o.label}</option>`
+  ).join('')}
+</select>
+<span>–</span>
+<select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
+  ${timeOptions(d.day === 'saturday').map(o =>
+    `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? 'selected' : ''}>${o.label}</option>`
+  ).join('')}
+</select>
+    <span>–</span>
+    <select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
+      ${timeOptions(d.day === "saturday")
+        .map(
+          (o) =>
+            `<option value="${o.hour}" ${o.hour === d.end && o.minute === 0 ? "selected" : ""}
+          data-minute="${o.minute}">${o.label}</option>`,
+        )
+        .join("")}
+    </select>
+  </div>
+`
                       : ""
                   }
                 </div>
@@ -770,7 +824,13 @@
       }
 
       function updateHour(name, di, field, val) {
-        availability[name][di][field] = parseInt(val);
+        const totalMins = parseInt(val);
+        availability[name][di][field] = minsToHour(totalMins);
+        // store minutes too for half-hour support
+        if (field === "start")
+          availability[name][di].startMinute = minsToMinute(totalMins);
+        if (field === "end")
+          availability[name][di].endMinute = minsToMinute(totalMins);
       }
 
       // ── Generate ───────────────────────────────────────────
@@ -788,6 +848,8 @@
                 allDay: d.allDay,
                 start: d.start,
                 end: d.end,
+                startMinute: d.startMinute || 0,
+                endMinute: d.endMinute || 0,
               }));
             return { name: w.name, priority: w.priority, days };
           })
@@ -1141,7 +1203,7 @@
             return avDay && !avDay.allDay ? avDay.end : null;
           })(),
         });
-
+        console.log(availability);
         // defer render to next tick so no active mousedown bleeds into new handlers
         setTimeout(() => {
           renderEditScreen();
@@ -1314,7 +1376,7 @@
           .classList.toggle("active", val === "manual");
       }
 
-      let _realWorkers = null; // stores real team while in demo mode
+      let _realWorkers = null;
 
       function setDemo(checked) {
         settings.demo = checked;
@@ -1327,9 +1389,10 @@
       }
 
       function activateDemo() {
-        // store real team before overwriting
-        _realWorkers = JSON.parse(JSON.stringify(workers));
-
+        // only save real workers if we're not already in demo mode
+        if (_realWorkers === null) {
+          _realWorkers = JSON.parse(JSON.stringify(workers));
+        }
         workers = [
           { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
           { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
@@ -1338,8 +1401,7 @@
           { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
           { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
         ];
-
-        // premade availability for demo
+        // premade availability
         availability = {
           Alex: DAYS.map((d) => ({
             day: d,
@@ -1384,24 +1446,23 @@
             end: d === "saturday" ? 14 : 8,
           })),
         };
-
         renderWorkers();
       }
 
       function deactivateDemo() {
-        // restore real team
-        if (_realWorkers !== null) {
-          workers = _realWorkers;
-          _realWorkers = null;
-        } else {
-          workers = JSON.parse(
-            localStorage.getItem("scheduler-workers") || "[]",
-          );
-        }
+        // always start with clean slate — ignore real workers saved before demo
+        _realWorkers = null;
+        workers = [];
+        saveWorkers(); // save empty team
         availability = {};
         renderWorkers();
       }
 
+      // init demo on load
+      if (settings.demo) {
+        document.getElementById("demo-banner").style.display = "flex";
+        activateDemo();
+      }
       // close settings on overlay click
       document
         .getElementById("settings-panel")
@@ -1423,6 +1484,52 @@
       if (settings.demo) {
         document.getElementById("demo-banner").style.display = "flex";
         activateDemo();
+      }
+
+      function getNextMonday() {
+        const today = new Date();
+        const day = today.getDay(); // 0=Sun, 1=Mon, ...
+        const daysUntilMonday = day === 1 ? 0 : (8 - day) % 7;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + daysUntilMonday);
+        // format as YYYY-MM-DD for input[type=date]
+        const y = monday.getFullYear();
+        const m = String(monday.getMonth() + 1).padStart(2, "0");
+        const d = String(monday.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+      // generates time options from startHour to endHour in 30-min increments
+      // returns array of { value: 10, label: "10:00 AM" }
+      function timeOptions(isSaturday) {
+        const options = [];
+        const start = isSaturday ? 10 : 3;
+        const end = isSaturday ? 14 : 8;
+        for (let h = start; h <= end; h++) {
+          for (let m of [0, 30]) {
+            if (h === end && m === 30) break;
+            const totalMins = h * 60 + m;
+            const displayH = h > 12 ? h - 12 : h;
+            const displayM = m === 0 ? "00" : "30";
+            const ampm = h >= 12 ? "PM" : "AM";
+            options.push({
+              value: totalMins, // store as total minutes for easy comparison
+              hour: h,
+              minute: m,
+              label: `${displayH}:${displayM} ${ampm}`,
+            });
+          }
+        }
+        return options;
+      }
+
+      function minsToHour(mins) {
+        return Math.floor(mins / 60);
+      }
+      function minsToMinute(mins) {
+        return mins % 60;
+      }
+      function hourMinToMins(h, m) {
+        return h * 60 + m;
       }
       // ── Init ───────────────────────────────────────────────
       renderWorkers();

@@ -15,12 +15,19 @@ class User {
         : ["4", "4:30", "5", "5:30", "6", "6:30", "7", "7:30", "8"];
 
       if (!(hoursAv[i].length < 3)) {//if hours are specified
-        for (let hour = hoursAv[i][1]; hour <= hoursAv[i][2]; hour++) {
-          if (isSaturday ? hour >= 10 && hour <= 14 : hour >= 3 && hour <= 8) {
-            let displayHour = hour > 12 ? hour - 12 : hour; //if hour is greater than 12, convert to pm form (like 1 pm instead of 13)
-            this.hours[i].push(displayHour.toString());
-            if (hour < hoursAv[i][2]) {
-              this.hours[i].push(displayHour + ":30"); 
+        for (let hour = hoursAv[i][1]; hour <= hoursAv[i][2]; hour += 0.5) {
+          const wholeHour = Math.floor(hour);
+          const isHalf = hour % 1 === 0.5;
+          if (
+            isSaturday
+              ? wholeHour >= 10 && wholeHour <= 14
+              : wholeHour >= 3 && wholeHour <= 8
+          ) {
+            let displayHour = wholeHour > 12 ? wholeHour - 12 : wholeHour;
+            if (!isHalf) {
+              this.hours[i].push(displayHour.toString());
+            } else if (hour < hoursAv[i][2]) {
+              this.hours[i].push(displayHour + ":30");
             }
           }
         }
