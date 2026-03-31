@@ -1,14 +1,13 @@
 const { google } = require("googleapis");
-const fs = require("fs");
 
-const credentials = JSON.parse(fs.readFileSync("credentials.json"));
+const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
 const { client_id, client_secret, redirect_uris } =
   credentials.web || credentials.installed;
 
 const auth = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-if (fs.existsSync("token.json")) {
-  const tokens = JSON.parse(fs.readFileSync("token.json"));
+if (process.env.GOOGLE_TOKEN) {
+  const tokens = JSON.parse(process.env.GOOGLE_TOKEN);
   auth.setCredentials(tokens);
   console.log("Loaded existing token");
 } else {
@@ -24,9 +23,10 @@ if (fs.existsSync("token.json")) {
 }
 
 function saveToken(tokens) {
-  fs.writeFileSync("token.json", JSON.stringify(tokens));
   auth.setCredentials(tokens);
-  console.log("Token saved successfully.");
+  console.log(
+    "Token received. On a hosted server, set GOOGLE_TOKEN env var manually.",
+  );
 }
 
 module.exports = { auth, saveToken };
