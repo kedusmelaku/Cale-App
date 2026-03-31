@@ -38,19 +38,31 @@ body {
 
 /* ── Demo Banner ── */
 #demo-banner {
+  position: fixed;            /* REQUIRED so it sits at top */
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
   background: #fff3cd;
   border-bottom: 1px solid #ffc107;
   color: #856404;
   padding: 5px 20px;
   font-size: 0.78rem;
   font-weight: 600;
-  align-items: center;
-  justify-content: space-between;
-  
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
+
+  /* animation */
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+
+/* visible state */
+#demo-banner.hide {
+  transform: translateY(-100%);
 }
 
 #demo-banner button {
@@ -64,24 +76,33 @@ body {
   font-family: "Noto Sans", sans-serif;
 }
 
-#demo-banner button:hover { background: #ffc107; color: #333; }
-
-body.demo-active .screen { top: 40px; }
-body.demo-active #demo-banner { display: flex !important; }
+#demo-banner button:hover { 
+  background: #ffc107; 
+  color: #333; 
+}
 
 /* ── Screens ── */
 .screen {
   display: none;
   min-height: 100vh;
   flex-direction: column;
-  position: relative;
+  position: relative;   /* stays in normal flow */
   inset: 0;
   overflow-y: auto;
-  will-change: transform;
   background: var(--bg);
+
+  /* smooth push down */
+  transition: padding-top 0.3s ease;
 }
 
-.screen.active { display: flex; }
+/* push content down ONLY when banner is visible */
+body.demo-active .screen {
+  padding-top: 36px;   /* match banner height */
+}
+
+.screen.active { 
+  display: flex; 
+}
 
 /* ── Header ── */
 header {
