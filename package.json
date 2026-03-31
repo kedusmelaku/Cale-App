@@ -1,0 +1,32 @@
+{
+  "name": "schedule",
+  "version": "1.0.0",
+  "description": "",
+  "main": "auth.js",
+  "bin": {
+    "schedule": "bin/App.js"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kedusmelaku/Schedule.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kedusmelaku/Schedule/issues"
+  },
+  "homepage": "https://github.com/kedusmelaku/Schedule#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0"
+  }
+}
