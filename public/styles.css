@@ -18,7 +18,6 @@
   --green-bg: #eaf4ef;
   --radius: 8px;
   --slot-h: 40px;
-  --banner-h: 34px;
   --shadow: 0 1px 4px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
 }
@@ -35,33 +34,35 @@ body {
   line-height: 1.5;
 }
 
+
+
 /* ── Demo Banner ── */
-/* Always in the DOM; hidden via height/transform when not active */
 #demo-banner {
-  position: fixed;
+  position: fixed;            /* REQUIRED so it sits at top */
   top: 0;
   left: 0;
   right: 0;
   z-index: 200;
-  height: var(--banner-h);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+
   background: #fff3cd;
   border-bottom: 1px solid #ffc107;
   color: #856404;
+  padding: 5px 20px;
   font-size: 0.78rem;
   font-weight: 600;
-  /* hidden by default — slide in when body.demo-active is set */
-  transform: translateY(-100%);
-  transition: transform 0.25s ease;
-  pointer-events: none;
+
+  /* animation */
+  transform: translateY(0);
+  transition: transform 0.3s ease;
 }
 
-body.demo-active #demo-banner {
-  transform: translateY(0);
-  pointer-events: all;
+/* visible state */
+#demo-banner.hide {
+  transform: translateY(-100%);
 }
 
 #demo-banner button {
@@ -75,24 +76,33 @@ body.demo-active #demo-banner {
   font-family: "Noto Sans", sans-serif;
 }
 
-#demo-banner button:hover { background: #ffc107; color: #333; }
+#demo-banner button:hover { 
+  background: #ffc107; 
+  color: #333; 
+}
 
 /* ── Screens ── */
 .screen {
   display: none;
   min-height: 100vh;
   flex-direction: column;
+  position: relative;   /* stays in normal flow */
+  inset: 0;
+  overflow-y: auto;
   background: var(--bg);
-  /* shift down when demo banner is visible */
-  padding-top: 0;
-  transition: padding-top 0.25s ease;
+
+  /* smooth push down */
+  transition: padding-top 0.3s ease;
 }
 
+/* push content down ONLY when banner is visible */
 body.demo-active .screen {
-  padding-top: var(--banner-h);
+  padding-top: 36px;   /* match banner height */
 }
 
-.screen.active { display: flex; }
+.screen.active { 
+  display: flex; 
+}
 
 /* ── Header ── */
 header {
@@ -107,11 +117,7 @@ header {
   z-index: 10;
   gap: 16px;
   width: 100%;
-}
-
-/* When demo banner is visible the header needs to stick below it */
-body.demo-active .screen.active header {
-  top: 0; /* header is already pushed down by screen's padding-top */
+  box-sizing: border-box;
 }
 
 .header-title {
@@ -122,7 +128,11 @@ body.demo-active .screen.active header {
   letter-spacing: 0.01em;
 }
 
-.header-actions { display: flex; gap: 10px; align-items: center; }
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
 
 /* ── Page Body ── */
 .page-body {
@@ -167,6 +177,7 @@ body.demo-active .screen.active header {
   transition: background 0.15s;
   white-space: nowrap;
 }
+
 .btn-primary:hover { background: var(--accent-hover); }
 
 .btn-secondary {
@@ -182,6 +193,7 @@ body.demo-active .screen.active header {
   transition: all 0.15s;
   white-space: nowrap;
 }
+
 .btn-secondary:hover { background: var(--green-bg); }
 .btn-secondary:disabled { color: var(--text-muted); border-color: var(--border); cursor: default; background: transparent; }
 
@@ -198,6 +210,7 @@ body.demo-active .screen.active header {
   transition: all 0.15s;
   white-space: nowrap;
 }
+
 .btn-back:hover { border-color: var(--border-strong); color: var(--text); }
 
 .btn-add-worker {
@@ -213,6 +226,7 @@ body.demo-active .screen.active header {
   font-weight: 600;
   transition: all 0.15s;
 }
+
 .btn-add-worker:hover { background: var(--accent-light); }
 
 .btn-remove {
@@ -225,6 +239,7 @@ body.demo-active .screen.active header {
   padding: 0;
   transition: color 0.15s;
 }
+
 .btn-remove:hover { color: var(--danger); }
 
 .btn-edit-emp {
@@ -237,6 +252,7 @@ body.demo-active .screen.active header {
   padding: 0;
   transition: color 0.15s;
 }
+
 .btn-edit-emp:hover { color: var(--accent-hover); }
 
 .btn-gear {
@@ -249,6 +265,7 @@ body.demo-active .screen.active header {
   border-radius: var(--radius);
   transition: color 0.15s;
 }
+
 .btn-gear:hover { color: var(--text); }
 
 /* ── Worker Grid ── */
@@ -275,10 +292,12 @@ body.demo-active .screen.active header {
   display: flex;
   transition: box-shadow 0.15s;
 }
+
 .wcard:hover { box-shadow: var(--shadow-md); }
 
 .wcard-color { width: 6px; flex-shrink: 0; border-radius: var(--radius) 0 0 var(--radius); }
-.wcard-body  { padding: 14px 16px; flex: 1; }
+
+.wcard-body { padding: 14px 16px; flex: 1; }
 
 .wcard-header {
   display: flex;
@@ -287,6 +306,7 @@ body.demo-active .screen.active header {
   margin-bottom: 10px;
   gap: 8px;
 }
+
 .wcard-name { font-weight: 600; font-size: 0.92rem; color: var(--text); }
 
 /* ── Modals ── */
@@ -299,6 +319,7 @@ body.demo-active .screen.active header {
   justify-content: center;
   align-items: center;
 }
+
 .modal-overlay.open { display: flex; }
 
 .modal {
@@ -342,6 +363,7 @@ body.demo-active .screen.active header {
   margin-bottom: 18px;
   transition: border-color 0.15s;
 }
+
 .modal input[type="text"]:focus { outline: none; border-color: var(--accent); }
 
 .priority-picker { display: flex; gap: 6px; margin-bottom: 24px; }
@@ -358,8 +380,11 @@ body.demo-active .screen.active header {
   font-weight: 500;
   color: var(--text-mid);
   transition: all 0.15s;
+  text-transform: none;
+  letter-spacing: 0;
 }
-.priority-opt:hover  { border-color: var(--accent); color: var(--accent); }
+
+.priority-opt:hover { border-color: var(--accent); color: var(--accent); }
 .priority-opt.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
@@ -375,6 +400,7 @@ body.demo-active .screen.active header {
   font-size: 0.85rem;
   transition: all 0.15s;
 }
+
 .btn-cancel:hover { border-color: var(--border-strong); color: var(--text); }
 
 .btn-confirm {
@@ -389,6 +415,7 @@ body.demo-active .screen.active header {
   font-weight: 600;
   transition: background 0.15s;
 }
+
 .btn-confirm:hover { background: var(--accent-hover); }
 
 /* ── Field Select ── */
@@ -404,6 +431,7 @@ body.demo-active .screen.active header {
   transition: border-color 0.15s;
   margin-bottom: 2px;
 }
+
 .field-select:focus { outline: none; border-color: var(--accent); }
 
 /* ── Priority badges ── */
@@ -416,7 +444,8 @@ body.demo-active .screen.active header {
   color: var(--text-muted);
   font-weight: 500;
 }
-.av-priority.p1 { background: var(--green-bg);    border-color: var(--green);  color: var(--green); }
+
+.av-priority.p1 { background: var(--green-bg); border-color: var(--green); color: var(--green); }
 .av-priority.p2 { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
 /* ── Info Tag ── */
@@ -424,7 +453,8 @@ body.demo-active .screen.active header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px; height: 15px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   border: 1.5px solid var(--border-strong);
   color: var(--text-muted);
@@ -438,6 +468,7 @@ body.demo-active .screen.active header {
   margin-left: 4px;
   z-index: 20;
 }
+
 .info-tag:hover .info-tooltip { display: block; }
 
 .info-tooltip {
@@ -460,10 +491,12 @@ body.demo-active .screen.active header {
   text-transform: none;
   letter-spacing: 0;
 }
+
 .info-tooltip::after {
   content: "";
   position: absolute;
-  top: 100%; left: 50%;
+  top: 100%;
+  left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
   border-top-color: var(--text);
@@ -489,6 +522,7 @@ body.demo-active .screen.active header {
   color: var(--text);
   margin-bottom: 4px;
 }
+
 .panel-subtitle { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; }
 
 .av-section { border-bottom: 1px solid var(--border); padding: 14px 0; }
@@ -501,8 +535,9 @@ body.demo-active .screen.active header {
   margin-bottom: 10px;
   flex-wrap: wrap;
 }
+
 .av-color { width: 10px; height: 10px; border-radius: 99px; flex-shrink: 0; }
-.av-name  { font-weight: 600; font-size: 0.9rem; }
+.av-name { font-weight: 600; font-size: 0.9rem; }
 
 .av-days { display: flex; flex-direction: column; gap: 4px; }
 
@@ -515,7 +550,14 @@ body.demo-active .screen.active header {
   gap: 8px;
   cursor: pointer;
 }
-.av-day-check input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; width: 15px; height: 15px; }
+
+.av-day-check input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
 .av-day-label { font-size: 0.85rem; font-weight: 500; color: var(--text); }
 
 .av-hours {
@@ -534,6 +576,7 @@ body.demo-active .screen.active header {
   font-size: 0.8rem;
   color: var(--text-mid);
 }
+
 .av-hours-check input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
 
 .av-time-inputs {
@@ -543,6 +586,7 @@ body.demo-active .screen.active header {
   font-size: 0.82rem;
   color: var(--text-mid);
 }
+
 .av-time-inputs select {
   padding: 4px 6px;
   background: var(--surface);
@@ -553,7 +597,9 @@ body.demo-active .screen.active header {
   font-size: 0.78rem;
   transition: border-color 0.15s;
 }
+
 .av-time-inputs select:focus { outline: none; border-color: var(--accent); }
+
 .av-time-inputs input[type="number"] {
   width: 52px;
   padding: 4px 7px;
@@ -575,6 +621,7 @@ body.demo-active .screen.active header {
   cursor: pointer;
   font-weight: 500;
 }
+
 .av-select-all input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
 
 /* ── Output Panel ── */
@@ -617,6 +664,7 @@ input[type="date"] {
   background: var(--surface2);
   transition: border-color 0.15s;
 }
+
 input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .btn-edit {
@@ -632,6 +680,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   transition: all 0.15s;
   white-space: nowrap;
 }
+
 .btn-edit:hover { background: var(--accent-light); }
 .btn-edit:disabled { color: var(--text-muted); border-color: var(--border); cursor: default; background: transparent; }
 
@@ -669,25 +718,21 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
-  overflow: visible; /* allow labels to bleed below bottom line */
+  overflow: visible; /* labels bleed past bottom edge */
 }
 
-/* ── Timeline slot labels (on the lines, not in the slots) ── */
 .timeline-slots {
   width: 42px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   background: var(--surface2);
-  position: relative;
-  overflow: visible;
+  position: relative; /* anchor for absolutely positioned labels */
+  overflow: visible;  /* let bottom label bleed past the border */
 }
 
-/*
-  Each label sits ON a grid line.
-  There are N+1 labels for N slots.
-  Labels are absolutely positioned at multiples of SLOT_H (40px).
-  The label text is vertically centered on the line via translateY(-50%).
-*/
+/* Labels sit ON the grid lines, not inside slots.
+   top is set inline (i * SLOT_H). translateY(-50%) centers
+   the text vertically on the line. */
 .timeline-line-label {
   position: absolute;
   right: 6px;
@@ -715,10 +760,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .timeline-grid-lines { position: absolute; inset: 0; pointer-events: none; }
 
-.timeline-grid-line {
-  height: var(--slot-h);
-  border-bottom: 1px solid var(--border);
-}
+.timeline-grid-line { height: var(--slot-h); border-bottom: 1px solid var(--border); }
 .timeline-grid-line:last-child { border-bottom: none; }
 
 .worker-block {
@@ -739,6 +781,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   opacity: 0.9;
   transition: opacity 0.15s;
 }
+
 .worker-block:hover { opacity: 1; }
 
 /* ── Edit Screen ── */
@@ -751,7 +794,9 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .resize-handle {
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 10px;
   cursor: ns-resize;
   background: rgba(0,0,0,0.15);
@@ -760,7 +805,8 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .remove-btn {
   position: absolute;
-  top: 3px; right: 4px;
+  top: 3px;
+  right: 4px;
   font-size: 0.65rem;
   color: white;
   cursor: pointer;
@@ -768,6 +814,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   line-height: 1;
   writing-mode: horizontal-tb;
 }
+
 .remove-btn:hover { opacity: 1; }
 
 .add-shift-btn {
@@ -783,12 +830,14 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
   transition: all 0.15s;
 }
+
 .add-shift-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── OOB ── */
 .oob-overlay {
   position: absolute;
-  left: 0; right: 0;
+  left: 0;
+  right: 0;
   background: repeating-linear-gradient(
     45deg,
     rgba(0,0,0,0.25),
@@ -823,6 +872,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   line-height: 1.7;
   color: var(--text-mid);
 }
+
 .auth-card code {
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -874,7 +924,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 }
 
 .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.settings-label    { font-weight: 600; font-size: 0.88rem; margin-bottom: 2px; }
+.settings-label { font-weight: 600; font-size: 0.88rem; margin-bottom: 2px; }
 .settings-sublabel { font-size: 0.78rem; color: var(--text-muted); max-width: 260px; line-height: 1.5; }
 
 .toggle-group {
@@ -895,9 +945,11 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   color: var(--text-muted);
   transition: all 0.15s;
   border-right: 1px solid var(--border);
+  text-transform: none;
 }
+
 .toggle-opt:last-child { border-right: none; }
-.toggle-opt.active   { background: var(--accent); color: white; font-weight: 600; }
+.toggle-opt.active { background: var(--accent); color: white; font-weight: 600; }
 .toggle-opt.disabled { opacity: 0.4; cursor: not-allowed; }
 .toggle-opt:not(.active):not(.disabled):hover { background: var(--surface2); color: var(--text); }
 
@@ -922,17 +974,21 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .switch-slider::before {
   content: "";
   position: absolute;
-  width: 18px; height: 18px;
-  left: 3px; top: 3px;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
   background: white;
   border-radius: 99px;
   transition: transform 0.2s;
 }
-.switch input:checked + .switch-slider             { background: var(--accent); }
-.switch input:checked + .switch-slider::before     { transform: translateX(18px); }
+
+.switch input:checked + .switch-slider { background: var(--accent); }
+.switch input:checked + .switch-slider::before { transform: translateX(18px); }
 
 /* ── Dark Mode ── */
 body.dark {
