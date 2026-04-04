@@ -1215,7 +1215,7 @@
             settings.demo
           )
             throw new Error("skipped");
-          const eventsRes = await fetch(`/events/mock?monday=${mondayVal}`); // swap to /events when ready
+          const eventsRes = await fetch(`/events?monday=${mondayVal}`); // swap to /events when ready
           if (eventsRes.status === 401) {
             showScreen("screen-auth");
             return;
