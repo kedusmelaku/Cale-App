@@ -1,14 +1,118 @@
 const express = require("express");
-const path = require("path");
-const User = require("./User");
-const Week = require("./Week");
-const Day = require("./Day");
+const path    = require("path");
+const User          = require("./User");
+const Week          = require("./Week");
+const Day           = require("./Day");
 const SimplifiedWeek = require("./SimplifiedWeek");
-const SimplifiedDay = require("./SimplifiedDay");
+const SimplifiedDay  = require("./SimplifiedDay");
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// ── Google OAuth setup ────────────────────────────────────────────────────
+// We lazy-load auth so the server still starts even if GOOGLE_CREDENTIALS
+// is missing (which would cause auth.js to throw on require).
+function getAuth() {
+  return require("./auth").auth;
+}
+
+// ── /oauth/start — send the user to Google's consent screen ───────────────
+app.get("/oauth/start", (req, res) => {
+  try {
+    const { google } = require("googleapis");
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+    const { client_id, client_secret, redirect_uris } =
+      credentials.web || credentials.installed;
+
+    const oauth2Client = new google.auth.OAuth2(
+      client_id,
+      client_secret,
+      redirect_uris[0]
+    );
+
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      prompt: "consent",          // force refresh_token every time
+      scope: "https://www.googleapis.com/auth/calendar.readonly",
+    });
+
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── /oauth/callback — Google redirects here after the user approves ───────
+app.get("/oauth/callback", async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).send("Missing code");
+
+  try {
+    const { google } = require("googleapis");
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+    const { client_id, client_secret, redirect_uris } =
+      credentials.web || credentials.installed;
+
+    const oauth2Client = new google.auth.OAuth2(
+      client_id,
+      client_secret,
+      redirect_uris[0]
+    );
+
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Update the in-memory auth instance so calendar calls work immediately
+    const authModule = require("./auth");
+    authModule.auth.setCredentials(tokens);
+
+    // Send a self-closing page that passes the token back to the opener
+    const tokenJson = JSON.stringify(tokens);
+    res.send(`<!doctype html>
+<html>
+<head><title>Connected</title>
+<style>
+  body { font-family: sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; background:#f5f5f2; }
+  .card { background:white; border-radius:10px; padding:32px 36px; max-width:520px; width:100%; box-shadow:0 4px 20px rgba(0,0,0,.1); }
+  h2 { color:#2a5fad; margin:0 0 12px; }
+  p  { color:#555; line-height:1.6; margin:0 0 16px; }
+  .token-box { background:#f5f5f2; border:1px solid #ddd; border-radius:6px; padding:12px; font-size:0.78rem; font-family:monospace; word-break:break-all; max-height:120px; overflow-y:auto; margin:12px 0; }
+  .steps { background:#edf2fc; border-radius:6px; padding:16px 20px; }
+  .steps ol { margin:8px 0 0 18px; line-height:2; }
+  .steps code { background:rgba(0,0,0,.06); padding:1px 5px; border-radius:3px; font-size:0.85em; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>✅ Google Calendar connected!</h2>
+  <p>The scheduler can now read your calendar. This connection will last until you revoke access in Google.</p>
+  <p><strong>To make this permanent on Render</strong>, copy the token below and paste it as the <code>GOOGLE_TOKEN</code> environment variable:</p>
+  <div class="token-box" id="tok">${tokenJson}</div>
+  <div class="steps">
+    <strong>One-time Render setup:</strong>
+    <ol>
+      <li>Go to your service on <a href="https://render.com" target="_blank">render.com</a></li>
+      <li>Click <strong>Environment</strong> → find <code>GOOGLE_TOKEN</code></li>
+      <li>Replace its value with the token above</li>
+      <li>Click <strong>Save Changes</strong> (no redeploy needed)</li>
+    </ol>
+  </div>
+  <p style="margin-top:16px; color:#27ae60; font-weight:600;">You can close this tab — the scheduler is ready to use.</p>
+</div>
+<script>
+  // Tell the opener that auth succeeded so it can update the UI
+  if (window.opener) {
+    window.opener.postMessage({ type: "oauth_success" }, "*");
+  }
+</script>
+</body>
+</html>`);
+  } catch (err) {
+    console.error("OAuth callback error:", err);
+    res.status(500).send(`Auth failed: ${err.message}`);
+  }
+});
 
 // ── /events/mock ───────────────────────────────────────────────────────────
 app.get("/events/mock", (req, res) => {
@@ -52,6 +156,19 @@ app.get("/events", async (req, res) => {
   }
 });
 
+// ── /cal-status ───────────────────────────────────────────────────────────
+app.get("/cal-status", (req, res) => {
+  try {
+    const auth = getAuth();
+    const creds = auth.credentials;
+    const connected = !!(creds && (creds.access_token || creds.refresh_token));
+    res.json({ connected });
+  } catch {
+    // auth.js couldn't load (no GOOGLE_CREDENTIALS env var)
+    res.json({ connected: false });
+  }
+});
+
 // ── /generate ──────────────────────────────────────────────────────────────
 app.post("/generate", (req, res) => {
   const { workers, studentData, oneOnOneData, mode } = req.body;
@@ -59,12 +176,11 @@ app.post("/generate", (req, res) => {
   const users = workers.map((w) => {
     const hoursAv = w.days.map((d) => {
       if (d.allDay) {
-        const isSaturday = d.day === "saturday";
+        const isSaturday   = d.day === "saturday";
         const defaultStart = isSaturday ? 10 : (w.defaultStart ?? (w.priority === 2 ? 3 : 4));
         const defaultEnd   = isSaturday ? 14 : (w.defaultEnd   ?? 8);
         return [d.day, defaultStart, defaultEnd];
       }
-      // support half-hour start/end via startMinute/endMinute
       const start = d.start + ((d.startMinute || 0) === 30 ? 0.5 : 0);
       const end   = d.end   + ((d.endMinute   || 0) === 30 ? 0.5 : 0);
       return [d.day, start, end];
@@ -75,16 +191,16 @@ app.post("/generate", (req, res) => {
   });
 
   const isUltra = mode === "ultra";
-  const week = isUltra ? new Week(users) : new SimplifiedWeek(users);
+  const week    = isUltra ? new Week(users) : new SimplifiedWeek(users);
 
   if (studentData) {
     for (const day of week.week) {
-      const dayKey  = day.dayName.toLowerCase();
+      const dayKey   = day.dayName.toLowerCase();
       const daySData = studentData[dayKey] || {};
       const dayOData = oneOnOneData ? (oneOnOneData[dayKey] || {}) : {};
       for (const slot of day.slots) {
-        slot.students  = daySData[slot.time] || 0;
-        slot.oneOnOne  = dayOData[slot.time] || false;
+        slot.students = daySData[slot.time] || 0;
+        slot.oneOnOne = dayOData[slot.time] || false;
       }
     }
     if (isUltra) {
