@@ -5,8 +5,8 @@ const calendar = google.calendar({ version: 'v3', auth });
 
 // keywords that identify a student lesson event
 // add to this list once you see real event formats
-const LESSON_KEYWORDS = ['lesson', 'class', 'training', 'session'];
-const ONE_ON_ONE_KEYWORDS = ['one on one', '1 on 1', '1on1'];
+const LESSON_KEYWORDS = ['HS', 'MS', 'ES'];
+const ONE_ON_ONE_KEYWORDS = ['one-on-one-session', 'one-on-one'];
 
 // classify an event title
 function classifyEvent(title) {

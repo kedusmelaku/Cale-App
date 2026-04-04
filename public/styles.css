@@ -38,31 +38,30 @@ body {
 
 /* ── Demo Banner ── */
 #demo-banner {
-  position: fixed;            /* REQUIRED so it sits at top */
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 200;
-
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   background: #fff3cd;
   border-bottom: 1px solid #ffc107;
   color: #856404;
-  padding: 5px 20px;
+  padding: 0 20px;
   font-size: 0.78rem;
   font-weight: 600;
-
-  /* animation */
-  transform: translateY(0);
-  transition: transform 0.3s ease;
+  /* hidden by default — slides in when body.demo-active */
+  transform: translateY(-100%);
+  transition: transform 0.25s ease;
+  pointer-events: none;
 }
 
-/* visible state */
-#demo-banner.hide {
-  transform: translateY(-100%);
+body.demo-active #demo-banner {
+  transform: translateY(0);
+  pointer-events: all;
 }
 
 #demo-banner button {
@@ -95,9 +94,9 @@ body {
   transition: padding-top 0.3s ease;
 }
 
-/* push content down ONLY when banner is visible */
+/* push screen content down when banner is visible */
 body.demo-active .screen {
-  padding-top: 36px;   /* match banner height */
+  padding-top: 34px;
 }
 
 .screen.active { 
@@ -718,7 +717,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
-  overflow: visible; /* labels bleed past bottom edge */
+  overflow: visible; /* allow bottom label to bleed past edge */
 }
 
 .timeline-slots {
@@ -730,9 +729,8 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   overflow: visible;  /* let bottom label bleed past the border */
 }
 
-/* Labels sit ON the grid lines, not inside slots.
-   top is set inline (i * SLOT_H). translateY(-50%) centers
-   the text vertically on the line. */
+/* Labels sit ON grid lines, not inside slots.
+   top set inline (i * SLOT_H). translateY(-50%) centers on the line. */
 .timeline-line-label {
   position: absolute;
   right: 6px;

@@ -425,6 +425,8 @@
         "#2a7ac4",
         "#7aaa3a",
       ];
+      // These are the N slot START times — each represents a 30-min block.
+      // The closing boundary (8 or 2) is NOT a slot start; it's added separately in buildTimelineHTML.
       const WEEKDAY_SLOTS = [
         "3",
         "3:30",
@@ -436,7 +438,6 @@
         "6:30",
         "7",
         "7:30",
-        "8",
       ];
       const SAT_SLOTS = [
         "10",
@@ -447,7 +448,6 @@
         "12:30",
         "1",
         "1:30",
-        "2",
       ];
       const SLOT_H = 40;
 
@@ -592,15 +592,7 @@
       function setDemo(checked) {
         settings.demo = checked;
         saveSettings();
-        const banner = document.getElementById("demo-banner");
-
         document.body.classList.toggle("demo-active", checked);
-
-        if (checked) {
-          banner.classList.add("show");
-        } else {
-          banner.classList.remove("show");
-        }
         if (checked) activateDemo();
         else deactivateDemo();
       }
@@ -608,11 +600,8 @@
       function exitDemo() {
         settings.demo = false;
         saveSettings();
-
-        document.body.classList.remove("demo-active");
-
         document.getElementById("demo-toggle").checked = false;
-        //document.getElementById("demo-banner").style.display = "none";
+        document.body.classList.remove("demo-active");
         deactivateDemo();
       }
 
@@ -644,7 +633,7 @@
         availability = buildDemoAvailability();
         scheduleData = [];
         renderWorkers();
-        renderAvailability(); // populate the availability panel with demo worker cards
+        renderAvailability();
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
@@ -657,7 +646,7 @@
         availability = {};
         scheduleData = [];
         renderWorkers();
-        document.getElementById("empty-state").style.display = "flex";
+        document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
@@ -785,7 +774,7 @@
         for (const day of scheduleData) {
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            // null means no availability for this day at all — always OOB
+            // null = no availability for this day at all — always OOB
             if (a.availStart === null || a.availEnd === null) {
               warnings.push(`${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`);
               continue;
@@ -800,7 +789,6 @@
           }
         }
         return warnings;
-      }
       }
 
       // ── Navigation ─────────────────────────────────────────
@@ -1130,7 +1118,6 @@
       function updateHour(name, di, field, val) {
         const totalMins = parseInt(val);
         const d = availability[name][di];
-
         // Guard: start must be before end — silently reject invalid picks
         if (field === "start") {
           const endMins = hourMinToMins(d.end, d.endMinute || 0);
@@ -1140,7 +1127,6 @@
           const startMins = hourMinToMins(d.start, d.startMinute || 0);
           if (totalMins <= startMins) return;
         }
-
         d[field] = minsToHour(totalMins);
         if (field === "start") d.startMinute = minsToMinute(totalMins);
         if (field === "end")   d.endMinute   = minsToMinute(totalMins);
@@ -1211,8 +1197,8 @@
             const avDay = av
               ? av.find((x) => x.day === d.day.toLowerCase())
               : null;
-            // Always store availability bounds so OOB can fire for allDay workers too.
-            // null means "no availability data" (worker not marked available this day).
+            // Always store bounds so OOB works for allDay workers too.
+            // null = worker not marked available this day.
             return {
               ...a,
               availStart: avDay && avDay.selected ? avDay.start : null,
@@ -1240,8 +1226,7 @@
           const isSat = day.day === "Saturday";
           const slots = slotList(isSat);
           // one extra label at the end for the closing boundary
-          // N+1 boundary labels positioned absolutely at i * SLOT_H,
-          // centered on each grid line via translateY(-50%) in CSS.
+          // N+1 boundary labels at i * SLOT_H, centered on each line via CSS translateY(-50%)
           const boundaries = [...slots, isSat ? "2" : "8"];
           const slotLabels = boundaries
             .map((s, i) => `<div class="timeline-line-label" style="top:${i * SLOT_H}px;">${s}</div>`)
@@ -1269,17 +1254,15 @@
               let oobOverlay = "";
               if (isEdit) {
                 if (a.availStart === null || a.availEnd === null) {
-                  // No availability for this day at all — entire bar is OOB
+                  // No availability for this day — entire bar is OOB
                   oobOverlay = `<div class="oob-overlay" style="top:0; height:${(ei - si) * SLOT_H}px;"></div>`;
                 } else {
                   const avSi = timeToIndex(a.availStart.toString(), isSat);
                   const avEi = timeToIndex(a.availEnd.toString(), isSat);
-                  // OOB above availability start
                   if (si < avSi) {
                     const h = Math.min(avSi - si, ei - si) * SLOT_H;
                     oobOverlay += `<div class="oob-overlay" style="top:0; height:${h}px;"></div>`;
                   }
-                  // OOB below availability end
                   if (ei > avEi) {
                     const top = Math.max(avEi - si, 0) * SLOT_H;
                     const h = (ei - Math.max(avEi, si)) * SLOT_H;
@@ -1453,13 +1436,16 @@
                 .map((w) => `<option value="${w.name}">${w.name}</option>`)
                 .join("");
 
+        // Include closing boundary so workers can start/end at 8 (or 2 on Saturday)
+        const boundary = isSat ? "2" : "8";
+        const timePoints = [...slots, boundary];
         const toOpt = (s) => `<option value="${s}">${s}</option>`;
-        document.getElementById("add-shift-start").innerHTML = slots
+        document.getElementById("add-shift-start").innerHTML = timePoints
           .map(toOpt)
           .join("");
         const endSel = document.getElementById("add-shift-end");
-        endSel.innerHTML = slots.map(toOpt).join("");
-        endSel.selectedIndex = Math.min(2, slots.length - 1);
+        endSel.innerHTML = timePoints.map(toOpt).join("");
+        endSel.selectedIndex = Math.min(2, timePoints.length - 1);
 
         document.getElementById("add-shift-modal").classList.add("open");
       }
@@ -1490,9 +1476,8 @@
           name,
           start,
           end,
-          priority:   worker ? worker.priority : 0,
-          // avDay null means worker has no availability for this day — whole bar is OOB
-          // avDay exists but not selected means same
+          priority: worker ? worker.priority : 0,
+          // null = no availability for this day — whole bar is OOB
           availStart: avDay && avDay.selected ? avDay.start : null,
           availEnd:   avDay && avDay.selected ? avDay.end   : null,
         });
@@ -1536,12 +1521,10 @@
       // ── Init ───────────────────────────────────────────────
       applyTheme();
 
-      // demo banner visibility on load
+      // demo banner visibility on load — CSS handles show/hide via body.demo-active
       if (settings.demo) {
-        document.getElementById("demo-banner").style.display = "flex";
+        document.body.classList.add("demo-active");
         activateDemo();
-      } else {
-        document.getElementById("demo-banner").style.display = "none";
       }
 
       renderWorkers();
