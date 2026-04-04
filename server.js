@@ -1,6 +1,8 @@
 const express = require("express");
 const path = require("path");
 const User = require("./User");
+const Week = require("./Week");
+const Day = require("./Day");
 const SimplifiedWeek = require("./SimplifiedWeek");
 const SimplifiedDay = require("./SimplifiedDay");
 
@@ -11,64 +13,18 @@ app.use(express.static(path.join(__dirname, "public")));
 // ── /events/mock ───────────────────────────────────────────────────────────
 app.get("/events/mock", (req, res) => {
   const studentData = {
-    monday: {
-      4: 3,
-      "4:30": 4,
-      5: 6,
-      "5:30": 5,
-      6: 4,
-      "6:30": 3,
-      7: 2,
-      "7:30": 1,
-    },
-    tuesday: {
-      4: 2,
-      "4:30": 3,
-      5: 5,
-      "5:30": 6,
-      6: 5,
-      "6:30": 4,
-      7: 3,
-      "7:30": 2,
-    },
-    wednesday: {
-      3: 1,
-      "3:30": 2,
-      4: 4,
-      "4:30": 5,
-      5: 4,
-      "5:30": 3,
-      6: 5,
-      "6:30": 6,
-      7: 3,
-    },
-    thursday: {
-      4: 3,
-      "4:30": 5,
-      5: 6,
-      "5:30": 5,
-      6: 4,
-      "6:30": 6,
-      7: 4,
-      "7:30": 2,
-    },
-    saturday: {
-      10: 4,
-      "10:30": 5,
-      11: 6,
-      "11:30": 5,
-      12: 4,
-      "12:30": 3,
-      1: 4,
-      "1:30": 3,
-    },
+    monday:    { "4": 3, "4:30": 4, "5": 6, "5:30": 5, "6": 4, "6:30": 3, "7": 2, "7:30": 1 },
+    tuesday:   { "4": 2, "4:30": 3, "5": 5, "5:30": 6, "6": 5, "6:30": 4, "7": 3, "7:30": 2 },
+    wednesday: { "3": 1, "3:30": 2, "4": 4, "4:30": 5, "5": 4, "5:30": 3, "6": 5, "6:30": 6, "7": 3 },
+    thursday:  { "4": 3, "4:30": 5, "5": 6, "5:30": 5, "6": 4, "6:30": 6, "7": 4, "7:30": 2 },
+    saturday:  { "10": 4, "10:30": 5, "11": 6, "11:30": 5, "12": 4, "12:30": 3, "1": 4, "1:30": 3 },
   };
   const oneOnOneData = {
-    monday: { 5: true, "5:30": true },
-    tuesday: {},
-    wednesday: { 6: true, "6:30": true },
-    thursday: {},
-    saturday: { 11: true, "11:30": true },
+    monday:    { "5": true, "5:30": true },
+    tuesday:   {},
+    wednesday: { "6": true, "6:30": true },
+    thursday:  {},
+    saturday:  { "11": true, "11:30": true },
   };
   res.json({ studentData, oneOnOneData });
 });
@@ -80,10 +36,7 @@ app.get("/events", async (req, res) => {
   try {
     const { getWeekEvents } = require("./calendar");
     const mondayDate = new Date(monday + "T00:00:00");
-    const { studentData, oneOnOneData } = await getWeekEvents(
-      mondayDate,
-      calendarId || "primary",
-    );
+    const { studentData, oneOnOneData } = await getWeekEvents(mondayDate, calendarId || "primary");
     res.json({ studentData, oneOnOneData });
   } catch (err) {
     console.error("Calendar error:", err.message);
@@ -101,24 +54,19 @@ app.get("/events", async (req, res) => {
 
 // ── /generate ──────────────────────────────────────────────────────────────
 app.post("/generate", (req, res) => {
-  const { workers, studentData, oneOnOneData } = req.body;
+  const { workers, studentData, oneOnOneData, mode } = req.body;
 
   const users = workers.map((w) => {
     const hoursAv = w.days.map((d) => {
       if (d.allDay) {
-        // Use the worker's stored default hours rather than letting User.js
-        // fall back to its hardcoded 4-8 default. This ensures high-priority
-        // workers (defaultStart: 3) actually start at 3.
         const isSaturday = d.day === "saturday";
-        const defaultStart = isSaturday
-          ? 10
-          : (w.defaultStart ?? (w.priority === 2 ? 3 : 4));
-        const defaultEnd = isSaturday ? 14 : (w.defaultEnd ?? 8);
+        const defaultStart = isSaturday ? 10 : (w.defaultStart ?? (w.priority === 2 ? 3 : 4));
+        const defaultEnd   = isSaturday ? 14 : (w.defaultEnd   ?? 8);
         return [d.day, defaultStart, defaultEnd];
       }
       // support half-hour start/end via startMinute/endMinute
       const start = d.start + ((d.startMinute || 0) === 30 ? 0.5 : 0);
-      const end = d.end + ((d.endMinute || 0) === 30 ? 0.5 : 0);
+      const end   = d.end   + ((d.endMinute   || 0) === 30 ? 0.5 : 0);
       return [d.day, start, end];
     });
     const user = new User(w.name, hoursAv);
@@ -126,21 +74,28 @@ app.post("/generate", (req, res) => {
     return user;
   });
 
-  const week = new SimplifiedWeek(users);
+  const isUltra = mode === "ultra";
+  const week = isUltra ? new Week(users) : new SimplifiedWeek(users);
 
   if (studentData) {
     for (const day of week.week) {
-      const dayKey = day.dayName.toLowerCase();
+      const dayKey  = day.dayName.toLowerCase();
       const daySData = studentData[dayKey] || {};
-      const dayOData = oneOnOneData ? oneOnOneData[dayKey] || {} : {};
+      const dayOData = oneOnOneData ? (oneOnOneData[dayKey] || {}) : {};
       for (const slot of day.slots) {
-        slot.students = daySData[slot.time] || 0;
-        slot.oneOnOne = dayOData[slot.time] || false;
+        slot.students  = daySData[slot.time] || 0;
+        slot.oneOnOne  = dayOData[slot.time] || false;
       }
     }
-    const tempDay = new SimplifiedDay("");
-    tempDay.canWork(week.week, users);
-    tempDay.willWork(week.week);
+    if (isUltra) {
+      const tempDay = new Day("");
+      tempDay.canWork(week.week, users);
+      tempDay.willWork(week.week);
+    } else {
+      const tempDay = new SimplifiedDay("");
+      tempDay.canWork(week.week, users);
+      tempDay.willWork(week.week);
+    }
   } else {
     week.createSchedule();
   }
@@ -151,9 +106,9 @@ app.post("/generate", (req, res) => {
       let di = worker.days.indexOf(day.dayName.toLowerCase());
       if (worker.working[di][0] === undefined) continue;
       assignments.push({
-        name: worker.name,
-        start: worker.working[di][0],
-        end: worker.working[di][1],
+        name:     worker.name,
+        start:    worker.working[di][0],
+        end:      worker.working[di][1],
         priority: worker.priority,
       });
     }

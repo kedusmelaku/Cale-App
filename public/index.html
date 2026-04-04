@@ -161,6 +161,30 @@
       </div>
     </div>
 
+
+    <!-- ── Screen 4: Manual Student Input ── -->
+    <div id="screen-manual" class="screen">
+      <header>
+        <button class="btn-back" onclick="showScreen('screen-schedule')">← Schedule</button>
+        <span class="header-title">Student Counts</span>
+        <div class="header-actions">
+          <div class="manual-granularity-toggle">
+            <label class="manual-gran-label">
+              <input type="checkbox" id="manual-hourly" onchange="renderManualGrid()">
+              <span>Hourly input</span>
+            </label>
+          </div>
+          <button class="btn-primary" onclick="submitManual()">Generate Schedule →</button>
+        </div>
+      </header>
+      <div class="manual-body">
+        <div class="manual-hint">Enter the number of students present during each time slot. Tab across days, then moves to the next row.</div>
+        <div class="manual-grid-wrap">
+          <div id="manual-grid"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Settings Panel ── -->
     <div class="modal-overlay" id="settings-panel">
       <div class="settings-modal">
@@ -210,10 +234,14 @@
                 id="mode-simplified"
                 onclick="setMode('simplified')"
               >
-                Simplified
+                Normal
               </button>
-              <button class="toggle-opt disabled" title="Coming soon">
-                Ultra-efficient <span class="coming-soon">Soon</span>
+              <button
+                class="toggle-opt"
+                id="mode-ultra"
+                onclick="setMode('ultra')"
+              >
+                Ultra-efficient
               </button>
             </div>
           </div>
@@ -547,6 +575,9 @@
           .getElementById("mode-simplified")
           .classList.toggle("active", settings.mode === "simplified");
         document
+          .getElementById("mode-ultra")
+          .classList.toggle("active", settings.mode === "ultra");
+        document
           .getElementById("input-calendar")
           .classList.toggle("active", settings.inputMode === "calendar");
         document
@@ -575,6 +606,8 @@
       function setMode(val) {
         settings.mode = val;
         saveSettings();
+        document.getElementById("mode-simplified").classList.toggle("active", val === "simplified");
+        document.getElementById("mode-ultra").classList.toggle("active", val === "ultra");
       }
 
       function setInputMode(val) {
@@ -796,6 +829,7 @@
       const SCREEN_ORDER = [
         "screen-workers",
         "screen-schedule",
+        "screen-manual",
         "screen-edit",
         "screen-auth",
       ];
@@ -1134,6 +1168,11 @@
       }
 
       // ── Generate ───────────────────────────────────────────
+      // ── Manual student input state ──────────────────────
+      let manualStudentData = null; // set when user submits manual grid
+      let pendingPayload    = null; // worker payload waiting for manual data
+      let pendingMonday     = null; // monday date waiting for manual data
+
       async function generate() {
         const mondayVal = document.getElementById("week-date").value;
         if (!mondayVal)
@@ -1150,12 +1189,22 @@
                 end: d.end,
                 startMinute: d.startMinute || 0,
                 endMinute: d.endMinute || 0,
+                defaultStart: w.defaultStart,
+                defaultEnd:   w.defaultEnd,
               }));
-            return { name: w.name, priority: w.priority, days };
+            return { name: w.name, priority: w.priority, defaultStart: w.defaultStart, defaultEnd: w.defaultEnd, days };
           })
           .filter((w) => w.days.length > 0);
 
         if (payload.length === 0) return alert("No availability set.");
+
+        // Manual mode: go to student input screen first
+        if (settings.inputMode === "manual" && !settings.demo) {
+          pendingPayload = payload;
+          pendingMonday  = mondayVal;
+          openManualScreen();
+          return;
+        }
 
         let studentData = null;
         let oneOnOneData = null;
@@ -1163,7 +1212,6 @@
         try {
           if (
             window._skipCalendar ||
-            settings.inputMode === "manual" ||
             settings.demo
           )
             throw new Error("skipped");
@@ -1181,10 +1229,14 @@
           console.warn("Calendar fetch skipped or failed:", err.message);
         }
 
+        await runGenerate(payload, mondayVal, studentData, oneOnOneData);
+      }
+
+      async function runGenerate(payload, mondayVal, studentData, oneOnOneData) {
         const res = await fetch("/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workers: payload, studentData, oneOnOneData }),
+          body: JSON.stringify({ workers: payload, studentData, oneOnOneData, mode: settings.mode === "ultra" ? "ultra" : "simplified" }),
         });
         const data = await res.json();
 
@@ -1210,7 +1262,134 @@
 
         renderSchedule();
         document.getElementById("copy-btn").disabled = false;
-        document.getElementById("edit-btn").disabled = false;
+        document.getElementById("edit-btn").disabled  = false;
+      }
+
+      // ── Manual Student Input ───────────────────────────────
+      function openManualScreen() {
+        renderManualGrid();
+        showScreen("screen-manual");
+      }
+
+      function renderManualGrid() {
+        const hourly = document.getElementById("manual-hourly")?.checked || false;
+        const grid = document.getElementById("manual-grid");
+        if (!grid) return;
+
+        // Build time slot list — weekday 3-7:30, saturday 10-1:30
+        // The manual screen covers all slots; hourly mode shows whole hours only
+        const wdSlots  = ["3","3:30","4","4:30","5","5:30","6","6:30","7","7:30"];
+        const satSlots = ["10","10:30","11","11:30","12","12:30","1","1:30"];
+        const wdHourly  = ["3","4","5","6","7"];
+        const satHourly = ["10","11","12","1"];
+
+        // Determine which days are actually selected for this week
+        const activeDays = DAYS.filter(d =>
+          workers.some(w => (availability[w.name]||[]).find(a => a.day === d && a.selected))
+        );
+
+        if (activeDays.length === 0) {
+          grid.innerHTML = '<p class="empty-state">No days selected in availability.</p>';
+          return;
+        }
+
+        // Build rows
+        let html = '<table class="manual-table">';
+
+        // Header row
+        html += '<thead><tr><th class="manual-time-col">Time</th>';
+        for (const d of activeDays) {
+          html += `<th class="manual-day-col">${DAY_FULL[d]}</th>`;
+        }
+        html += '</tr></thead><tbody>';
+
+        // Data rows
+        for (const d of activeDays) {
+          // figure out if any availability for this day is saturday
+        }
+
+        // We need rows indexed by time, not by day, so transpose
+        // Find the union of slots across active days
+        const hasSat = activeDays.includes("saturday");
+        const hasWeekday = activeDays.some(d => d !== "saturday");
+
+        // Use weekday slots for weekday columns; saturday gets its own subset
+        // For rows: show weekday slots; saturday slots don't overlap so we show separately
+        // Simplest: show all slots, show cell only if day uses that slot
+        const allSlots = hourly
+          ? [...new Set([...(hasWeekday ? wdHourly : []), ...(hasSat ? satHourly : [])])]
+          : [...new Set([...(hasWeekday ? wdSlots : []), ...(hasSat ? satSlots : [])])];
+
+        // Sort slots numerically
+        function slotToNum(s) {
+          const [h, m] = s.split(":"); return parseInt(h)*60+(m?parseInt(m):0);
+        }
+        allSlots.sort((a, b) => slotToNum(a) - slotToNum(b));
+
+        for (let ri = 0; ri < allSlots.length; ri++) {
+          const slot = allSlots[ri];
+          const slotNum = slotToNum(slot);
+          html += `<tr><td class="manual-time-cell">${slot}</td>`;
+          for (const d of activeDays) {
+            const isSat = d === "saturday";
+            const daySlots = hourly ? (isSat ? satHourly : wdHourly) : (isSat ? satSlots : wdSlots);
+            if (daySlots.includes(slot)) {
+              const existing = (manualStudentData?.[d]?.[slot]) || 0;
+              const tabIndex = ri * activeDays.length + activeDays.indexOf(d) + 1;
+              html += `<td class="manual-input-cell"><input type="number" min="0" max="99" value="${existing}" tabindex="${tabIndex}" data-day="${d}" data-slot="${slot}" onchange="onManualInput(this)" class="manual-input"></td>`;
+            } else {
+              html += '<td class="manual-na-cell">—</td>';
+            }
+          }
+          html += '</tr>';
+        }
+
+        html += '</tbody></table>';
+        grid.innerHTML = html;
+
+        // Focus first input
+        const first = grid.querySelector('input');
+        if (first) first.focus();
+      }
+
+      function onManualInput(el) {
+        const d    = el.dataset.day;
+        const slot = el.dataset.slot;
+        const val  = Math.max(0, parseInt(el.value) || 0);
+        el.value   = val;
+
+        if (!manualStudentData) manualStudentData = {};
+        if (!manualStudentData[d]) manualStudentData[d] = {};
+        manualStudentData[d][slot] = val;
+
+        // If hourly mode, copy to the :30 slot as well
+        const hourly = document.getElementById("manual-hourly")?.checked;
+        if (hourly) {
+          const [h] = slot.split(":");
+          const halfSlot = h + ":30";
+          manualStudentData[d][halfSlot] = val;
+        }
+      }
+
+      async function submitManual() {
+        // Collect all current input values into manualStudentData
+        const inputs = document.querySelectorAll("#manual-grid .manual-input");
+        manualStudentData = {};
+        const hourly = document.getElementById("manual-hourly")?.checked;
+        inputs.forEach(el => {
+          const d    = el.dataset.day;
+          const slot = el.dataset.slot;
+          const val  = Math.max(0, parseInt(el.value) || 0);
+          if (!manualStudentData[d]) manualStudentData[d] = {};
+          manualStudentData[d][slot] = val;
+          if (hourly) {
+            const [h] = slot.split(":");
+            manualStudentData[d][h + ":30"] = val;
+          }
+        });
+
+        showScreen("screen-schedule");
+        await runGenerate(pendingPayload, pendingMonday, manualStudentData, null);
       }
 
       // ── Schedule View ──────────────────────────────────────
