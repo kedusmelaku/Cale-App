@@ -718,6 +718,8 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
   overflow: visible; /* allow bottom label to bleed past edge */
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 .timeline-slots {

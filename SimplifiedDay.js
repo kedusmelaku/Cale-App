@@ -6,19 +6,20 @@ class SimplifiedDay extends Day {
 
     // define shift blocks based on day type
     if (!isSaturday) {
-      // weekdays
+      // weekdays — wider blocks first so workers aren't locked into short shifts
+      // before the algorithm has a chance to assign them to a longer block
       this.blocks = [
+        { name: "adult", start: "3", end: "8" },
+        { name: "full", start: "4", end: "8" },
         { name: "early", start: "4", end: "6" },
         { name: "late", start: "6", end: "8" },
-        { name: "full", start: "4", end: "8" },
-        { name: "adult", start: "3", end: "8" },
       ];
     } else {
-      // saturday
+      // saturday — full block first for same reason
       this.blocks = [
+        { name: "full", start: "10", end: "2" },
         { name: "early", start: "10", end: "12" },
         { name: "late", start: "12", end: "2" },
-        { name: "full", start: "10", end: "2" },
       ];
     }
   }

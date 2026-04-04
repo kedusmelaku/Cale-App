@@ -454,7 +454,7 @@
       const DEMO_WORKERS = [
         { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
         { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
-        { name: "Taylor", priority: 1, defaultStart: 4, defaultEnd: 8 },
+        { name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8 },
         { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
         { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
         { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
@@ -638,6 +638,7 @@
         document.getElementById("schedule-output").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
+        showScreen("screen-workers");
       }
 
       function deactivateDemo() {
