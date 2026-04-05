@@ -124,6 +124,7 @@
         <div class="edit-timeline-wrap">
           <div id="edit-timeline"></div>
         </div>
+        <div id="hours-summary-edit" style="display:none;"></div>
       </div>
     </div>
 
@@ -662,6 +663,7 @@
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
         document.getElementById("hours-summary").style.display = "none";
+        document.getElementById("hours-summary-edit").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
@@ -676,6 +678,7 @@
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
         document.getElementById("hours-summary").style.display = "none";
+        document.getElementById("hours-summary-edit").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
@@ -898,6 +901,7 @@
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
         document.getElementById("hours-summary").style.display = "none";
+        document.getElementById("hours-summary-edit").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
@@ -1370,8 +1374,8 @@
         renderHoursSummary();
       }
 
-      function renderHoursSummary() {
-        const el = document.getElementById("hours-summary");
+      function renderHoursSummary(targetId = "hours-summary") {
+        const el = document.getElementById(targetId);
         if (!el) return;
         const totals = {};
         for (const day of scheduleData) {
@@ -1493,6 +1497,7 @@
         );
         attachDragHandlers();
         updateOobBanner();
+        renderHoursSummary("hours-summary-edit");
       }
 
       function updateOobBanner() {
