@@ -132,59 +132,32 @@
           <button class="btn-gear" onclick="openSettings()" title="Settings">⚙</button>
         </div>
       </header>
-      <div class="page-body" style="max-width:520px;">
+      <div class="page-body" style="max-width:480px;">
         <div class="page-intro">
           <h1>Connect Google Calendar</h1>
-          <p>Scheduler reads student bookings directly from your Google Calendar to automatically fill in student counts.</p>
+          <p>Scheduler reads student bookings from Google Calendar to generate schedules automatically.</p>
         </div>
-
-        <!-- State: not yet started -->
+        <!-- idle -->
         <div id="auth-state-idle" class="auth-state">
-          <div class="auth-card">
-            <p style="margin-bottom:16px;">Click the button below to sign in with Google and grant calendar access. This takes about 30 seconds.</p>
-            <button class="btn-primary" style="width:100%;" onclick="startOAuth()">
-              Connect Google Calendar →
-            </button>
-          </div>
+          <button class="btn-primary" style="width:100%;padding:14px;" onclick="startOAuth()">
+            Sign in with Google →
+          </button>
         </div>
-
-        <!-- State: waiting for user to approve in Google tab -->
+        <!-- waiting -->
         <div id="auth-state-waiting" class="auth-state" style="display:none;">
-          <div class="auth-card">
-            <div class="auth-spinner-row">
-              <div class="auth-spinner"></div>
-              <span>Waiting for Google approval…</span>
-            </div>
-            <p style="margin-top:14px; font-size:0.85rem; color:var(--text-muted);">
-              A Google sign-in page should have opened in a new tab. Complete the sign-in there, then return here.
-            </p>
-            <button class="btn-secondary" style="margin-top:16px; width:100%;" onclick="startOAuth()">
-              Open Google sign-in again
-            </button>
-          </div>
+          <p>⏳ Waiting for Google approval in the other tab…</p>
+          <button class="btn-secondary" style="margin-top:12px;" onclick="startOAuth()">Open sign-in again</button>
         </div>
-
-        <!-- State: success -->
+        <!-- success -->
         <div id="auth-state-success" class="auth-state" style="display:none;">
-          <div class="auth-card auth-card-success">
-            <div style="font-size:1.5rem; margin-bottom:8px;">✅</div>
-            <p style="font-weight:600; color:var(--green); margin-bottom:8px;">Google Calendar connected!</p>
-            <p style="font-size:0.85rem; color:var(--text-muted);">Student counts will now be pulled automatically when you generate a schedule.</p>
-            <button class="btn-primary" style="margin-top:20px; width:100%;" onclick="showScreen('screen-schedule')">
-              Back to Schedule →
-            </button>
-          </div>
+          <p>✅ <strong>Connected!</strong> Close this and generate a schedule.</p>
+          <button class="btn-primary" style="margin-top:12px;" onclick="showScreen('screen-schedule')">Back to Schedule →</button>
         </div>
-
-        <!-- State: error -->
+        <!-- error -->
         <div id="auth-state-error" class="auth-state" style="display:none;">
-          <div class="auth-card auth-card-error">
-            <p style="font-weight:600; color:var(--danger); margin-bottom:8px;">Connection failed</p>
-            <p id="auth-error-msg" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;"></p>
-            <button class="btn-primary" style="width:100%;" onclick="startOAuth()">
-              Try again
-            </button>
-          </div>
+          <p>❌ <strong>Connection failed</strong></p>
+          <p id="auth-error-msg" style="font-size:0.85rem;color:var(--text-muted);margin:8px 0 12px;"></p>
+          <button class="btn-primary" onclick="startOAuth()">Try again</button>
         </div>
       </div>
     </div>
@@ -1174,8 +1147,8 @@
 
       function reconnectCalendar(e) {
         e.preventDefault();
-        closeSettings();
         goToAuth();
+        closeSettings();
       }
 
       // ── Slot tooltips ───────────────────────────────────────
@@ -1266,7 +1239,7 @@
         try {
           if (settings.demo)
             throw new Error("skipped");
-          const eventsRes = await fetch(`/events/mock?monday=${mondayVal}`); // swap to /events when ready
+          const eventsRes = await fetch(`/events?monday=${mondayVal}`);
           if (eventsRes.status === 401) {
             goToAuth();
             return;
@@ -1618,58 +1591,55 @@
         });
       }
 
-      // ── Google OAuth flow ──────────────────────────────────
-      let oauthWindow = null;
+      // continueWithoutCalendar removed
+
+
+      // ── Google OAuth ────────────────────────────────────────
+      let _oauthWin = null;
 
       async function startOAuth() {
         setAuthState("waiting");
-        // Show back button now that user has interacted
         document.getElementById("auth-back-btn").style.visibility = "visible";
         try {
-          const res  = await fetch("/oauth/start");
-          const data = await res.json();
-          if (data.error) throw new Error(data.error);
-          // Open consent screen in a new tab
-          oauthWindow = window.open(data.url, "_blank");
-          if (!oauthWindow) {
-            // Popup blocked — fall back to same-tab redirect
-            window.location.href = data.url;
-            return;
-          }
-        } catch (err) {
-          setAuthState("error", err.message);
+          const r = await fetch("/oauth/start");
+          const d = await r.json();
+          if (d.error) throw new Error(d.error);
+          _oauthWin = window.open(d.url, "_blank");
+          // If popup was blocked, redirect same tab
+          if (!_oauthWin) window.location.href = d.url;
+        } catch (e) {
+          setAuthState("error", e.message);
         }
       }
 
-      // Listen for the callback page posting back oauth_success
       window.addEventListener("message", async (e) => {
         if (e.data?.type !== "oauth_success") return;
-        if (oauthWindow) { oauthWindow.close(); oauthWindow = null; }
-        // Verify by checking /cal-status
-        const res  = await fetch("/cal-status");
-        const data = await res.json();
-        if (data.connected) {
+        if (_oauthWin) { try { _oauthWin.close(); } catch(_){} _oauthWin = null; }
+        const r = await fetch("/cal-status");
+        const d = await r.json();
+        if (d.connected) {
           setAuthState("success");
-          checkCalendarStatus(); // update the settings dot
+          checkCalendarStatus();
         } else {
-          setAuthState("error", "Token was not saved — please try again.");
+          setAuthState("error", "Token not saved — please try again.");
         }
       });
 
-      function setAuthState(state, errorMsg) {
+      function setAuthState(state, msg) {
         ["idle","waiting","success","error"].forEach(s => {
-          document.getElementById("auth-state-" + s).style.display = s === state ? "block" : "none";
+          const el = document.getElementById("auth-state-" + s);
+          if (el) el.style.display = s === state ? "block" : "none";
         });
-        if (state === "error" && errorMsg) {
-          document.getElementById("auth-error-msg").textContent = errorMsg;
+        if (state === "error" && msg) {
+          const el = document.getElementById("auth-error-msg");
+          if (el) el.textContent = msg;
         }
       }
 
-      // Show auth screen (called when 401 from /events or reconnect link)
       function goToAuth() {
         setAuthState("idle");
         document.getElementById("auth-back-btn").style.visibility = "hidden";
-        showScreen("screen-auth");
+        goToAuth();
       }
 
       // ── Init ───────────────────────────────────────────────

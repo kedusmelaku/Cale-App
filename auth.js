@@ -1,32 +1,49 @@
 const { google } = require("googleapis");
 
-const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-const { client_id, client_secret, redirect_uris } =
-  credentials.web || credentials.installed;
+// We build the OAuth2 client once and reuse it.
+// It's created lazily so the server doesn't crash on startup
+// if GOOGLE_CREDENTIALS isn't set yet.
 
-const auth = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+let _auth = null;
 
-if (process.env.GOOGLE_TOKEN) {
-  const tokens = JSON.parse(process.env.GOOGLE_TOKEN);
-  auth.setCredentials(tokens);
-  console.log("Loaded existing token");
-} else {
-  const authUrl = auth.generateAuthUrl({
-    access_type: "offline",
-    scope: "https://www.googleapis.com/auth/calendar.readonly",
+function getAuth() {
+  if (_auth) return _auth;
+
+  const raw = process.env.GOOGLE_CREDENTIALS;
+  if (!raw) throw new Error("GOOGLE_CREDENTIALS env var is not set");
+
+  const credentials = JSON.parse(raw);
+  const { client_id, client_secret, redirect_uris } =
+    credentials.web || credentials.installed;
+
+  _auth = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+  // When googleapis silently refreshes the access token it emits this event.
+  // We log the new tokens so you can update GOOGLE_TOKEN on Render if needed.
+  _auth.on("tokens", (newTokens) => {
+    console.log("=== Token refreshed — update GOOGLE_TOKEN on Render with: ===");
+    // Merge with existing credentials so refresh_token isn't lost
+    const merged = { ..._auth.credentials, ...newTokens };
+    console.log(JSON.stringify(merged));
   });
-  console.log("─────────────────────────────────────────");
-  console.log("Google Calendar authorization required.");
-  console.log("Open this URL in your browser:");
-  console.log(authUrl);
-  console.log("─────────────────────────────────────────");
+
+  // Load saved token if present
+  const savedToken = process.env.GOOGLE_TOKEN;
+  if (savedToken) {
+    _auth.setCredentials(JSON.parse(savedToken));
+    console.log("Loaded GOOGLE_TOKEN from environment");
+  } else {
+    console.log("No GOOGLE_TOKEN set — run OAuth flow from the app to connect");
+  }
+
+  return _auth;
 }
 
-function saveToken(tokens) {
+// Called by server.js after a successful OAuth callback
+function applyTokens(tokens) {
+  const auth = getAuth(); // ensures _auth exists
   auth.setCredentials(tokens);
-  console.log(
-    "Token received. On a hosted server, set GOOGLE_TOKEN env var manually.",
-  );
+  console.log("New OAuth tokens applied to auth client");
 }
 
-module.exports = { auth, saveToken };
+module.exports = { getAuth, applyTokens };
