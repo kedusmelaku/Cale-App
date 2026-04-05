@@ -242,10 +242,8 @@
           <h3 class="settings-section-title">Model</h3>
           <div class="settings-row">
             <div>
-              <div class="settings-label">Scheduling Mode</div>
-              <div class="settings-sublabel">
-                Choose how the schedule is generated
-              </div>
+              <div class="settings-label" style="display:flex;align-items:center;gap:6px;">Scheduling Mode <span class="info-tag">i<span class="info-tooltip" style="width:260px;"><strong>Normal:</strong> Assigns workers in shift blocks (4–8, 4–6, 6–8). Faster and produces clean, regular shifts — best for most weeks.<br><br><strong>Ultra-efficient:</strong> Assigns workers slot-by-slot every 30 minutes based on exact student counts. More precise but may produce shorter or irregular shift times.</span></span></div>
+              <div class="settings-sublabel">Choose how the schedule is generated</div></div>
             </div>
             <div class="toggle-group">
               <button
@@ -405,31 +403,6 @@
             High Priority
           </button>
         </div>
-        <label class="field-label" style="margin-top: 14px"
-          >Default Hours</label
-        >
-        <div class="av-time-inputs" style="margin-bottom: 4px">
-          <input
-            type="number"
-            id="edit-default-start"
-            min="3"
-            max="14"
-            style="width: 60px"
-          />
-          <span>–</span>
-          <input
-            type="number"
-            id="edit-default-end"
-            min="3"
-            max="14"
-            style="width: 60px"
-          />
-        </div>
-        <p
-          style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px"
-        >
-          Used when "Default hours" is checked on the availability screen.
-        </p>
         <div class="modal-actions" style="margin-top: 20px">
           <button class="btn-cancel" onclick="closeEditEmployeeModal()">
             Cancel
@@ -616,6 +589,7 @@
         document.getElementById("mode-simplified").classList.toggle("active", val === "simplified");
         const ultraBtn = document.getElementById("mode-ultra");
         if (ultraBtn) ultraBtn.classList.toggle("active", val === "ultra");
+        markStale();
       }
 
       function setDemo(checked) {
@@ -991,9 +965,6 @@
         const w = workers[wi];
         editEmployeePriority = w.priority;
         document.getElementById("edit-employee-name").value = w.name;
-        document.getElementById("edit-default-start").value =
-          w.defaultStart ?? (w.priority === 2 ? 3 : 4);
-        document.getElementById("edit-default-end").value = w.defaultEnd ?? 8;
         selectEditPriority(w.priority);
         document.getElementById("edit-employee-modal").classList.add("open");
       }
@@ -1015,12 +986,6 @@
       function confirmEditEmployee() {
         const name = document.getElementById("edit-employee-name").value.trim();
         if (!name) return alert("Enter a name.");
-        const start = parseInt(
-          document.getElementById("edit-default-start").value,
-        );
-        const end = parseInt(document.getElementById("edit-default-end").value);
-        if (isNaN(start) || isNaN(end) || start >= end)
-          return alert("Enter valid default hours.");
         const existing = workers.find(
           (w, i) =>
             w.name.toLowerCase() === name.toLowerCase() &&
@@ -1030,8 +995,6 @@
           return alert("Another employee with that name already exists.");
         workers[editEmployeeIndex].name = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
-        workers[editEmployeeIndex].defaultStart = start;
-        workers[editEmployeeIndex].defaultEnd = end;
         saveWorkers();
         renderWorkers();
         closeEditEmployeeModal();
@@ -1051,11 +1014,8 @@
             day: d,
             selected: false,
             allDay: true,
-            start:
-              d === "saturday"
-                ? 10
-                : (w.defaultStart ?? (w.priority === 2 ? 3 : 4)),
-            end: d === "saturday" ? 14 : (w.defaultEnd ?? 8),
+            start: d === "saturday" ? 10 : (w.priority === 2 ? 3 : 4),
+            end: d === "saturday" ? 14 : 8,
             startMinute: 0,
             endMinute: 0,
           }));
@@ -1161,18 +1121,24 @@
       function updateHour(name, di, field, val) {
         const totalMins = parseInt(val);
         const d = availability[name][di];
-        // Guard: start must be before end — silently reject invalid picks
+        // Guard: start must be before end
         if (field === "start") {
           const endMins = hourMinToMins(d.end, d.endMinute || 0);
-          if (totalMins >= endMins) return;
+          if (totalMins >= endMins) {
+            renderAvailability(); // snap the dropdown back
+            return;
+          }
         }
         if (field === "end") {
           const startMins = hourMinToMins(d.start, d.startMinute || 0);
-          if (totalMins <= startMins) return;
+          if (totalMins <= startMins) {
+            renderAvailability(); // snap the dropdown back
+            return;
+          }
         }
         d[field] = minsToHour(totalMins);
         if (field === "start") d.startMinute = minsToMinute(totalMins);
-        if (field === "end") d.endMinute = minsToMinute(totalMins);
+        if (field === "end")   d.endMinute   = minsToMinute(totalMins);
         markStale();
       }
 
