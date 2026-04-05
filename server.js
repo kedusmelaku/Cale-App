@@ -1,10 +1,11 @@
+require("dotenv").config();
 const express = require("express");
-const path    = require("path");
-const User           = require("./User");
-const Week           = require("./Week");
-const Day            = require("./Day");
+const path = require("path");
+const User = require("./User");
+const Week = require("./Week");
+const Day = require("./Day");
 const SimplifiedWeek = require("./SimplifiedWeek");
-const SimplifiedDay  = require("./SimplifiedDay");
+const SimplifiedDay = require("./SimplifiedDay");
 
 const app = express();
 app.use(express.json());
@@ -26,10 +27,10 @@ app.get("/oauth/start", (req, res) => {
   try {
     const { getAuth } = require("./auth");
     const auth = getAuth();
-    const url  = auth.generateAuthUrl({
+    const url = auth.generateAuthUrl({
       access_type: "offline",
-      prompt:      "consent",  // ensures we always get a refresh_token
-      scope:       "https://www.googleapis.com/auth/calendar.readonly",
+      prompt: "consent", // ensures we always get a refresh_token
+      scope: "https://www.googleapis.com/auth/calendar.readonly",
     });
     res.json({ url });
   } catch (err) {
@@ -78,7 +79,8 @@ app.get("/oauth/callback", async (req, res) => {
 </body></html>`);
   } catch (err) {
     console.error("/oauth/callback:", err.message);
-    res.status(500).send(`<h2 style="font-family:sans-serif;color:red;padding:40px;">
+    res.status(500)
+      .send(`<h2 style="font-family:sans-serif;color:red;padding:40px;">
       Connection failed: ${err.message}<br><br>
       <a href="javascript:history.back()">Go back and try again</a>
     </h2>`);
@@ -91,7 +93,7 @@ app.get("/oauth/callback", async (req, res) => {
 app.get("/cal-status", (req, res) => {
   try {
     const { getAuth } = require("./auth");
-    const auth  = getAuth();
+    const auth = getAuth();
     const creds = auth.credentials;
     const connected = !!(creds && (creds.access_token || creds.refresh_token));
     res.json({ connected });
@@ -106,18 +108,64 @@ app.get("/cal-status", (req, res) => {
 app.get("/events/mock", (req, res) => {
   res.json({
     studentData: {
-      monday:    { "4":3,"4:30":4,"5":6,"5:30":5,"6":4,"6:30":3,"7":2,"7:30":1 },
-      tuesday:   { "4":2,"4:30":3,"5":5,"5:30":6,"6":5,"6:30":4,"7":3,"7:30":2 },
-      wednesday: { "3":1,"3:30":2,"4":4,"4:30":5,"5":4,"5:30":3,"6":5,"6:30":6,"7":3 },
-      thursday:  { "4":3,"4:30":5,"5":6,"5:30":5,"6":4,"6:30":6,"7":4,"7:30":2 },
-      saturday:  { "10":4,"10:30":5,"11":6,"11:30":5,"12":4,"12:30":3,"1":4,"1:30":3 },
+      monday: {
+        4: 3,
+        "4:30": 4,
+        5: 6,
+        "5:30": 5,
+        6: 4,
+        "6:30": 3,
+        7: 2,
+        "7:30": 1,
+      },
+      tuesday: {
+        4: 2,
+        "4:30": 3,
+        5: 5,
+        "5:30": 6,
+        6: 5,
+        "6:30": 4,
+        7: 3,
+        "7:30": 2,
+      },
+      wednesday: {
+        3: 1,
+        "3:30": 2,
+        4: 4,
+        "4:30": 5,
+        5: 4,
+        "5:30": 3,
+        6: 5,
+        "6:30": 6,
+        7: 3,
+      },
+      thursday: {
+        4: 3,
+        "4:30": 5,
+        5: 6,
+        "5:30": 5,
+        6: 4,
+        "6:30": 6,
+        7: 4,
+        "7:30": 2,
+      },
+      saturday: {
+        10: 4,
+        "10:30": 5,
+        11: 6,
+        "11:30": 5,
+        12: 4,
+        "12:30": 3,
+        1: 4,
+        "1:30": 3,
+      },
     },
     oneOnOneData: {
-      monday:{  "5":true,"5:30":true },
-      tuesday:{},
-      wednesday:{ "6":true,"6:30":true },
-      thursday:{},
-      saturday:{ "11":true,"11:30":true },
+      monday: { 5: true, "5:30": true },
+      tuesday: {},
+      wednesday: { 6: true, "6:30": true },
+      thursday: {},
+      saturday: { 11: true, "11:30": true },
     },
   });
 });
@@ -134,11 +182,17 @@ app.get("/events", async (req, res) => {
     res.json({ studentData, oneOnOneData });
   } catch (err) {
     console.error("/events error:", err.message);
-    const isAuth = [401, 403].includes(err.code) ||
-      ["invalid_grant","unauthorized","No refresh token","Token has been expired","invalid_client"]
-        .some((s) => err.message?.includes(s));
+    const isAuth =
+      [401, 403].includes(err.code) ||
+      [
+        "invalid_grant",
+        "unauthorized",
+        "No refresh token",
+        "Token has been expired",
+        "invalid_client",
+      ].some((s) => err.message?.includes(s));
     res.status(isAuth ? 401 : 500).json({
-      error:   isAuth ? "auth" : "calendar_error",
+      error: isAuth ? "auth" : "calendar_error",
       message: err.message,
     });
   }
@@ -154,13 +208,14 @@ app.post("/generate", (req, res) => {
     const hoursAv = w.days.map((d) => {
       if (d.allDay) {
         const sat = d.day === "saturday";
-        return [d.day,
+        return [
+          d.day,
           sat ? 10 : (w.defaultStart ?? (w.priority === 2 ? 3 : 4)),
-          sat ? 14 : (w.defaultEnd   ?? 8),
+          sat ? 14 : (w.defaultEnd ?? 8),
         ];
       }
       const start = d.start + ((d.startMinute || 0) === 30 ? 0.5 : 0);
-      const end   = d.end   + ((d.endMinute   || 0) === 30 ? 0.5 : 0);
+      const end = d.end + ((d.endMinute || 0) === 30 ? 0.5 : 0);
       return [d.day, start, end];
     });
     const user = new User(w.name, hoursAv);
@@ -169,13 +224,13 @@ app.post("/generate", (req, res) => {
   });
 
   const isUltra = mode === "ultra";
-  const week    = isUltra ? new Week(users) : new SimplifiedWeek(users);
+  const week = isUltra ? new Week(users) : new SimplifiedWeek(users);
 
   if (studentData) {
     for (const day of week.week) {
-      const dk  = day.dayName.toLowerCase();
+      const dk = day.dayName.toLowerCase();
       const sdt = studentData[dk] || {};
-      const odt = oneOnOneData ? (oneOnOneData[dk] || {}) : {};
+      const odt = oneOnOneData ? oneOnOneData[dk] || {} : {};
       for (const slot of day.slots) {
         slot.students = sdt[slot.time] || 0;
         slot.oneOnOne = odt[slot.time] || false;
@@ -191,14 +246,30 @@ app.post("/generate", (req, res) => {
   const schedule = week.week.map((day) => ({
     day: day.dayName,
     assignments: day.totalWorkers
-      .filter((w) => w.working[w.days.indexOf(day.dayName.toLowerCase())][0] !== undefined)
+      .filter(
+        (w) =>
+          w.working[w.days.indexOf(day.dayName.toLowerCase())][0] !== undefined,
+      )
       .map((w) => {
         const di = w.days.indexOf(day.dayName.toLowerCase());
-        return { name: w.name, start: w.working[di][0], end: w.working[di][1], priority: w.priority };
+        return {
+          name: w.name,
+          start: w.working[di][0],
+          end: w.working[di][1],
+          priority: w.priority,
+        };
       }),
   }));
 
   res.json({ schedule, text: "" });
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+// Warm up auth client on startup
+try {
+  const { getAuth } = require("./auth");
+  getAuth();
+} catch (err) {
+  console.log("Auth warmup:", err.message);
+}
+
+app.listen(3000, () => console.log("Server running on http://localhost:3000"));
