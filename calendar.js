@@ -46,6 +46,7 @@ function parseEventTime(dateTimeStr) {
 function toSlotTime(hour, minute, isSaturday) {
   let h = hour;
   if (isSaturday && h > 12) h -= 12;
+  if (!isSaturday && h > 12) h -= 12; // ← add this line
   return minute >= 30 ? `${h}:30` : `${h}`;
 }
 
