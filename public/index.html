@@ -99,6 +99,7 @@
               Enter a date and click <strong>Generate Schedule</strong>.
             </div>
             <div id="schedule-output" style="display: none"></div>
+            <div id="hours-summary" style="display:none;"></div>
           </div>
         </div>
       </div>
@@ -660,6 +661,7 @@
         renderAvailability();
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("hours-summary").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
@@ -673,6 +675,7 @@
         renderWorkers();
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("hours-summary").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
@@ -894,6 +897,7 @@
         scheduleData = [];
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("hours-summary").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
@@ -1363,6 +1367,31 @@
         const output = document.getElementById("schedule-output");
         output.style.display = "block";
         output.innerHTML = buildTimelineHTML(scheduleData, false);
+        renderHoursSummary();
+      }
+
+      function renderHoursSummary() {
+        const el = document.getElementById("hours-summary");
+        if (!el) return;
+        const totals = {};
+        for (const day of scheduleData) {
+          const isSat = day.day === "Saturday";
+          for (const a of day.assignments) {
+            const si = timeToIndex(a.start, isSat);
+            const ei = timeToIndex(a.end, isSat);
+            const hrs = (ei - si) * 0.5;
+            totals[a.name] = (totals[a.name] || 0) + hrs;
+          }
+        }
+        const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+        if (sorted.length === 0) { el.style.display = "none"; return; }
+        let rows = sorted.map(([name, hrs]) => {
+          const color = getWorkerColor(name);
+          const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
+          return '<div class="hours-row"><div class="hours-dot" style="background:' + color + '"></div><span class="hours-name">' + name + '</span><span class="hours-val">' + label + '</span></div>';
+        }).join("");
+        el.innerHTML = '<div class="hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">' + rows + '</div></div>';
+        el.style.display = "block";
       }
 
       function buildTimelineHTML(data, isEdit) {

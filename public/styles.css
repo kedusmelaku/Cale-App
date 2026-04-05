@@ -1170,3 +1170,54 @@ body.dark {
   --accent-light: #1a1a35;
   --green-bg: #0a1f12;
 }
+
+/* ── Hours Summary ── */
+.hours-summary {
+  margin-top: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+
+.hours-summary-title {
+  font-family: "Noto Serif", serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.hours-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.hours-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.hours-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hours-name {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.hours-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+}
