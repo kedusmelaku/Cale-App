@@ -95,7 +95,13 @@ async function getWeekEvents(mondayDate, calendarId = "primary") {
     const slotTime = toSlotTime(hour, minute, isSat);
 
     if (type === "lesson") {
+      // Record start slot
       studentData[day][slotTime] = (studentData[day][slotTime] || 0) + 1;
+      // All lessons are 60 min — also record the second half-hour slot
+      const nh2 = minute >= 30 ? hour + 1 : hour;
+      const nm2 = minute >= 30 ? 0 : 30;
+      const slotTime2 = toSlotTime(nh2, nm2, isSat);
+      studentData[day][slotTime2] = (studentData[day][slotTime2] || 0) + 1;
     } else {
       oneOnOneData[day][slotTime] = true;
       const nh = minute >= 30 ? hour + 1 : hour;

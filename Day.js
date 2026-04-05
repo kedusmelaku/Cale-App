@@ -226,27 +226,32 @@ class Day {
         //for each worker that worked that day, assign their start and end times
         let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
         let times = [];
+        const isSat = day.dayName.toLowerCase() === "saturday";
         for (let slot of day.slots) {
           //find all slots the worker was assigned to
           if (slot.workers.includes(worker))
-            times.push(this.timeToNum(slot.time));
+            times.push(this.timeToNum(slot.time, isSat));
         }
         if (times.length > 0) {
           //if the worker was assigned to any slots, set their start and end times
-          worker.working[dayIndex][0] = this.numToTime(Math.min(...times)); //set start time to earliest slot
-          worker.working[dayIndex][1] = this.numToTime(Math.max(...times)); //set end time to latest slot + 0.5 (end of that half hour block)
+          worker.working[dayIndex][0] = this.numToTime(Math.min(...times), isSat); //set start time to earliest slot
+          worker.working[dayIndex][1] = this.numToTime(Math.max(...times), isSat); //set end time to latest slot + 0.5 (end of that half hour block)
         }
       }
     }
   }
 
-  timeToNum(t) {
+  timeToNum(t, isSaturday = false) {
     let [h, m] = t.split(":");
-    return parseInt(h) + (m === "30" ? 0.5 : 0);
+    let hour = parseInt(h);
+    // Saturday PM slots (1, 1:30, 2) are actually 13:00, 13:30, 14:00
+    if (isSaturday && hour < 10) hour += 12;
+    return hour + (m === "30" ? 0.5 : 0);
   }
 
-  numToTime(n) {
+  numToTime(n, isSaturday = false) {
     let h = Math.floor(n);
+    if (isSaturday && h > 12) h -= 12;
     return n % 1 === 0.5 ? h + ":30" : h.toString();
   }
 
