@@ -89,8 +89,11 @@
             </div>
           </div>
           <div class="schedule-grid">
-            <div class="stale-banner" id="stale-banner" style="display:none;">
-              ⚠ Availability has changed — <button class="stale-regen-btn" onclick="generate()">Regenerate</button>
+            <div class="stale-banner" id="stale-banner" style="display: none">
+              ⚠ Availability has changed —
+              <button class="stale-regen-btn" onclick="generate()">
+                Regenerate
+              </button>
             </div>
             <div class="empty-state" id="empty-state">
               Enter a date and click <strong>Generate Schedule</strong>.
@@ -126,37 +129,74 @@
     <!-- ── Screen: Google Calendar Connect ── -->
     <div id="screen-auth" class="screen">
       <header>
-        <button class="btn-back" id="auth-back-btn" onclick="showScreen('screen-schedule')" style="visibility:hidden;">← Back</button>
+        <button
+          class="btn-back"
+          id="auth-back-btn"
+          onclick="showScreen('screen-schedule')"
+          style="visibility: hidden"
+        >
+          ← Back
+        </button>
         <span class="header-title">Scheduler</span>
         <div class="header-actions">
-          <button class="btn-gear" onclick="openSettings()" title="Settings">⚙</button>
+          <button class="btn-gear" onclick="openSettings()" title="Settings">
+            ⚙
+          </button>
         </div>
       </header>
-      <div class="page-body" style="max-width:480px;">
+      <div class="page-body" style="max-width: 480px">
         <div class="page-intro">
           <h1>Connect Google Calendar</h1>
-          <p>Scheduler reads student bookings from Google Calendar to generate schedules automatically.</p>
+          <p>
+            Scheduler reads student bookings from Google Calendar to generate
+            schedules automatically.
+          </p>
         </div>
         <!-- idle -->
         <div id="auth-state-idle" class="auth-state">
-          <button class="btn-primary" style="width:100%;padding:14px;" onclick="startOAuth()">
+          <button
+            class="btn-primary"
+            style="width: 100%; padding: 14px"
+            onclick="startOAuth()"
+          >
             Sign in with Google →
           </button>
         </div>
         <!-- waiting -->
-        <div id="auth-state-waiting" class="auth-state" style="display:none;">
+        <div id="auth-state-waiting" class="auth-state" style="display: none">
           <p>⏳ Waiting for Google approval in the other tab…</p>
-          <button class="btn-secondary" style="margin-top:12px;" onclick="startOAuth()">Open sign-in again</button>
+          <button
+            class="btn-secondary"
+            style="margin-top: 12px"
+            onclick="startOAuth()"
+          >
+            Open sign-in again
+          </button>
         </div>
         <!-- success -->
-        <div id="auth-state-success" class="auth-state" style="display:none;">
-          <p>✅ <strong>Connected!</strong> Close this and generate a schedule.</p>
-          <button class="btn-primary" style="margin-top:12px;" onclick="showScreen('screen-schedule')">Back to Schedule →</button>
+        <div id="auth-state-success" class="auth-state" style="display: none">
+          <p>
+            ✅ <strong>Connected!</strong> Close this and generate a schedule.
+          </p>
+          <button
+            class="btn-primary"
+            style="margin-top: 12px"
+            onclick="showScreen('screen-workers')"
+          >
+            Back to Schedule →
+          </button>
         </div>
         <!-- error -->
-        <div id="auth-state-error" class="auth-state" style="display:none;">
+        <div id="auth-state-error" class="auth-state" style="display: none">
           <p>❌ <strong>Connection failed</strong></p>
-          <p id="auth-error-msg" style="font-size:0.85rem;color:var(--text-muted);margin:8px 0 12px;"></p>
+          <p
+            id="auth-error-msg"
+            style="
+              font-size: 0.85rem;
+              color: var(--text-muted);
+              margin: 8px 0 12px;
+            "
+          ></p>
           <button class="btn-primary" onclick="startOAuth()">Try again</button>
         </div>
       </div>
@@ -240,13 +280,46 @@
           <div class="settings-row" style="margin-top: 14px">
             <div>
               <div class="settings-label">Google Calendar</div>
-              <div class="settings-sublabel">Student booking data for schedule generation</div>
+              <div class="settings-sublabel">
+                Student booking data for schedule generation
+              </div>
             </div>
             <div id="cal-status-wrap" class="cal-status-wrap">
               <span id="cal-status-dot" class="cal-status-dot"></span>
-              <span id="cal-status-text" class="cal-status-text">Checking…</span>
-              <a id="cal-reconnect-link" class="cal-reconnect-link" href="#" style="display:none;" onclick="reconnectCalendar(event)">Reconnect</a>
+              <span id="cal-status-text" class="cal-status-text"
+                >Checking…</span
+              >
+              <a
+                id="cal-reconnect-link"
+                class="cal-reconnect-link"
+                href="#"
+                style="display: none"
+                onclick="reconnectCalendar(event)"
+                >Reconnect</a
+              >
             </div>
+          </div>
+          <div class="settings-row" style="margin-top: 14px">
+            <div>
+              <div class="settings-label">Calendar</div>
+              <div class="settings-sublabel">
+                Select which calendar has the student bookings
+              </div>
+            </div>
+            <select
+              id="calendar-select"
+              style="
+                font-size: 0.8rem;
+                padding: 6px 8px;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                background: var(--bg);
+                color: var(--text);
+              "
+              onchange="saveCalendarId(this.value)"
+            >
+              <option value="">Loading...</option>
+            </select>
           </div>
         </div>
       </div>
@@ -537,6 +610,20 @@
         checkCalendarStatus();
         document.getElementById("demo-toggle").checked = settings.demo;
         document.getElementById("settings-panel").classList.add("open");
+        async function openSettings() {
+  // ... existing code ...
+  document.getElementById("calendar-select").innerHTML = "<option value=''>Loading...</option>";
+  try {
+    const res = await fetch("/calendars");
+    const data = await res.json();
+    document.getElementById("calendar-select").innerHTML = data.calendars
+      .map((c) => `<option value="${c.id}" ${settings.calendarId === c.id ? "selected" : ""}>${c.name}</option>`)
+      .join("");
+  } catch {
+    document.getElementById("calendar-select").innerHTML = "<option value=''>Unable to load</option>";
+  }
+  // ... rest of existing code ...
+}
       }
 
       function closeSettings() {
@@ -559,8 +646,6 @@
         settings.mode = val;
         saveSettings();
       }
-
-
 
       function setDemo(checked) {
         settings.demo = checked;
@@ -750,15 +835,19 @@
           for (const a of day.assignments) {
             // null = no availability for this day at all — always OOB
             if (a.availStart === null || a.availEnd === null) {
-              warnings.push(`${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`);
+              warnings.push(
+                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
+              );
               continue;
             }
             const shiftStart = timeToIndex(a.start, isSat);
-            const shiftEnd   = timeToIndex(a.end,   isSat);
+            const shiftEnd = timeToIndex(a.end, isSat);
             const avStartIdx = timeToIndex(a.availStart.toString(), isSat);
-            const avEndIdx   = timeToIndex(a.availEnd.toString(),   isSat);
+            const avEndIdx = timeToIndex(a.availEnd.toString(), isSat);
             if (shiftStart < avStartIdx || shiftEnd > avEndIdx) {
-              warnings.push(`${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`);
+              warnings.push(
+                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
+              );
             }
           }
         }
@@ -1106,7 +1195,7 @@
         }
         d[field] = minsToHour(totalMins);
         if (field === "start") d.startMinute = minsToMinute(totalMins);
-        if (field === "end")   d.endMinute   = minsToMinute(totalMins);
+        if (field === "end") d.endMinute = minsToMinute(totalMins);
         markStale();
       }
 
@@ -1122,24 +1211,26 @@
 
       // ── Calendar connection status ──────────────────────────
       async function checkCalendarStatus() {
-        const dot  = document.getElementById("cal-status-dot");
+        const dot = document.getElementById("cal-status-dot");
         const text = document.getElementById("cal-status-text");
         const link = document.getElementById("cal-reconnect-link");
         if (!dot) return;
         try {
-          const res  = await fetch("/cal-status", { signal: AbortSignal.timeout(4000) });
+          const res = await fetch("/cal-status", {
+            signal: AbortSignal.timeout(4000),
+          });
           const data = await res.json();
           if (data.connected) {
-            dot.className    = "cal-status-dot connected";
+            dot.className = "cal-status-dot connected";
             text.textContent = "Connected";
             link.style.display = "none";
           } else {
-            dot.className    = "cal-status-dot disconnected";
+            dot.className = "cal-status-dot disconnected";
             text.textContent = "Not connected";
             link.style.display = "inline";
           }
         } catch (e) {
-          dot.className    = "cal-status-dot unknown";
+          dot.className = "cal-status-dot unknown";
           text.textContent = "Unable to reach server";
           link.style.display = "none";
         }
@@ -1164,25 +1255,29 @@
         const isSat = day.day === "Saturday";
 
         // Find student count for this slot from the last fetched event data
-        const students = lastStudentData?.[day.day.toLowerCase()]?.[slotTime] ?? "—";
-        const isOneOnOne = lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
+        const students =
+          lastStudentData?.[day.day.toLowerCase()]?.[slotTime] ?? "—";
+        const isOneOnOne =
+          lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
 
         // Count workers assigned to this slot
         const slotIdx = timeToIndex(slotTime, isSat);
-        const workersHere = day.assignments.filter(a => {
+        const workersHere = day.assignments.filter((a) => {
           const si = timeToIndex(a.start, isSat);
-          const ei = timeToIndex(a.end,   isSat);
+          const ei = timeToIndex(a.end, isSat);
           return slotIdx >= si && slotIdx < ei;
         });
 
         const needed = students === "—" ? "—" : Math.ceil(students / 3);
-        const oneOnOneTag = isOneOnOne ? ' <span class="tooltip-tag ooo">1-on-1</span>' : "";
+        const oneOnOneTag = isOneOnOne
+          ? ' <span class="tooltip-tag ooo">1-on-1</span>'
+          : "";
 
         slotTooltip.innerHTML = `
           <div class="tooltip-time">${slotTime}${isSat ? "" : " PM"}</div>
           <div class="tooltip-row"><span class="tooltip-label">Students</span><span class="tooltip-val">${students}${oneOnOneTag}</span></div>
           <div class="tooltip-row"><span class="tooltip-label">Needed</span><span class="tooltip-val">${needed}</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Assigned</span><span class="tooltip-val">${workersHere.length > 0 ? workersHere.map(w => w.name).join(", ") : "none"}</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Assigned</span><span class="tooltip-val">${workersHere.length > 0 ? workersHere.map((w) => w.name).join(", ") : "none"}</span></div>
         `;
 
         slotTooltip.style.display = "block";
@@ -1194,11 +1289,11 @@
         const th = slotTooltip.offsetHeight;
         let x = e.clientX + 14;
         let y = e.clientY - th / 2;
-        if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - 14;
-        if (y < 8)                           y = 8;
+        if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 14;
+        if (y < 8) y = 8;
         if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
         slotTooltip.style.left = x + "px";
-        slotTooltip.style.top  = y + "px";
+        slotTooltip.style.top = y + "px";
       }
 
       function hideSlotTooltip() {
@@ -1206,7 +1301,7 @@
       }
 
       // Store last fetched student/oneOnOne data for tooltip use
-      let lastStudentData  = null;
+      let lastStudentData = null;
       let lastOneOnOneData = null;
 
       // ── Generate ───────────────────────────────────────────
@@ -1237,8 +1332,7 @@
         let oneOnOneData = null;
 
         try {
-          if (settings.demo)
-            throw new Error("skipped");
+          if (settings.demo) throw new Error("skipped");
           const eventsRes = await fetch(`/events?monday=${mondayVal}`);
           if (eventsRes.status === 401) {
             goToAuth();
@@ -1246,9 +1340,9 @@
           }
           if (eventsRes.ok) {
             const eventsData = await eventsRes.json();
-            studentData      = eventsData.studentData;
-            oneOnOneData     = eventsData.oneOnOneData;
-            lastStudentData  = studentData;
+            studentData = eventsData.studentData;
+            oneOnOneData = eventsData.oneOnOneData;
+            lastStudentData = studentData;
             lastOneOnOneData = oneOnOneData;
           }
         } catch (err) {
@@ -1258,7 +1352,12 @@
         const res = await fetch("/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workers: payload, studentData, oneOnOneData, mode: settings.mode === "ultra" ? "ultra" : "simplified" }),
+          body: JSON.stringify({
+            workers: payload,
+            studentData,
+            oneOnOneData,
+            mode: settings.mode === "ultra" ? "ultra" : "simplified",
+          }),
         });
         const data = await res.json();
 
@@ -1277,14 +1376,14 @@
             return {
               ...a,
               availStart: avDay && avDay.selected ? avDay.start : null,
-              availEnd:   avDay && avDay.selected ? avDay.end   : null,
+              availEnd: avDay && avDay.selected ? avDay.end : null,
             };
           }),
         }));
 
         renderSchedule();
         document.getElementById("copy-btn").disabled = false;
-        document.getElementById("edit-btn").disabled  = false;
+        document.getElementById("edit-btn").disabled = false;
         // Clear stale banner — schedule is now fresh
         document.getElementById("stale-banner").style.display = "none";
         scheduleIsStale = false;
@@ -1307,10 +1406,16 @@
           // N+1 boundary labels at i * SLOT_H, centered on each line via CSS translateY(-50%)
           const boundaries = [...slots, isSat ? "2" : "8"];
           const slotLabels = boundaries
-            .map((s, i) => `<div class="timeline-line-label" style="top:${i * SLOT_H}px;">${s}</div>`)
+            .map(
+              (s, i) =>
+                `<div class="timeline-line-label" style="top:${i * SLOT_H}px;">${s}</div>`,
+            )
             .join("");
           const gridLines = slots
-            .map((s, gi) => `<div class="timeline-grid-line tooltip-zone" data-day-idx="${di}" data-slot="${s}" onmouseenter="showSlotTooltip(event,${di},'${s}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"></div>`)
+            .map(
+              (s, gi) =>
+                `<div class="timeline-grid-line tooltip-zone" data-day-idx="${di}" data-slot="${s}" onmouseenter="showSlotTooltip(event,${di},'${s}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"></div>`,
+            )
             .join("");
           const totalSlots = slots.length;
 
@@ -1557,7 +1662,7 @@
           priority: worker ? worker.priority : 0,
           // null = no availability for this day — whole bar is OOB
           availStart: avDay && avDay.selected ? avDay.start : null,
-          availEnd:   avDay && avDay.selected ? avDay.end   : null,
+          availEnd: avDay && avDay.selected ? avDay.end : null,
         });
 
         setTimeout(() => {
@@ -1593,7 +1698,6 @@
 
       // continueWithoutCalendar removed
 
-
       // ── Google OAuth ────────────────────────────────────────
       let _oauthWin = null;
 
@@ -1614,7 +1718,12 @@
 
       window.addEventListener("message", async (e) => {
         if (e.data?.type !== "oauth_success") return;
-        if (_oauthWin) { try { _oauthWin.close(); } catch(_){} _oauthWin = null; }
+        if (_oauthWin) {
+          try {
+            _oauthWin.close();
+          } catch (_) {}
+          _oauthWin = null;
+        }
         const r = await fetch("/cal-status");
         const d = await r.json();
         if (d.connected) {
@@ -1626,7 +1735,7 @@
       });
 
       function setAuthState(state, msg) {
-        ["idle","waiting","success","error"].forEach(s => {
+        ["idle", "waiting", "success", "error"].forEach((s) => {
           const el = document.getElementById("auth-state-" + s);
           if (el) el.style.display = s === state ? "block" : "none";
         });
