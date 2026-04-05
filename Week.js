@@ -10,7 +10,7 @@ class Week{
     new Day("Tuesday"),
     new Day("Wednesday"),
     new Day("Thursday"),
-    new Day("Saturday"),
+    new Day("Saturday", true),
 ]
 
     }

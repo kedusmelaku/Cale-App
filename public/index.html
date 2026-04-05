@@ -253,7 +253,7 @@
                 id="mode-simplified"
                 onclick="setMode('simplified')"
               >
-                Simplified
+                Normal
               </button>
               <button class="toggle-opt" id="mode-ultra" onclick="setMode('ultra')">
                 Ultra-efficient
@@ -587,11 +587,11 @@
         document
           .getElementById("mode-simplified")
           .classList.toggle("active", settings.mode === "simplified");
+        if (document.getElementById("mode-ultra"))
+          document.getElementById("mode-ultra").classList.toggle("active", settings.mode === "ultra");
         checkCalendarStatus();
         document.getElementById("demo-toggle").checked = settings.demo;
         document.getElementById("settings-panel").classList.add("open");
-        async function openSettings() {
-}
       }
 
       function closeSettings() {
@@ -613,6 +613,9 @@
       function setMode(val) {
         settings.mode = val;
         saveSettings();
+        document.getElementById("mode-simplified").classList.toggle("active", val === "simplified");
+        const ultraBtn = document.getElementById("mode-ultra");
+        if (ultraBtn) ultraBtn.classList.toggle("active", val === "ultra");
       }
 
       function setDemo(checked) {
@@ -1387,7 +1390,7 @@
             totals[a.name] = (totals[a.name] || 0) + hrs;
           }
         }
-        const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+        const sorted = Object.entries(totals).filter(([,h]) => h > 0).sort((a, b) => b[1] - a[1]);
         if (sorted.length === 0) { el.style.display = "none"; return; }
         let rows = sorted.map(([name, hrs]) => {
           const color = getWorkerColor(name);
