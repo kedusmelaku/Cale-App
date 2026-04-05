@@ -2,7 +2,7 @@ const { google } = require("googleapis");
 const { getAuth }  = require("./auth");
 
 const LESSON_KEYWORDS     = ["HS", "MS", "ES"];
-const ONE_ON_ONE_KEYWORDS = ["one on one", "one-on-one"];
+const ONE_ON_ONE_KEYWORDS = ["1-on-1", "one-on-one"];
 
 function classifyEvent(title) {
   if (!title) return "other";
@@ -13,9 +13,34 @@ function classifyEvent(title) {
 }
 
 function parseEventTime(dateTimeStr) {
+  // Parse the local time directly from the string (e.g. "2026-04-07T16:00:00-05:00")
+  // so it works regardless of what timezone the server is running in
+  const [datePart, timePart] = dateTimeStr.split("T");
+  const [hourStr, minuteStr] = timePart.split(":");
+  const hour = parseInt(hourStr);
+  const minute = parseInt(minuteStr);
+
+  // Get the day from the date part directly, accounting for the UTC offset
   const date = new Date(dateTimeStr);
-  const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
-  return { day: days[date.getDay()], hour: date.getHours(), minute: date.getMinutes() };
+  const offsetMatch = dateTimeStr.match(/([+-]\d{2}):(\d{2})$/);
+  let localDate;
+  if (offsetMatch) {
+    const offsetMins = parseInt(offsetMatch[1]) * 60 + parseInt(offsetMatch[2]);
+    localDate = new Date(
+      date.getTime() + offsetMins * 60000 - date.getTimezoneOffset() * 60000,
+    );
+  } else {
+    localDate = date;
+  }
+
+  const days = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "saturday",
+  ];
+  return { day: days[localDate.getDay()], hour, minute };
 }
 
 function toSlotTime(hour, minute, isSaturday) {
