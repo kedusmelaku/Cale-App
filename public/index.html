@@ -588,8 +588,6 @@
         checkCalendarStatus();
         document.getElementById("demo-toggle").checked = settings.demo;
         document.getElementById("settings-panel").classList.add("open");
-        async function openSettings() {
-}
       }
 
       function closeSettings() {
@@ -1378,11 +1376,11 @@
             )
             .join("");
           const gridLines = slots
-            .map(
-              (s, gi) =>
-                `<div class="timeline-grid-line tooltip-zone" data-day-idx="${di}" data-slot="${s}" onmouseenter="showSlotTooltip(event,${di},'${s}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"></div>`,
-            )
+            .map(() => `<div class="timeline-grid-line"></div>`)
             .join("");
+          const tooltipOverlay = `<div class="timeline-tooltip-overlay">${slots
+            .map((s) => `<div class="timeline-tooltip-row" onmouseenter="showSlotTooltip(event,${di},'${s}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"></div>`)
+            .join("")}</div>`;
           const totalSlots = slots.length;
 
           const workerCols = day.assignments
@@ -1444,7 +1442,7 @@
               <div class="timeline-day-header">${day.day}${dateStr}</div>
               <div class="timeline-body">
                 <div class="timeline-slots" style="height:${totalSlots * SLOT_H}px;">${slotLabels}</div>
-                <div class="timeline-workers" style="height:${totalSlots * SLOT_H}px;">${workerCols}</div>
+                <div class="timeline-workers" style="height:${totalSlots * SLOT_H}px;">${tooltipOverlay}${workerCols}</div>
               </div>
               ${addBtn}
             </div>`;

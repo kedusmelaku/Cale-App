@@ -760,6 +760,20 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .timeline-grid-lines { position: absolute; inset: 0; pointer-events: none; }
 
+/* Tooltip overlay sits above workers and receives mouse events */
+.timeline-tooltip-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.timeline-tooltip-row {
+  height: var(--slot-h);
+  pointer-events: all;
+  cursor: crosshair;
+}
+
 .timeline-grid-line { height: var(--slot-h); border-bottom: 1px solid var(--border); }
 .timeline-grid-line:last-child { border-bottom: none; }
 
@@ -1104,9 +1118,6 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 .tooltip-tag.ooo { background: rgba(255,255,255,0.2); }
 
 /* ── Tooltip hover zones on grid lines ── */
-.tooltip-zone {
-  cursor: crosshair;
-}
 
 
 /* ── Auth Screen ── */
