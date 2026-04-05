@@ -48,6 +48,14 @@ async function getWeekEvents(mondayDate, calendarId = "primary") {
   const oneOnOneData = Object.fromEntries(validDays.map((d) => [d, {}]));
 
   for (const event of events) {
+    console.log(
+      "EVENT:",
+      event.summary,
+      "|",
+      event.start?.dateTime,
+      "| type:",
+      classifyEvent(event.summary),
+    );
     if (!event.start?.dateTime) continue;
     const type = classifyEvent(event.summary);
     if (type === "other") continue;
