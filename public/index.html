@@ -5,9 +5,271 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Scheduler</title>
     <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* ── Tutorial Overlay ── */
+      #tut-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        pointer-events: none;
+      }
+      #tut-overlay.active { display: block; }
+
+      /* SVG spotlight mask — covers entire viewport, hole cut out over target */
+      #tut-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      /* Clickable blocker — stops interaction with everything except the target */
+      #tut-blocker {
+        position: absolute;
+        inset: 0;
+        pointer-events: all;
+      }
+
+      /* The target area is punched through — pointer events pass to it */
+      #tut-hole {
+        position: absolute;
+        border-radius: 10px;
+        pointer-events: none;
+        box-shadow: 0 0 0 4px var(--accent), 0 0 0 7px rgba(42,95,173,0.25);
+        transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+        z-index: 502;
+      }
+
+      /* Pulse ring around the target */
+      #tut-hole::after {
+        content: "";
+        position: absolute;
+        inset: -6px;
+        border-radius: 14px;
+        border: 2px solid var(--accent);
+        opacity: 0;
+        animation: tut-pulse 1.8s ease-out infinite;
+      }
+
+      @keyframes tut-pulse {
+        0%   { opacity: 0.7; transform: scale(1); }
+        100% { opacity: 0;   transform: scale(1.12); }
+      }
+
+      /* Step card */
+      #tut-card {
+        position: absolute;
+        width: 320px;
+        background: var(--surface);
+        border: 1.5px solid var(--accent);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        padding: 20px 22px 16px;
+        pointer-events: all;
+        transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+        z-index: 503;
+      }
+
+      .tut-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .tut-step-badge {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--accent);
+        background: var(--accent-light);
+        border-radius: 99px;
+        padding: 2px 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .tut-skip-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        cursor: pointer;
+        font-family: "Noto Sans", sans-serif;
+        padding: 0;
+        transition: color 0.15s;
+      }
+      .tut-skip-btn:hover { color: var(--text); }
+
+      .tut-title {
+        font-family: "Noto Serif", serif;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+
+      .tut-body {
+        font-size: 0.84rem;
+        color: var(--text-mid);
+        line-height: 1.6;
+        margin-bottom: 16px;
+      }
+
+      .tut-body strong { color: var(--text); }
+
+      .tut-action-hint {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 0.78rem;
+        color: var(--accent);
+        font-weight: 600;
+        margin-bottom: 14px;
+      }
+
+      .tut-action-hint::before {
+        content: "👆";
+        font-size: 0.85rem;
+      }
+
+      .tut-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .tut-dots {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        flex: 1;
+      }
+
+      .tut-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 99px;
+        background: var(--border-strong);
+        transition: background 0.2s, width 0.2s;
+      }
+      .tut-dot.done  { background: var(--accent); opacity: 0.4; }
+      .tut-dot.active { background: var(--accent); width: 16px; }
+
+      .tut-next-btn {
+        padding: 8px 18px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: "Noto Sans", sans-serif;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: background 0.15s;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .tut-next-btn:hover { background: var(--accent-hover); }
+      .tut-next-btn:disabled {
+        background: var(--border-strong);
+        color: var(--text-muted);
+        cursor: default;
+      }
+
+      /* waiting-for-action state — next btn hidden, replaced by hint */
+      #tut-card.waiting .tut-next-btn { display: none; }
+      #tut-card.waiting .tut-action-hint { display: flex; }
+      #tut-card:not(.waiting) .tut-action-hint { display: none; }
+
+      /* Start tutorial button on screen 1 */
+      .btn-tutorial {
+        margin-top: 10px;
+        padding: 9px 20px;
+        background: transparent;
+        color: var(--accent);
+        border: 1.5px solid var(--accent);
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-family: "Noto Sans", sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .btn-tutorial:hover { background: var(--accent-light); }
+
+      /* dim overlay — semi-transparent except where hole is */
+      #tut-dim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.52);
+        pointer-events: none;
+        /* the hole is cut using clip-path updated by JS */
+        transition: clip-path 0.35s cubic-bezier(0.4,0,0.2,1);
+      }
+
+      /* Completed screen */
+      #tut-done-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 600;
+        background: rgba(0,0,0,0.45);
+        justify-content: center;
+        align-items: center;
+      }
+      #tut-done-modal.open { display: flex; }
+
+      .tut-done-card {
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        padding: 36px 40px;
+        width: 380px;
+        text-align: center;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+      }
+
+      .tut-done-icon { font-size: 2.4rem; margin-bottom: 14px; }
+
+      .tut-done-title {
+        font-family: "Noto Serif", serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 10px;
+      }
+
+      .tut-done-body {
+        font-size: 0.85rem;
+        color: var(--text-mid);
+        line-height: 1.7;
+        margin-bottom: 24px;
+      }
+
+      .tut-done-btn {
+        width: 100%;
+        padding: 12px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: "Noto Sans", sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: background 0.15s;
+      }
+      .tut-done-btn:hover { background: var(--accent-hover); }
+    </style>
   </head>
   <body>
-    <!-- Demo banner — outside screens so always visible -->
+    <!-- Demo banner -->
     <div id="demo-banner">
       <span>⚡ Demo Mode — changes are not saved</span>
       <button onclick="exitDemo()">Exit Demo</button>
@@ -34,8 +296,12 @@
           </p>
         </div>
         <div class="worker-grid" id="worker-grid"></div>
-        <button class="btn-add-worker" onclick="openModal()">
+        <button class="btn-add-worker" id="btn-add-worker" onclick="openModal()">
           + Add Employee
+        </button>
+        <br>
+        <button class="btn-tutorial" id="btn-start-tutorial" onclick="startTutorial()">
+          ▶ Take the Tutorial
         </button>
       </div>
     </div>
@@ -54,7 +320,7 @@
           >
             Copy to Clipboard
           </button>
-          <button class="btn-primary" onclick="generate()">
+          <button class="btn-primary" id="btn-generate" onclick="generate()">
             Generate Schedule
           </button>
           <button class="btn-gear" onclick="openSettings()" title="Settings">
@@ -154,7 +420,6 @@
             schedules automatically.
           </p>
         </div>
-        <!-- idle -->
         <div id="auth-state-idle" class="auth-state">
           <button
             class="btn-primary"
@@ -164,7 +429,6 @@
             Sign in with Google →
           </button>
         </div>
-        <!-- waiting -->
         <div id="auth-state-waiting" class="auth-state" style="display: none">
           <p>⏳ Waiting for Google approval in the other tab…</p>
           <button
@@ -175,7 +439,6 @@
             Open sign-in again
           </button>
         </div>
-        <!-- success -->
         <div id="auth-state-success" class="auth-state" style="display: none">
           <p>
             ✅ <strong>Connected!</strong> Close this and generate a schedule.
@@ -188,16 +451,11 @@
             Back to Schedule →
           </button>
         </div>
-        <!-- error -->
         <div id="auth-state-error" class="auth-state" style="display: none">
           <p>❌ <strong>Connection failed</strong></p>
           <p
             id="auth-error-msg"
-            style="
-              font-size: 0.85rem;
-              color: var(--text-muted);
-              margin: 8px 0 12px;
-            "
+            style="font-size: 0.85rem; color: var(--text-muted); margin: 8px 0 12px;"
           ></p>
           <button class="btn-primary" onclick="startOAuth()">Try again</button>
         </div>
@@ -211,35 +469,19 @@
           <span class="settings-title">Settings</span>
           <button class="btn-back" onclick="closeSettings()">✕</button>
         </div>
-        <!-- Appearance -->
         <div class="settings-section">
           <h3 class="settings-section-title">Appearance</h3>
           <div class="settings-row">
             <div>
               <div class="settings-label">Theme</div>
-              <div class="settings-sublabel">
-                Switch between light and dark mode
-              </div>
+              <div class="settings-sublabel">Switch between light and dark mode</div>
             </div>
             <div class="toggle-group">
-              <button
-                class="toggle-opt active"
-                id="theme-light"
-                onclick="setTheme('light')"
-              >
-                Light
-              </button>
-              <button
-                class="toggle-opt"
-                id="theme-dark"
-                onclick="setTheme('dark')"
-              >
-                Dark
-              </button>
+              <button class="toggle-opt active" id="theme-light" onclick="setTheme('light')">Light</button>
+              <button class="toggle-opt" id="theme-dark" onclick="setTheme('dark')">Dark</button>
             </div>
           </div>
         </div>
-        <!-- Model -->
         <div class="settings-section">
           <h3 class="settings-section-title">Model</h3>
           <div class="settings-row">
@@ -248,58 +490,32 @@
               <div class="settings-sublabel">Choose how the schedule is generated</div>
             </div>
             <div class="toggle-group">
-              <button
-                class="toggle-opt active"
-                id="mode-simplified"
-                onclick="setMode('simplified')"
-              >
-                Normal
-              </button>
-              <button class="toggle-opt" id="mode-ultra" onclick="setMode('ultra')">
-                Ultra-efficient
-              </button>
+              <button class="toggle-opt active" id="mode-simplified" onclick="setMode('simplified')">Normal</button>
+              <button class="toggle-opt" id="mode-ultra" onclick="setMode('ultra')">Ultra-efficient</button>
             </div>
           </div>
         </div>
-        <!-- Other -->
         <div class="settings-section">
           <h3 class="settings-section-title">Other</h3>
           <div class="settings-row">
             <div>
               <div class="settings-label">Demo Mode</div>
-              <div class="settings-sublabel">
-                Load a premade team with fake availability and student counts
-              </div>
+              <div class="settings-sublabel">Load a premade team with fake availability and student counts</div>
             </div>
             <label class="switch">
-              <input
-                type="checkbox"
-                id="demo-toggle"
-                onchange="setDemo(this.checked)"
-              />
+              <input type="checkbox" id="demo-toggle" onchange="setDemo(this.checked)" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <div class="settings-row" style="margin-top: 14px">
             <div>
               <div class="settings-label">Google Calendar</div>
-              <div class="settings-sublabel">
-                Student booking data for schedule generation
-              </div>
+              <div class="settings-sublabel">Student booking data for schedule generation</div>
             </div>
             <div id="cal-status-wrap" class="cal-status-wrap">
               <span id="cal-status-dot" class="cal-status-dot"></span>
-              <span id="cal-status-text" class="cal-status-text"
-                >Checking…</span
-              >
-              <a
-                id="cal-reconnect-link"
-                class="cal-reconnect-link"
-                href="#"
-                style="display: none"
-                onclick="reconnectCalendar(event)"
-                >Reconnect</a
-              >
+              <span id="cal-status-text" class="cal-status-text">Checking…</span>
+              <a id="cal-reconnect-link" class="cal-reconnect-link" href="#" style="display: none" onclick="reconnectCalendar(event)">Reconnect</a>
             </div>
           </div>
         </div>
@@ -312,37 +528,17 @@
         <h3>Add Employee</h3>
         <label class="field-label">Name</label>
         <input type="text" id="new-worker-name" placeholder="Full name" />
-        <label class="field-label"
-          >Priority
-          <span class="info-tag"
-            >i<span class="info-tooltip"
-              ><strong>Normal:</strong> High schoolers or people with limited
-              availability.<br /><strong>Priority:</strong> Adults with moderate
-              availability.<br /><strong>High Priority:</strong> Adults who are
-              usually fully available.</span
-            ></span
-          ></label
-        >
+        <label class="field-label">Priority
+          <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+        </label>
         <div class="priority-picker">
-          <button
-            class="priority-opt active"
-            data-val="0"
-            onclick="selectPriority(0)"
-          >
-            Normal
-          </button>
-          <button class="priority-opt" data-val="1" onclick="selectPriority(1)">
-            Priority
-          </button>
-          <button class="priority-opt" data-val="2" onclick="selectPriority(2)">
-            High Priority
-          </button>
+          <button class="priority-opt active" data-val="0" onclick="selectPriority(0)">Normal</button>
+          <button class="priority-opt" data-val="1" onclick="selectPriority(1)">Priority</button>
+          <button class="priority-opt" data-val="2" onclick="selectPriority(2)">High Priority</button>
         </div>
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-          <button class="btn-confirm" onclick="addWorker()">
-            Add Employee
-          </button>
+          <button class="btn-confirm" onclick="addWorker()">Add Employee</button>
         </div>
       </div>
     </div>
@@ -358,9 +554,7 @@
         <label class="field-label" style="margin-top: 14px">End</label>
         <select id="add-shift-end" class="field-select"></select>
         <div class="modal-actions" style="margin-top: 20px">
-          <button class="btn-cancel" onclick="closeAddShiftModal()">
-            Cancel
-          </button>
+          <button class="btn-cancel" onclick="closeAddShiftModal()">Cancel</button>
           <button class="btn-confirm" onclick="confirmAddShift()">Add</button>
         </div>
       </div>
@@ -372,53 +566,560 @@
         <h3>Edit Employee</h3>
         <label class="field-label">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
-        <label class="field-label"
-          >Priority
-          <span class="info-tag"
-            >i<span class="info-tooltip"
-              ><strong>Normal:</strong> High schoolers or people with limited
-              availability.<br /><strong>Priority:</strong> Adults with moderate
-              availability.<br /><strong>High Priority:</strong> Adults who are
-              usually fully available.</span
-            ></span
-          ></label
-        >
+        <label class="field-label">Priority
+          <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+        </label>
         <div class="priority-picker" id="edit-priority-picker">
-          <button
-            class="priority-opt active"
-            data-val="0"
-            onclick="selectEditPriority(0)"
-          >
-            Normal
-          </button>
-          <button
-            class="priority-opt"
-            data-val="1"
-            onclick="selectEditPriority(1)"
-          >
-            Priority
-          </button>
-          <button
-            class="priority-opt"
-            data-val="2"
-            onclick="selectEditPriority(2)"
-          >
-            High Priority
-          </button>
+          <button class="priority-opt active" data-val="0" onclick="selectEditPriority(0)">Normal</button>
+          <button class="priority-opt" data-val="1" onclick="selectEditPriority(1)">Priority</button>
+          <button class="priority-opt" data-val="2" onclick="selectEditPriority(2)">High Priority</button>
         </div>
         <div class="modal-actions" style="margin-top: 20px">
-          <button class="btn-cancel" onclick="closeEditEmployeeModal()">
-            Cancel
-          </button>
-          <button class="btn-confirm" onclick="confirmEditEmployee()">
-            Save
-          </button>
+          <button class="btn-cancel" onclick="closeEditEmployeeModal()">Cancel</button>
+          <button class="btn-confirm" onclick="confirmEditEmployee()">Save</button>
         </div>
       </div>
     </div>
 
+    <!-- ── Tutorial Overlay ── -->
+    <div id="tut-overlay">
+      <div id="tut-dim"></div>
+      <div id="tut-hole"></div>
+      <div id="tut-card">
+        <div class="tut-card-header">
+          <span class="tut-step-badge" id="tut-badge">Step 1</span>
+          <button class="tut-skip-btn" onclick="endTutorial()">Skip tutorial</button>
+        </div>
+        <div class="tut-title" id="tut-title"></div>
+        <div class="tut-body" id="tut-body"></div>
+        <div class="tut-action-hint" id="tut-hint"></div>
+        <div class="tut-footer">
+          <div class="tut-dots" id="tut-dots"></div>
+          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tutorial Done Modal ── -->
+    <div id="tut-done-modal">
+      <div class="tut-done-card">
+        <div class="tut-done-icon">🎉</div>
+        <div class="tut-done-title">You're all set!</div>
+        <div class="tut-done-body">
+          That's everything the scheduler can do. Your demo data will be cleared — head back to the Employees screen to build your real team.
+        </div>
+        <button class="tut-done-btn" onclick="finishTutorial()">Start using Scheduler →</button>
+      </div>
+    </div>
+
     <script>
-      // ── Constants ──────────────────────────────────────────
+      // ══════════════════════════════════════════════════════════════════
+      // TUTORIAL SYSTEM
+      // ══════════════════════════════════════════════════════════════════
+
+      /*
+        Each step shape:
+        {
+          screen:    string   — which screen to be on before showing
+          target:    string   — CSS selector for the highlighted element (null = center card, no highlight)
+          title:     string
+          body:      string   — HTML allowed
+          hint:      string   — shown instead of Next when waitForAction is true
+          waitForAction: bool — if true, Next btn hidden; advance() must be called by app code
+          onEnter:   fn       — optional, called when step is shown
+          position:  'auto'|'top'|'bottom'|'left'|'right'  — card placement preference
+        }
+      */
+
+      const TUTORIAL_STEPS = [
+        // ── 0: Welcome ──────────────────────────────────────────────────
+        {
+          screen: "screen-workers",
+          target: null,
+          title: "Welcome to Scheduler",
+          body: "This short tutorial will walk you through every feature — <strong>by actually using them</strong>. We'll load some demo employees so you're not starting from scratch.",
+          position: "center",
+        },
+        // ── 1: Employee card ────────────────────────────────────────────
+        {
+          screen: "screen-workers",
+          target: "#worker-grid",
+          title: "Your Employees",
+          body: "Each card represents one employee. The colored stripe on the left is their unique color — it appears on the schedule timeline too. Notice the <strong>priority badge</strong> on each card.",
+          position: "bottom",
+          onEnter: () => {
+            // activate demo so cards are visible
+            if (!settings.demo) {
+              settings.demo = true;
+              saveSettings();
+              document.body.classList.add("demo-active");
+              activateDemo();
+            }
+          },
+        },
+        // ── 2: Priority explained ────────────────────────────────────────
+        {
+          screen: "screen-workers",
+          target: ".wcard:first-child",
+          title: "Priority Levels",
+          body: "<strong>Normal</strong> — high schoolers or people with limited hours.<br><strong>Priority</strong> — adults with moderate availability.<br><strong>High Priority</strong> — adults who are usually fully available.<br><br>Higher priority workers are assigned shifts first.",
+          position: "right",
+        },
+        // ── 3: Edit employee ────────────────────────────────────────────
+        {
+          screen: "screen-workers",
+          target: ".wcard:first-child .btn-edit-emp",
+          title: "Edit an Employee",
+          body: "Click <strong>Edit</strong> on any card to change their name or priority level.",
+          hint: "Click the Edit button on the first employee card",
+          waitForAction: true,
+          position: "right",
+          onEnter: () => { tutWaiting = "edit-employee-opened"; },
+        },
+        // ── 4: Close edit modal (info step) ─────────────────────────────
+        {
+          screen: "screen-workers",
+          target: "#edit-employee-modal .modal",
+          title: "Edit Employee Modal",
+          body: "You can update the name or switch the priority here. Click <strong>Cancel</strong> for now — we don't need to change anything.",
+          hint: "Close the modal to continue",
+          waitForAction: true,
+          position: "right",
+          onEnter: () => { tutWaiting = "edit-employee-closed"; },
+        },
+        // ── 5: Add employee ──────────────────────────────────────────────
+        {
+          screen: "screen-workers",
+          target: "#btn-add-worker",
+          title: "Adding Employees",
+          body: "In real use, you'd add your actual team here. Each employee gets a name and a priority level when you create them.",
+          position: "top",
+        },
+        // ── 6: Go to schedule ────────────────────────────────────────────
+        {
+          screen: "screen-workers",
+          target: "header .btn-primary",
+          title: "Building a Schedule",
+          body: "When your team is set up, click <strong>Build Schedule →</strong> to move to the scheduling screen.",
+          hint: "Click Build Schedule → to continue",
+          waitForAction: true,
+          position: "bottom",
+          onEnter: () => { tutWaiting = "went-to-schedule"; },
+        },
+        // ── 7: Availability panel ────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: ".availability-panel",
+          title: "Setting Availability",
+          body: "This panel shows which days each employee is available this week. Check or uncheck days to mark them as available.",
+          position: "right",
+        },
+        // ── 8: Custom hours ──────────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: ".av-section:first-child",
+          title: "Custom Hours",
+          body: "By default each employee works a preset block. Uncheck <strong>Default hours</strong> on any day to set exact start and end times using the dropdowns.",
+          position: "right",
+        },
+        // ── 9: Week date ─────────────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: "#week-date",
+          title: "Choose a Week",
+          body: "Pick the Monday date for the week you're scheduling. The app auto-fills next Monday when you first arrive.",
+          position: "left",
+        },
+        // ── 10: Scheduling mode ──────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: "#btn-generate",
+          title: "Generate the Schedule",
+          body: "Once availability is set and a date is chosen, click <strong>Generate Schedule</strong>. The algorithm assigns shifts based on student counts and worker priority.<br><br>You can change the scheduling mode (Normal vs Ultra-efficient) in <strong>Settings ⚙</strong>.",
+          hint: "Click Generate Schedule to continue",
+          waitForAction: true,
+          position: "bottom",
+          onEnter: () => { tutWaiting = "schedule-generated"; },
+        },
+        // ── 11: Timeline view ────────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: "#schedule-output",
+          title: "The Timeline",
+          body: "Each column is a day. Colored bars are employee shifts — their height represents how long the shift is. Colors match the employee cards from screen 1.",
+          position: "top",
+        },
+        // ── 12: Slot tooltips ────────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: "#schedule-output .timeline-line-label.tooltip-sensor",
+          title: "Slot Tooltips",
+          body: "Hover over any time label on the left side of a day column to see a tooltip with <strong>student count</strong>, <strong>workers needed</strong>, and <strong>who's assigned</strong> for that half-hour.",
+          position: "right",
+        },
+        // ── 13: Hours summary ────────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: "#hours-summary",
+          title: "Hours This Week",
+          body: "Below the timeline, a summary shows total scheduled hours per employee for the week — helpful for keeping shifts fair.",
+          position: "top",
+        },
+        // ── 14: Copy to clipboard ────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: "#copy-btn",
+          title: "Copy to Clipboard",
+          body: "Click <strong>Copy to Clipboard</strong> to get a plain-text version of the schedule — ready to paste into a message or email.",
+          position: "bottom",
+        },
+        // ── 15: Go to edit ───────────────────────────────────────────────
+        {
+          screen: "screen-schedule",
+          target: "#edit-btn",
+          title: "Edit Mode",
+          body: "Need to adjust a shift manually? Click <strong>Edit Schedule</strong> to enter the drag-and-drop editor.",
+          hint: "Click Edit Schedule to continue",
+          waitForAction: true,
+          position: "bottom",
+          onEnter: () => { tutWaiting = "went-to-edit"; },
+        },
+        // ── 16: Drag to move ─────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: ".worker-block.draggable",
+          title: "Drag Shifts",
+          body: "Click and drag any colored bar <strong>up or down</strong> to move a shift to a different time.",
+          position: "right",
+        },
+        // ── 17: Resize ───────────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: ".worker-block.draggable",
+          title: "Resize Shifts",
+          body: "Grab the <strong>dark handle at the bottom</strong> of a bar and drag it down or up to make the shift longer or shorter.",
+          position: "right",
+        },
+        // ── 18: Remove shift ─────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: ".remove-btn",
+          title: "Remove a Shift",
+          body: "Click the <strong>✕</strong> in the top-right corner of any bar to remove that employee from that day entirely.",
+          position: "right",
+        },
+        // ── 19: Add to day ───────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: ".add-shift-btn",
+          title: "Add an Employee to a Day",
+          body: "Use the <strong>+ Add Employee</strong> button under any day column to manually assign someone to that day with a custom start and end time.",
+          position: "top",
+        },
+        // ── 20: OOB warning ──────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: "#oob-banner",
+          title: "Out-of-Bounds Warning",
+          body: "If you drag a shift outside an employee's stated availability, a <strong>hatched overlay</strong> appears on the bar and this banner lists the affected employees — so you always know before copying.",
+          position: "bottom",
+          onEnter: () => {
+            // Force an OOB situation so the banner is visible
+            if (scheduleData.length > 0) {
+              const day = scheduleData[0];
+              const isSat = day.day === "Saturday";
+              if (day.assignments.length > 0) {
+                const a = day.assignments[0];
+                // save original so we can restore
+                tut._savedAssignment = { di: 0, ai: 0, start: a.start, end: a.end, availStart: a.availStart, availEnd: a.availEnd };
+                a.start = isSat ? "10" : "3";
+                a.availStart = isSat ? 11 : 4;
+                renderEditScreen();
+              }
+            }
+          },
+        },
+        // ── 21: Settings ─────────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: "header .btn-gear",
+          title: "Settings",
+          body: "The <strong>⚙ gear icon</strong> opens Settings from any screen. Here you can switch the <strong>theme</strong> (light/dark), change the <strong>scheduling mode</strong>, and check your <strong>Google Calendar</strong> connection.",
+          position: "bottom",
+        },
+        // ── 22: Demo mode ────────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: "header .btn-gear",
+          title: "Demo Mode",
+          body: "Settings also has a <strong>Demo Mode</strong> toggle. It loads a premade team with fake data so anyone can try the app without touching real schedules — just like what we did for this tutorial.",
+          position: "bottom",
+        },
+        // ── 23: Google Calendar ──────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: "header .btn-gear",
+          title: "Google Calendar Integration",
+          body: "Under <strong>Google Calendar</strong> in Settings you can see if the app is connected. When connected, student booking counts are read directly from your calendar — no manual entry needed.",
+          position: "bottom",
+        },
+        // ── 24: Done ─────────────────────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: null,
+          title: "That's everything!",
+          body: "You've seen all the features. Close this tutorial and start building your real schedule.",
+          position: "center",
+        },
+      ];
+
+      // ── Tutorial State ──────────────────────────────────────────────────
+      const tut = {
+        active: false,
+        step: 0,
+        _savedAssignment: null,
+      };
+      let tutWaiting = null; // string key of what action we're waiting for
+
+      function startTutorial() {
+        tut.active = true;
+        tut.step = 0;
+        tut._savedAssignment = null;
+        document.getElementById("tut-overlay").classList.add("active");
+        buildDots();
+        showTutStep(0);
+      }
+
+      function endTutorial() {
+        tut.active = false;
+        tutWaiting = null;
+        document.getElementById("tut-overlay").classList.remove("active");
+        hideTutHole();
+        // restore saved OOB change if needed
+        if (tut._savedAssignment) {
+          const { di, ai, start, end, availStart, availEnd } = tut._savedAssignment;
+          if (scheduleData[di] && scheduleData[di].assignments[ai]) {
+            scheduleData[di].assignments[ai].start = start;
+            scheduleData[di].assignments[ai].end = end;
+            scheduleData[di].assignments[ai].availStart = availStart;
+            scheduleData[di].assignments[ai].availEnd = availEnd;
+          }
+          tut._savedAssignment = null;
+        }
+        // exit demo
+        if (settings.demo) {
+          settings.demo = false;
+          saveSettings();
+          document.body.classList.remove("demo-active");
+          deactivateDemo();
+        }
+      }
+
+      function finishTutorial() {
+        document.getElementById("tut-done-modal").classList.remove("open");
+        endTutorial();
+        showScreen("screen-workers");
+      }
+
+      function buildDots() {
+        const el = document.getElementById("tut-dots");
+        el.innerHTML = TUTORIAL_STEPS.map((_, i) =>
+          `<div class="tut-dot" id="tut-dot-${i}"></div>`
+        ).join("");
+      }
+
+      function updateDots(step) {
+        TUTORIAL_STEPS.forEach((_, i) => {
+          const d = document.getElementById(`tut-dot-${i}`);
+          if (!d) return;
+          d.className = "tut-dot" + (i < step ? " done" : i === step ? " active" : "");
+        });
+      }
+
+      function showTutStep(idx) {
+        if (idx >= TUTORIAL_STEPS.length) {
+          // Done
+          document.getElementById("tut-overlay").classList.remove("active");
+          hideTutHole();
+          document.getElementById("tut-done-modal").classList.add("open");
+          return;
+        }
+        tut.step = idx;
+        tutWaiting = null;
+        const step = TUTORIAL_STEPS[idx];
+
+        // Navigate to correct screen
+        const currentScreen = document.querySelector(".screen.active");
+        if (currentScreen && currentScreen.id !== step.screen) {
+          // need to switch screens first, then position
+          const target = document.getElementById(step.screen);
+          if (target) {
+            // instant switch for tutorial (no animation jank)
+            document.querySelectorAll(".screen").forEach(s => {
+              s.classList.remove("active");
+              s.style.cssText = "";
+            });
+            target.classList.add("active");
+          }
+        }
+
+        // Call onEnter
+        if (step.onEnter) step.onEnter();
+
+        // Small delay so DOM settles after screen switch / demo activation
+        setTimeout(() => {
+          positionTutCard(step);
+          updateDots(idx);
+          updateTutCard(step, idx);
+        }, 120);
+      }
+
+      function updateTutCard(step, idx) {
+        document.getElementById("tut-badge").textContent = `Step ${idx + 1} of ${TUTORIAL_STEPS.length}`;
+        document.getElementById("tut-title").textContent = step.title;
+        document.getElementById("tut-body").innerHTML = step.body;
+        document.getElementById("tut-hint").textContent = step.hint || "";
+
+        const card = document.getElementById("tut-card");
+        if (step.waitForAction) {
+          card.classList.add("waiting");
+          tutWaiting = step.onEnter ? tutWaiting : null; // onEnter sets it
+        } else {
+          card.classList.remove("waiting");
+        }
+
+        const nextBtn = document.getElementById("tut-next");
+        const isLast = idx === TUTORIAL_STEPS.length - 1;
+        nextBtn.textContent = isLast ? "Finish ✓" : "Next →";
+      }
+
+      function positionTutCard(step) {
+        const card = document.getElementById("tut-card");
+        const hole = document.getElementById("tut-hole");
+        const dim  = document.getElementById("tut-dim");
+
+        if (!step.target || step.position === "center") {
+          // No highlight — center the card, no dim cutout
+          hole.style.display = "none";
+          dim.style.clipPath = "none";
+          dim.style.background = "rgba(0,0,0,0.52)";
+          card.style.top  = "50%";
+          card.style.left = "50%";
+          card.style.transform = "translate(-50%, -50%)";
+          return;
+        }
+
+        const el = document.querySelector(step.target);
+        if (!el) {
+          // target not found — center
+          hole.style.display = "none";
+          dim.style.clipPath = "none";
+          card.style.top  = "50%";
+          card.style.left = "50%";
+          card.style.transform = "translate(-50%, -50%)";
+          return;
+        }
+
+        const r = el.getBoundingClientRect();
+        const pad = 8;
+        const hx = r.left - pad;
+        const hy = r.top - pad;
+        const hw = r.width + pad * 2;
+        const hh = r.height + pad * 2;
+
+        // Position highlight hole
+        hole.style.display = "block";
+        hole.style.left   = hx + "px";
+        hole.style.top    = hy + "px";
+        hole.style.width  = hw + "px";
+        hole.style.height = hh + "px";
+
+        // Dim with cutout using clip-path polygon (invert cutout trick)
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const r2 = 10; // border-radius approx
+        dim.style.clipPath = `polygon(
+          0 0, ${vw}px 0, ${vw}px ${vh}px, 0 ${vh}px, 0 0,
+          ${hx + r2}px ${hy}px,
+          ${hx}px ${hy + r2}px,
+          ${hx}px ${hy + hh - r2}px,
+          ${hx + r2}px ${hy + hh}px,
+          ${hx + hw - r2}px ${hy + hh}px,
+          ${hx + hw}px ${hy + hh - r2}px,
+          ${hx + hw}px ${hy + r2}px,
+          ${hx + hw - r2}px ${hy}px,
+          ${hx + r2}px ${hy}px
+        )`;
+
+        // Position card
+        const cw = 320 + 44; // card width + padding
+        const ch = 200; // approx card height
+        const margin = 16;
+        let top, left;
+        card.style.transform = "";
+
+        const pref = step.position || "auto";
+
+        // Try preferred, fall back automatically
+        const fits = {
+          right:  r.right + margin + cw < vw,
+          left:   r.left - margin - cw > 0,
+          bottom: r.bottom + margin + ch < vh,
+          top:    r.top - margin - ch > 0,
+        };
+
+        let pos = pref;
+        if (pref === "auto" || !fits[pref]) {
+          pos = fits.right ? "right" : fits.left ? "left" : fits.bottom ? "bottom" : "top";
+        }
+
+        if (pos === "right") {
+          left = r.right + margin;
+          top  = Math.max(8, Math.min(r.top, vh - ch - 8));
+        } else if (pos === "left") {
+          left = r.left - margin - (cw - 44);
+          top  = Math.max(8, Math.min(r.top, vh - ch - 8));
+        } else if (pos === "bottom") {
+          top  = r.bottom + margin;
+          left = Math.max(8, Math.min(r.left, vw - cw));
+        } else {
+          top  = r.top - margin - ch;
+          left = Math.max(8, Math.min(r.left, vw - cw));
+        }
+
+        card.style.top  = top + "px";
+        card.style.left = left + "px";
+      }
+
+      function hideTutHole() {
+        document.getElementById("tut-hole").style.display = "none";
+        document.getElementById("tut-dim").style.clipPath = "none";
+        document.getElementById("tut-dim").style.background = "transparent";
+      }
+
+      function tutNext() {
+        showTutStep(tut.step + 1);
+      }
+
+      // Called by app code when a tutorial-relevant action happens
+      function tutAdvance(key) {
+        if (!tut.active || tutWaiting !== key) return;
+        tutWaiting = null;
+        // small delay so the UI change settles first
+        setTimeout(() => showTutStep(tut.step + 1), 200);
+      }
+
+      // Reposition on scroll/resize
+      window.addEventListener("resize", () => {
+        if (!tut.active) return;
+        positionTutCard(TUTORIAL_STEPS[tut.step]);
+      });
+
+
+      // ══════════════════════════════════════════════════════════════════
+      // ORIGINAL APP CODE (unchanged except for tutAdvance hooks)
+      // ══════════════════════════════════════════════════════════════════
+
       const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
       const DAY_FULL = {
         monday: "Monday",
@@ -430,109 +1131,30 @@
       const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
       const PRIORITY_CLASSES = ["", "p1", "p2"];
       const WORKER_COLORS = [
-        "#4f86c6",
-        "#e05c5c",
-        "#3aaa72",
-        "#e08c2a",
-        "#8a6bbf",
-        "#2aaab4",
-        "#c47a2a",
-        "#5a8a5a",
-        "#c45a8a",
-        "#2a7ac4",
-        "#7aaa3a",
+        "#4f86c6","#e05c5c","#3aaa72","#e08c2a","#8a6bbf",
+        "#2aaab4","#c47a2a","#5a8a5a","#c45a8a","#2a7ac4","#7aaa3a",
       ];
-      // These are the N slot START times — each represents a 30-min block.
-      // The closing boundary (8 or 2) is NOT a slot start; it's added separately in buildTimelineHTML.
-      const WEEKDAY_SLOTS = [
-        "3",
-        "3:30",
-        "4",
-        "4:30",
-        "5",
-        "5:30",
-        "6",
-        "6:30",
-        "7",
-        "7:30",
-      ];
-      const SAT_SLOTS = [
-        "10",
-        "10:30",
-        "11",
-        "11:30",
-        "12",
-        "12:30",
-        "1",
-        "1:30",
-      ];
+      const WEEKDAY_SLOTS = ["3","3:30","4","4:30","5","5:30","6","6:30","7","7:30"];
+      const SAT_SLOTS = ["10","10:30","11","11:30","12","12:30","1","1:30"];
       const SLOT_H = 40;
 
       const DEMO_WORKERS = [
-        { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
+        { name: "Alex",   priority: 2, defaultStart: 3, defaultEnd: 8 },
         { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
         { name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8 },
         { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Casey",  priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Riley",  priority: 0, defaultStart: 4, defaultEnd: 8 },
       ];
 
       function buildDemoAvailability() {
         return {
-          Alex: DAYS.map((d) => ({
-            day: d,
-            selected: true,
-            allDay: false,
-            start: d === "saturday" ? 10 : 3,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Jordan: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "wednesday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Taylor: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "thursday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Morgan: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "wednesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Casey: DAYS.map((d) => ({
-            day: d,
-            selected: ["tuesday", "thursday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Riley: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "tuesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
+          Alex:   DAYS.map((d) => ({ day: d, selected: true,  allDay: false, start: d === "saturday" ? 10 : 3,  end: d === "saturday" ? 14 : 8,  startMinute: 0, endMinute: 0 })),
+          Jordan: DAYS.map((d) => ({ day: d, selected: d !== "wednesday", allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
+          Taylor: DAYS.map((d) => ({ day: d, selected: d !== "thursday",  allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
+          Morgan: DAYS.map((d) => ({ day: d, selected: ["monday","wednesday","saturday"].includes(d), allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
+          Casey:  DAYS.map((d) => ({ day: d, selected: ["tuesday","thursday"].includes(d), allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
+          Riley:  DAYS.map((d) => ({ day: d, selected: ["monday","tuesday","saturday"].includes(d), allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
         };
       }
 
@@ -540,29 +1162,17 @@
       let settings = {
         theme: "light",
         mode: "simplified",
-
         demo: false,
         ...JSON.parse(localStorage.getItem("scheduler-settings") || "{}"),
       };
 
-      function saveSettings() {
-        localStorage.setItem("scheduler-settings", JSON.stringify(settings));
-      }
-
-      function applyTheme() {
-        document.body.classList.toggle("dark", settings.theme === "dark");
-      }
+      function saveSettings() { localStorage.setItem("scheduler-settings", JSON.stringify(settings)); }
+      function applyTheme() { document.body.classList.toggle("dark", settings.theme === "dark"); }
 
       function openSettings() {
-        document
-          .getElementById("theme-light")
-          .classList.toggle("active", settings.theme === "light");
-        document
-          .getElementById("theme-dark")
-          .classList.toggle("active", settings.theme === "dark");
-        document
-          .getElementById("mode-simplified")
-          .classList.toggle("active", settings.mode === "simplified");
+        document.getElementById("theme-light").classList.toggle("active", settings.theme === "light");
+        document.getElementById("theme-dark").classList.toggle("active", settings.theme === "dark");
+        document.getElementById("mode-simplified").classList.toggle("active", settings.mode === "simplified");
         if (document.getElementById("mode-ultra"))
           document.getElementById("mode-ultra").classList.toggle("active", settings.mode === "ultra");
         checkCalendarStatus();
@@ -570,20 +1180,14 @@
         document.getElementById("settings-panel").classList.add("open");
       }
 
-      function closeSettings() {
-        document.getElementById("settings-panel").classList.remove("open");
-      }
+      function closeSettings() { document.getElementById("settings-panel").classList.remove("open"); }
 
       function setTheme(val) {
         settings.theme = val;
         saveSettings();
         applyTheme();
-        document
-          .getElementById("theme-light")
-          .classList.toggle("active", val === "light");
-        document
-          .getElementById("theme-dark")
-          .classList.toggle("active", val === "dark");
+        document.getElementById("theme-light").classList.toggle("active", val === "light");
+        document.getElementById("theme-dark").classList.toggle("active", val === "dark");
       }
 
       function setMode(val) {
@@ -611,16 +1215,12 @@
         deactivateDemo();
       }
 
-      document
-        .getElementById("settings-panel")
-        .addEventListener("click", function (e) {
-          if (e.target === this) closeSettings();
-        });
+      document.getElementById("settings-panel").addEventListener("click", function (e) {
+        if (e.target === this) closeSettings();
+      });
 
       // ── State ──────────────────────────────────────────────
-      let workers = JSON.parse(
-        localStorage.getItem("scheduler-workers") || "[]",
-      );
+      let workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
       let availability = {};
       let newWorkerPriority = 0;
       let scheduleData = [];
@@ -629,9 +1229,7 @@
       let editEmployeePriority = 0;
       let dragState = null;
 
-      function saveWorkers() {
-        localStorage.setItem("scheduler-workers", JSON.stringify(workers));
-      }
+      function saveWorkers() { localStorage.setItem("scheduler-workers", JSON.stringify(workers)); }
 
       // ── Demo ───────────────────────────────────────────────
       function activateDemo() {
@@ -650,7 +1248,6 @@
       }
 
       function deactivateDemo() {
-        // restore real saved workers, clear everything else
         workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
         availability = {};
         scheduleData = [];
@@ -677,9 +1274,7 @@
         });
       }
 
-      function slotList(isSat) {
-        return isSat ? SAT_SLOTS : WEEKDAY_SLOTS;
-      }
+      function slotList(isSat) { return isSat ? SAT_SLOTS : WEEKDAY_SLOTS; }
 
       function timeToIndex(time, isSat) {
         const parts = time.split(":");
@@ -694,7 +1289,6 @@
         const totalHalfHours = base * 2 + idx;
         const h = Math.floor(totalHalfHours / 2);
         const m = totalHalfHours % 2 === 1 ? 30 : 0;
-        // if this lands exactly on the last slot boundary, don't go past it
         const maxH = isSat ? 14 : 8;
         if (h >= maxH) return isSat ? "2" : "8";
         if (isSat && h > 12) return h - 12 + (m ? ":30" : "");
@@ -704,13 +1298,7 @@
       function getDatesForWeek(mondayStr) {
         if (!mondayStr) return {};
         const base = new Date(mondayStr + "T00:00:00");
-        const offsets = {
-          monday: 0,
-          tuesday: 1,
-          wednesday: 2,
-          thursday: 3,
-          saturday: 5,
-        };
+        const offsets = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, saturday: 5 };
         const result = {};
         for (const [day, offset] of Object.entries(offsets)) {
           const d = new Date(base);
@@ -732,38 +1320,26 @@
         return `${y}-${m}-${d}`;
       }
 
-      // time option helpers
       function timeOptions(isSaturday) {
         const options = [];
         const start = isSaturday ? 10 : 3;
-        const end = isSaturday ? 14 : 8;
+        const end   = isSaturday ? 14 : 8;
         for (let h = start; h <= end; h++) {
           for (let m of [0, 30]) {
             if (h === end && m === 30) break;
             const totalMins = h * 60 + m;
-            const displayH = h > 12 ? h - 12 : h;
-            const displayM = m === 0 ? "00" : "30";
+            const displayH  = h > 12 ? h - 12 : h;
+            const displayM  = m === 0 ? "00" : "30";
             const ampm = isSaturday ? (h >= 12 ? "PM" : "AM") : "PM";
-            options.push({
-              value: totalMins,
-              hour: h,
-              minute: m,
-              label: `${displayH}:${displayM} ${ampm}`,
-            });
+            options.push({ value: totalMins, hour: h, minute: m, label: `${displayH}:${displayM} ${ampm}` });
           }
         }
         return options;
       }
 
-      function minsToHour(mins) {
-        return Math.floor(mins / 60);
-      }
-      function minsToMinute(mins) {
-        return mins % 60;
-      }
-      function hourMinToMins(h, m) {
-        return h * 60 + (m || 0);
-      }
+      function minsToHour(mins)         { return Math.floor(mins / 60); }
+      function minsToMinute(mins)        { return mins % 60; }
+      function hourMinToMins(h, m)       { return h * 60 + (m || 0); }
 
       function buildClipboardText() {
         let text = "";
@@ -785,21 +1361,16 @@
         for (const day of scheduleData) {
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            // null = no availability for this day at all — always OOB
             if (a.availStart === null || a.availEnd === null) {
-              warnings.push(
-                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
-              );
+              warnings.push(`${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`);
               continue;
             }
             const shiftStart = timeToIndex(a.start, isSat);
-            const shiftEnd = timeToIndex(a.end, isSat);
+            const shiftEnd   = timeToIndex(a.end,   isSat);
             const avStartIdx = timeToIndex(a.availStart.toString(), isSat);
-            const avEndIdx = timeToIndex(a.availEnd.toString(), isSat);
+            const avEndIdx   = timeToIndex(a.availEnd.toString(),   isSat);
             if (shiftStart < avStartIdx || shiftEnd > avEndIdx) {
-              warnings.push(
-                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
-              );
+              warnings.push(`${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`);
             }
           }
         }
@@ -807,34 +1378,25 @@
       }
 
       // ── Navigation ─────────────────────────────────────────
-      const SCREEN_ORDER = [
-        "screen-workers",
-        "screen-schedule",
-        "screen-edit",
-        "screen-auth",
-      ];
+      const SCREEN_ORDER = ["screen-workers","screen-schedule","screen-edit","screen-auth"];
 
       function showScreen(newId) {
         const current = document.querySelector(".screen.active");
-        const next = document.getElementById(newId);
+        const next    = document.getElementById(newId);
         if (!current || current === next) return;
 
         const currentIdx = SCREEN_ORDER.indexOf(current.id);
-        const nextIdx = SCREEN_ORDER.indexOf(newId);
-        const forward = nextIdx > currentIdx;
+        const nextIdx    = SCREEN_ORDER.indexOf(newId);
+        const forward    = nextIdx > currentIdx;
 
-        next.style.transform = forward
-          ? "translateX(100%)"
-          : "translateX(-100%)";
-        next.style.display = "flex";
-        next.offsetHeight; // force reflow
+        next.style.transform  = forward ? "translateX(100%)" : "translateX(-100%)";
+        next.style.display    = "flex";
+        next.offsetHeight;
 
-        next.style.transition = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
+        next.style.transition    = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
         current.style.transition = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
-        next.style.transform = "translateX(0%)";
-        current.style.transform = forward
-          ? "translateX(-100%)"
-          : "translateX(100%)";
+        next.style.transform     = "translateX(0%)";
+        current.style.transform  = forward ? "translateX(-100%)" : "translateX(100%)";
 
         setTimeout(() => {
           current.classList.remove("active");
@@ -844,39 +1406,31 @@
         }, 300);
       }
 
-      function goToWorkers() {
-        showScreen("screen-workers");
-      }
+      function goToWorkers() { showScreen("screen-workers"); }
 
       function goToSchedule() {
-        if (workers.length === 0)
-          return alert("Add at least one employee first.");
-        // always rebuild availability when entering schedule screen
-        // but preserve existing if same workers (not demo reset)
-        if (
-          Object.keys(availability).length === 0 ||
-          !workers.every((w) => availability[w.name])
-        ) {
+        if (workers.length === 0) return alert("Add at least one employee first.");
+        if (Object.keys(availability).length === 0 || !workers.every((w) => availability[w.name])) {
           buildAvailability();
         }
         const dateInput = document.getElementById("week-date");
         if (!dateInput.value) dateInput.value = getNextMonday();
         showScreen("screen-schedule");
+        tutAdvance("went-to-schedule");
       }
 
       function goToEdit() {
         renderEditScreen();
         showScreen("screen-edit");
+        tutAdvance("went-to-edit");
       }
 
       function finishEdit() {
         const warnings = getOutOfBoundsWorkers();
-        const warnText =
-          warnings.length > 0
-            ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
-            : "";
+        const warnText = warnings.length > 0
+          ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
+          : "";
         if (!confirm(`${warnText}Finish editing and return to start?`)) return;
-        // clear schedule and go back to screen 1
         scheduleData = [];
         document.getElementById("empty-state").style.display = "block";
         document.getElementById("schedule-output").style.display = "none";
@@ -909,7 +1463,7 @@
               </div>
               <div style="display:flex; gap:8px; margin-top:4px;">
                 <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
-                <button class="btn-remove" onclick="removeWorker(${wi})">Remove</button>
+                <button class="btn-remove"   onclick="removeWorker(${wi})">Remove</button>
               </div>
             </div>`;
           grid.appendChild(card);
@@ -928,23 +1482,15 @@
         document.getElementById("new-worker-name").value = "";
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
-        setTimeout(
-          () => document.getElementById("new-worker-name").focus(),
-          50,
-        );
+        setTimeout(() => document.getElementById("new-worker-name").focus(), 50);
       }
 
-      function closeModal() {
-        document.getElementById("modal").classList.remove("open");
-      }
+      function closeModal() { document.getElementById("modal").classList.remove("open"); }
 
       function selectPriority(val) {
         newWorkerPriority = val;
-        document
-          .querySelectorAll("#modal .priority-opt")
-          .forEach((btn) =>
-            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
-          );
+        document.querySelectorAll("#modal .priority-opt").forEach((btn) =>
+          btn.classList.toggle("active", parseInt(btn.dataset.val) === val));
       }
 
       function addWorker() {
@@ -956,6 +1502,7 @@
         saveWorkers();
         renderWorkers();
         closeModal();
+        tutAdvance("worker-added");
       }
 
       document.getElementById("modal").addEventListener("click", function (e) {
@@ -970,57 +1517,47 @@
         document.getElementById("edit-employee-name").value = w.name;
         selectEditPriority(w.priority);
         document.getElementById("edit-employee-modal").classList.add("open");
+        tutAdvance("edit-employee-opened");
       }
 
       function closeEditEmployeeModal() {
         document.getElementById("edit-employee-modal").classList.remove("open");
         editEmployeeIndex = null;
+        tutAdvance("edit-employee-closed");
       }
 
       function selectEditPriority(val) {
         editEmployeePriority = val;
-        document
-          .querySelectorAll("#edit-priority-picker .priority-opt")
-          .forEach((btn) =>
-            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
-          );
+        document.querySelectorAll("#edit-priority-picker .priority-opt").forEach((btn) =>
+          btn.classList.toggle("active", parseInt(btn.dataset.val) === val));
       }
 
       function confirmEditEmployee() {
         const name = document.getElementById("edit-employee-name").value.trim();
         if (!name) return alert("Enter a name.");
-        const existing = workers.find(
-          (w, i) =>
-            w.name.toLowerCase() === name.toLowerCase() &&
-            i !== editEmployeeIndex,
-        );
-        if (existing)
-          return alert("Another employee with that name already exists.");
-        workers[editEmployeeIndex].name = name;
+        const existing = workers.find((w, i) =>
+          w.name.toLowerCase() === name.toLowerCase() && i !== editEmployeeIndex);
+        if (existing) return alert("Another employee with that name already exists.");
+        workers[editEmployeeIndex].name     = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
         saveWorkers();
         renderWorkers();
         closeEditEmployeeModal();
       }
 
-      document
-        .getElementById("edit-employee-modal")
-        .addEventListener("click", function (e) {
-          if (e.target === this) closeEditEmployeeModal();
-        });
+      document.getElementById("edit-employee-modal").addEventListener("click", function (e) {
+        if (e.target === this) closeEditEmployeeModal();
+      });
 
       // ── Availability ───────────────────────────────────────
       function buildAvailability() {
         availability = {};
         workers.forEach((w) => {
           availability[w.name] = DAYS.map((d) => ({
-            day: d,
-            selected: false,
-            allDay: true,
+            day: d, selected: false, allDay: true,
             start: d === "saturday" ? 10 : (w.priority === 2 ? 3 : 4),
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
+            end:   d === "saturday" ? 14 : 8,
+            startMinute: 0, endMinute: 0,
           }));
         });
         renderAvailability();
@@ -1047,97 +1584,53 @@
               </label>
             </div>
             <div class="av-days">
-              ${av
-                .map(
-                  (d, di) => `
+              ${av.map((d, di) => `
                 <div class="av-day-row ${d.selected ? "selected" : ""}">
                   <label class="av-day-check">
-                    <input type="checkbox" ${d.selected ? "checked" : ""}
-                      onchange="toggleDay('${w.name}', ${di}, this.checked)">
+                    <input type="checkbox" ${d.selected ? "checked" : ""} onchange="toggleDay('${w.name}', ${di}, this.checked)">
                     <span class="av-day-label">${DAY_FULL[d.day]}</span>
                   </label>
-                  ${
-                    d.selected
-                      ? `
+                  ${d.selected ? `
                     <div class="av-hours">
                       <label class="av-hours-check">
-                        <input type="checkbox" ${d.allDay ? "checked" : ""}
-                          onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
+                        <input type="checkbox" ${d.allDay ? "checked" : ""} onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
                         <span>Default hours</span>
                       </label>
-                      ${
-                        !d.allDay
-                          ? `
+                      ${!d.allDay ? `
                         <div class="av-time-inputs">
                           <select onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
-                            ${timeOptions(d.day === "saturday")
-                              .map(
-                                (o) =>
-                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? "selected" : ""}>${o.label}</option>`,
-                              )
-                              .join("")}
+                            ${timeOptions(d.day === "saturday").map((o) =>
+                              `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? "selected" : ""}>${o.label}</option>`
+                            ).join("")}
                           </select>
                           <span>–</span>
                           <select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
-                            ${timeOptions(d.day === "saturday")
-                              .map(
-                                (o) =>
-                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? "selected" : ""}>${o.label}</option>`,
-                              )
-                              .join("")}
+                            ${timeOptions(d.day === "saturday").map((o) =>
+                              `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? "selected" : ""}>${o.label}</option>`
+                            ).join("")}
                           </select>
-                        </div>
-                      `
-                          : ""
-                      }
-                    </div>
-                  `
-                      : ""
-                  }
-                </div>
-              `,
-                )
-                .join("")}
+                        </div>` : ""}
+                    </div>` : ""}
+                </div>`).join("")}
             </div>`;
           list.appendChild(section);
         });
       }
 
-      function toggleAllDays(name, checked) {
-        availability[name].forEach((d) => (d.selected = checked));
-        renderAvailability();
-        markStale();
-      }
-
-      function toggleDay(name, di, checked) {
-        availability[name][di].selected = checked;
-        renderAvailability();
-        markStale();
-      }
-
-      function toggleAllDay(name, di, checked) {
-        availability[name][di].allDay = checked;
-        renderAvailability();
-        markStale();
-      }
+      function toggleAllDays(name, checked) { availability[name].forEach((d) => (d.selected = checked)); renderAvailability(); markStale(); }
+      function toggleDay(name, di, checked) { availability[name][di].selected = checked; renderAvailability(); markStale(); }
+      function toggleAllDay(name, di, checked) { availability[name][di].allDay = checked; renderAvailability(); markStale(); }
 
       function updateHour(name, di, field, val) {
         const totalMins = parseInt(val);
         const d = availability[name][di];
-        // Guard: start must be before end
         if (field === "start") {
           const endMins = hourMinToMins(d.end, d.endMinute || 0);
-          if (totalMins >= endMins) {
-            renderAvailability(); // snap the dropdown back
-            return;
-          }
+          if (totalMins >= endMins) { renderAvailability(); return; }
         }
         if (field === "end") {
           const startMins = hourMinToMins(d.start, d.startMinute || 0);
-          if (totalMins <= startMins) {
-            renderAvailability(); // snap the dropdown back
-            return;
-          }
+          if (totalMins <= startMins) { renderAvailability(); return; }
         }
         d[field] = minsToHour(totalMins);
         if (field === "start") d.startMinute = minsToMinute(totalMins);
@@ -1149,7 +1642,6 @@
       let scheduleIsStale = false;
 
       function markStale() {
-        // Only show the banner if a schedule has already been generated
         if (scheduleData.length === 0) return;
         scheduleIsStale = true;
         document.getElementById("stale-banner").style.display = "flex";
@@ -1157,39 +1649,32 @@
 
       // ── Calendar connection status ──────────────────────────
       async function checkCalendarStatus() {
-        const dot = document.getElementById("cal-status-dot");
+        const dot  = document.getElementById("cal-status-dot");
         const text = document.getElementById("cal-status-text");
         const link = document.getElementById("cal-reconnect-link");
         if (!dot) return;
         try {
-          const res = await fetch("/cal-status", {
-            signal: AbortSignal.timeout(4000),
-          });
+          const res  = await fetch("/cal-status", { signal: AbortSignal.timeout(4000) });
           const data = await res.json();
           if (data.connected) {
-            dot.className = "cal-status-dot connected";
+            dot.className  = "cal-status-dot connected";
             text.textContent = "Connected";
             link.style.display = "none";
           } else {
-            dot.className = "cal-status-dot disconnected";
+            dot.className  = "cal-status-dot disconnected";
             text.textContent = "Not connected";
             link.style.display = "inline";
           }
         } catch (e) {
-          dot.className = "cal-status-dot unknown";
+          dot.className  = "cal-status-dot unknown";
           text.textContent = "Unable to reach server";
           link.style.display = "none";
         }
       }
 
-      function reconnectCalendar(e) {
-        e.preventDefault();
-        goToAuth();
-        closeSettings();
-      }
+      function reconnectCalendar(e) { e.preventDefault(); goToAuth(); closeSettings(); }
 
       // ── Slot tooltips ───────────────────────────────────────
-      // Tooltip element — created once, positioned on hover
       const slotTooltip = document.createElement("div");
       slotTooltip.className = "slot-tooltip";
       slotTooltip.style.display = "none";
@@ -1198,36 +1683,23 @@
       function showSlotTooltip(e, dayIndex, slotTime) {
         const day = scheduleData[dayIndex];
         if (!day) return;
-        const isSat = day.day === "Saturday";
-
-        // Find student count for this slot from the last fetched event data
-        const dayKey = day.day.toLowerCase();
-        const students = lastStudentData
-          ? (lastStudentData[dayKey]?.[slotTime] ?? 0)
-          : "—";
-        const isOneOnOne =
-          lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
-
-        // Count workers assigned to this slot
-        const slotIdx = timeToIndex(slotTime, isSat);
+        const isSat    = day.day === "Saturday";
+        const dayKey   = day.day.toLowerCase();
+        const students = lastStudentData ? (lastStudentData[dayKey]?.[slotTime] ?? 0) : "—";
+        const isOneOnOne = lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
+        const slotIdx  = timeToIndex(slotTime, isSat);
         const workersHere = day.assignments.filter((a) => {
           const si = timeToIndex(a.start, isSat);
-          const ei = timeToIndex(a.end, isSat);
+          const ei = timeToIndex(a.end,   isSat);
           return slotIdx >= si && slotIdx < ei;
         });
-
         const needed = students === "—" ? "—" : Math.ceil(students / 3);
-        const oneOnOneTag = isOneOnOne
-          ? ' <span class="tooltip-tag ooo">1-on-1</span>'
-          : "";
-
+        const oneOnOneTag = isOneOnOne ? ' <span class="tooltip-tag ooo">1-on-1</span>' : "";
         slotTooltip.innerHTML = `
           <div class="tooltip-time">${slotTime}${isSat ? "" : " PM"}</div>
           <div class="tooltip-row"><span class="tooltip-label">Students</span><span class="tooltip-val">${students}${oneOnOneTag}</span></div>
           <div class="tooltip-row"><span class="tooltip-label">Needed</span><span class="tooltip-val">${needed}</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Assigned</span><span class="tooltip-val">${workersHere.length > 0 ? workersHere.map((w) => w.name).join(", ") : "none"}</span></div>
-        `;
-
+          <div class="tooltip-row"><span class="tooltip-label">Assigned</span><span class="tooltip-val">${workersHere.length > 0 ? workersHere.map((w) => w.name).join(", ") : "none"}</span></div>`;
         slotTooltip.style.display = "block";
         positionTooltip(e);
       }
@@ -1237,73 +1709,59 @@
         const th = slotTooltip.offsetHeight;
         let x = e.clientX + 14;
         let y = e.clientY - th / 2;
-        if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 14;
+        if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - 14;
         if (y < 8) y = 8;
         if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
         slotTooltip.style.left = x + "px";
-        slotTooltip.style.top = y + "px";
+        slotTooltip.style.top  = y + "px";
       }
 
-      function hideSlotTooltip() {
-        slotTooltip.style.display = "none";
-      }
+      function hideSlotTooltip() { slotTooltip.style.display = "none"; }
 
-      // Store last fetched student/oneOnOne data for tooltip use
-      let lastStudentData = null;
+      let lastStudentData  = null;
       let lastOneOnOneData = null;
 
       // ── Generate ───────────────────────────────────────────
       async function generate() {
         const mondayVal = document.getElementById("week-date").value;
-        if (!mondayVal)
-          return alert("Please enter the Monday date for this week.");
+        if (!mondayVal) return alert("Please enter the Monday date for this week.");
 
-        const payload = workers
-          .map((w) => {
-            const days = (availability[w.name] || [])
-              .filter((d) => d.selected)
-              .map((d) => ({
-                day: d.day,
-                allDay: d.allDay,
-                start: d.start,
-                end: d.end,
-                startMinute: d.startMinute || 0,
-                endMinute: d.endMinute || 0,
-              }));
-            return { name: w.name, priority: w.priority, days };
-          })
-          .filter((w) => w.days.length > 0);
+        const payload = workers.map((w) => {
+          const days = (availability[w.name] || [])
+            .filter((d) => d.selected)
+            .map((d) => ({
+              day: d.day, allDay: d.allDay,
+              start: d.start, end: d.end,
+              startMinute: d.startMinute || 0, endMinute: d.endMinute || 0,
+            }));
+          return { name: w.name, priority: w.priority, days };
+        }).filter((w) => w.days.length > 0);
 
         if (payload.length === 0) return alert("No availability set.");
 
-        let studentData = null;
+        let studentData  = null;
         let oneOnOneData = null;
 
         try {
           if (settings.demo) throw new Error("skipped");
           const eventsRes = await fetch(`/events?monday=${mondayVal}`);
-          if (eventsRes.status === 401) {
-            goToAuth();
-            return;
-          }
+          if (eventsRes.status === 401) { goToAuth(); return; }
           if (eventsRes.ok) {
             const eventsData = await eventsRes.json();
-            studentData = eventsData.studentData;
+            studentData  = eventsData.studentData;
             oneOnOneData = eventsData.oneOnOneData;
-            lastStudentData = studentData;
+            lastStudentData  = studentData;
             lastOneOnOneData = oneOnOneData;
           }
         } catch (err) {
           console.warn("Calendar fetch skipped or failed:", err.message);
         }
 
-        const res = await fetch("/generate", {
+        const res  = await fetch("/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            workers: payload,
-            studentData,
-            oneOnOneData,
+            workers: payload, studentData, oneOnOneData,
             mode: settings.mode === "ultra" ? "ultra" : "simplified",
           }),
         });
@@ -1315,16 +1773,12 @@
           date: dates[d.day.toLowerCase()] || "",
           assignments: d.assignments.map((a) => {
             const worker = workers.find((w) => w.name === a.name);
-            const av = worker ? availability[worker.name] : null;
-            const avDay = av
-              ? av.find((x) => x.day === d.day.toLowerCase())
-              : null;
-            // Always store bounds so OOB works for allDay workers too.
-            // null = worker not marked available this day.
+            const av     = worker ? availability[worker.name] : null;
+            const avDay  = av ? av.find((x) => x.day === d.day.toLowerCase()) : null;
             return {
               ...a,
               availStart: avDay && avDay.selected ? avDay.start : null,
-              availEnd: avDay && avDay.selected ? avDay.end : null,
+              availEnd:   avDay && avDay.selected ? avDay.end   : null,
             };
           }),
         }));
@@ -1332,9 +1786,10 @@
         renderSchedule();
         document.getElementById("copy-btn").disabled = false;
         document.getElementById("edit-btn").disabled = false;
-        // Clear stale banner — schedule is now fresh
         document.getElementById("stale-banner").style.display = "none";
         scheduleIsStale = false;
+
+        tutAdvance("schedule-generated");
       }
 
       // ── Schedule View ──────────────────────────────────────
@@ -1353,8 +1808,8 @@
         for (const day of scheduleData) {
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            const si = timeToIndex(a.start, isSat);
-            const ei = timeToIndex(a.end, isSat);
+            const si  = timeToIndex(a.start, isSat);
+            const ei  = timeToIndex(a.end,   isSat);
             const hrs = (ei - si) * 0.5;
             totals[a.name] = (totals[a.name] || 0) + hrs;
           }
@@ -1364,71 +1819,57 @@
         let rows = sorted.map(([name, hrs]) => {
           const color = getWorkerColor(name);
           const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
-          return '<div class="hours-row"><div class="hours-dot" style="background:' + color + '"></div><span class="hours-name">' + name + '</span><span class="hours-val">' + label + '</span></div>';
+          return `<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
         }).join("");
-        el.innerHTML = '<div class="hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">' + rows + '</div></div>';
+        el.innerHTML = `<div class="hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`;
         el.style.display = "block";
       }
 
       function buildTimelineHTML(data, isEdit) {
         let html = `<div class="timeline${isEdit ? " timeline-edit" : ""}">`;
         data.forEach((day, di) => {
-          const isSat = day.day === "Saturday";
-          const slots = slotList(isSat);
-          // one extra label at the end for the closing boundary
-          // N+1 boundary labels at i * SLOT_H, centered on each line via CSS translateY(-50%)
+          const isSat   = day.day === "Saturday";
+          const slots   = slotList(isSat);
           const boundaries = [...slots, isSat ? "2" : "8"];
-                    const slotLabels = boundaries
-            .map((s, i) => {
-              const isLast = i === boundaries.length - 1;
-              const slotKey = slots[i];
-              const handler = !isLast
-                ? `onmouseenter="showSlotTooltip(event,${di},'${slotKey}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`
-                : '';
-              return `<div class="timeline-line-label${!isLast ? ' tooltip-sensor' : ''}" style="top:${i * SLOT_H}px;" ${handler}>${s}</div>`;
-            })
-            .join("");
-                    const gridLines = slots
-            .map(() => '<div class="timeline-grid-line"></div>')
-            .join("");
+          const slotLabels = boundaries.map((s, i) => {
+            const isLast = i === boundaries.length - 1;
+            const slotKey = slots[i];
+            const handler = !isLast
+              ? `onmouseenter="showSlotTooltip(event,${di},'${slotKey}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`
+              : "";
+            return `<div class="timeline-line-label${!isLast ? " tooltip-sensor" : ""}" style="top:${i * SLOT_H}px;" ${handler}>${s}</div>`;
+          }).join("");
+          const gridLines  = slots.map(() => '<div class="timeline-grid-line"></div>').join("");
           const totalSlots = slots.length;
 
-          const workerCols = day.assignments
-            .map((a, ai) => {
-              const si = timeToIndex(a.start, isSat);
-              const ei = timeToIndex(a.end, isSat);
-              const color = getWorkerColor(a.name);
-              const draggable = isEdit
-                ? `data-day="${di}" data-ai="${ai}"`
-                : "";
-              const resizable = isEdit
-                ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
-                : "";
-              const removable = isEdit
-                ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>`
-                : "";
+          const workerCols = day.assignments.map((a, ai) => {
+            const si    = timeToIndex(a.start, isSat);
+            const ei    = timeToIndex(a.end,   isSat);
+            const color = getWorkerColor(a.name);
+            const draggable = isEdit ? `data-day="${di}" data-ai="${ai}"` : "";
+            const resizable = isEdit ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>` : "";
+            const removable = isEdit ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>` : "";
 
-              let oobOverlay = "";
-              if (isEdit) {
-                if (a.availStart === null || a.availEnd === null) {
-                  // No availability for this day — entire bar is OOB
-                  oobOverlay = `<div class="oob-overlay" style="top:0; height:${(ei - si) * SLOT_H}px;"></div>`;
-                } else {
-                  const avSi = timeToIndex(a.availStart.toString(), isSat);
-                  const avEi = timeToIndex(a.availEnd.toString(), isSat);
-                  if (si < avSi) {
-                    const h = Math.min(avSi - si, ei - si) * SLOT_H;
-                    oobOverlay += `<div class="oob-overlay" style="top:0; height:${h}px;"></div>`;
-                  }
-                  if (ei > avEi) {
-                    const top = Math.max(avEi - si, 0) * SLOT_H;
-                    const h = (ei - Math.max(avEi, si)) * SLOT_H;
-                    oobOverlay += `<div class="oob-overlay" style="top:${top}px; height:${h}px;"></div>`;
-                  }
+            let oobOverlay = "";
+            if (isEdit) {
+              if (a.availStart === null || a.availEnd === null) {
+                oobOverlay = `<div class="oob-overlay" style="top:0; height:${(ei - si) * SLOT_H}px;"></div>`;
+              } else {
+                const avSi = timeToIndex(a.availStart.toString(), isSat);
+                const avEi = timeToIndex(a.availEnd.toString(),   isSat);
+                if (si < avSi) {
+                  const h = Math.min(avSi - si, ei - si) * SLOT_H;
+                  oobOverlay += `<div class="oob-overlay" style="top:0; height:${h}px;"></div>`;
+                }
+                if (ei > avEi) {
+                  const top = Math.max(avEi - si, 0) * SLOT_H;
+                  const h   = (ei - Math.max(avEi, si)) * SLOT_H;
+                  oobOverlay += `<div class="oob-overlay" style="top:${top}px; height:${h}px;"></div>`;
                 }
               }
+            }
 
-              return `
+            return `
               <div class="timeline-worker-col">
                 <div class="timeline-grid-lines">${gridLines}</div>
                 <div class="worker-block ${isEdit ? "draggable" : ""}"
@@ -1437,15 +1878,10 @@
                   ${a.name}${oobOverlay}${resizable}${removable}
                 </div>
               </div>`;
-            })
-            .join("");
+          }).join("");
 
-          const addBtn = isEdit
-            ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>`
-            : "";
-          const dateStr = day.date
-            ? ` <span class="day-date">${day.date}</span>`
-            : "";
+          const addBtn = isEdit ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>` : "";
+          const dateStr = day.date ? ` <span class="day-date">${day.date}</span>` : "";
 
           html += `
             <div class="timeline-day">
@@ -1467,8 +1903,8 @@
         for (const day of scheduleData) {
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            const si = timeToIndex(a.start, isSat);
-            const ei = timeToIndex(a.end, isSat);
+            const si  = timeToIndex(a.start, isSat);
+            const ei  = timeToIndex(a.end,   isSat);
             totals[a.name] = (totals[a.name] || 0) + (ei - si) * 0.5;
           }
         }
@@ -1478,13 +1914,9 @@
           const rows = sorted.map(([name, hrs]) => {
             const color = getWorkerColor(name);
             const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
-            return '<div class="hours-row"><div class="hours-dot" style="background:' + color + '"></div>'
-              + '<span class="hours-name">' + name + '</span>'
-              + '<span class="hours-val">' + label + '</span></div>';
+            return `<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
           }).join("");
-          summaryHtml = '<div class="hours-summary edit-hours-summary">'
-            + '<h3 class="hours-summary-title">Hours This Week</h3>'
-            + '<div class="hours-summary-list">' + rows + '</div></div>';
+          summaryHtml = `<div class="hours-summary edit-hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`;
         }
         document.getElementById("edit-timeline").innerHTML = buildTimelineHTML(scheduleData, true) + summaryHtml;
         attachDragHandlers();
@@ -1492,7 +1924,7 @@
       }
 
       function updateOobBanner() {
-        const banner = document.getElementById("oob-banner");
+        const banner   = document.getElementById("oob-banner");
         const warnings = getOutOfBoundsWorkers();
         banner.style.display = warnings.length === 0 ? "none" : "block";
         if (warnings.length > 0)
@@ -1500,62 +1932,39 @@
       }
 
       function attachDragHandlers() {
-        document
-          .querySelectorAll(".worker-block.draggable")
-          .forEach((block) =>
-            block.addEventListener("mousedown", onBlockMouseDown),
-          );
-        document
-          .querySelectorAll(".resize-handle")
-          .forEach((handle) =>
-            handle.addEventListener("mousedown", onResizeMouseDown),
-          );
+        document.querySelectorAll(".worker-block.draggable").forEach((block) =>
+          block.addEventListener("mousedown", onBlockMouseDown));
+        document.querySelectorAll(".resize-handle").forEach((handle) =>
+          handle.addEventListener("mousedown", onResizeMouseDown));
       }
 
       function onBlockMouseDown(e) {
         if (e.target.classList.contains("resize-handle")) return;
-        if (e.target.classList.contains("remove-btn")) return;
-        e.preventDefault();
-        e.stopPropagation();
+        if (e.target.classList.contains("remove-btn"))   return;
+        e.preventDefault(); e.stopPropagation();
         const block = e.currentTarget;
         const di = parseInt(block.dataset.day);
         const ai = parseInt(block.dataset.ai);
-        dragState = {
-          type: "move",
-          block,
-          di,
-          ai,
-          startY: e.clientY,
-          startTop: parseInt(block.style.top),
-        };
+        dragState = { type: "move", block, di, ai, startY: e.clientY, startTop: parseInt(block.style.top) };
         document.addEventListener("mousemove", onDragMove);
         window.addEventListener("mouseup", cancelDrag);
       }
 
       function onResizeMouseDown(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const di = parseInt(e.currentTarget.dataset.day);
-        const ai = parseInt(e.currentTarget.dataset.ai);
+        e.preventDefault(); e.stopPropagation();
+        const di    = parseInt(e.currentTarget.dataset.day);
+        const ai    = parseInt(e.currentTarget.dataset.ai);
         const block = e.currentTarget.closest(".worker-block");
-        dragState = {
-          type: "resize",
-          block,
-          di,
-          ai,
-          startY: e.clientY,
-          startHeight: parseInt(block.style.height),
-        };
+        dragState = { type: "resize", block, di, ai, startY: e.clientY, startHeight: parseInt(block.style.height) };
         document.addEventListener("mousemove", onDragMove);
         window.addEventListener("mouseup", cancelDrag);
       }
 
       function onDragMove(e) {
         if (!dragState) return;
-        const isSat = scheduleData[dragState.di].day === "Saturday";
+        const isSat     = scheduleData[dragState.di].day === "Saturday";
         const totalSlots = slotList(isSat).length;
-        const dy = e.clientY - dragState.startY;
-
+        const dy         = e.clientY - dragState.startY;
         if (dragState.type === "move") {
           let newTop = Math.round((dragState.startTop + dy) / SLOT_H) * SLOT_H;
           const blockH = parseInt(dragState.block.style.height);
@@ -1573,15 +1982,15 @@
       function cancelDrag() {
         if (!dragState) return;
         const { di, ai, block } = dragState;
-        const isSat = scheduleData[di].day === "Saturday";
-        const top = parseInt(block.style.top);
+        const isSat  = scheduleData[di].day === "Saturday";
+        const top    = parseInt(block.style.top);
         const height = parseInt(block.style.height);
         const si = Math.round(top / SLOT_H);
         const ei = Math.round((top + height) / SLOT_H);
         scheduleData[di].assignments[ai].start = indexToTime(si, isSat);
-        scheduleData[di].assignments[ai].end = indexToTime(ei, isSat);
+        scheduleData[di].assignments[ai].end   = indexToTime(ei, isSat);
         document.removeEventListener("mousemove", onDragMove);
-        window.removeEventListener("mouseup", cancelDrag);
+        window.removeEventListener("mouseup",   cancelDrag);
         dragState = null;
         renderEditScreen();
         renderSchedule();
@@ -1598,32 +2007,23 @@
       // ── Add Shift Modal ────────────────────────────────────
       function openAddShiftModal(di) {
         addShiftTarget = di;
-        const day = scheduleData[di];
+        const day  = scheduleData[di];
         const isSat = day.day === "Saturday";
         const slots = slotList(isSat);
-
         document.getElementById("add-shift-day-name").textContent = day.day;
-
-        const assigned = new Set(day.assignments.map((a) => a.name));
+        const assigned  = new Set(day.assignments.map((a) => a.name));
         const available = workers.filter((w) => !assigned.has(w.name));
         document.getElementById("add-shift-worker").innerHTML =
           available.length === 0
             ? `<option value="">No employees available</option>`
-            : available
-                .map((w) => `<option value="${w.name}">${w.name}</option>`)
-                .join("");
-
-        // Include closing boundary so workers can start/end at 8 (or 2 on Saturday)
-        const boundary = isSat ? "2" : "8";
+            : available.map((w) => `<option value="${w.name}">${w.name}</option>`).join("");
+        const boundary  = isSat ? "2" : "8";
         const timePoints = [...slots, boundary];
         const toOpt = (s) => `<option value="${s}">${s}</option>`;
-        document.getElementById("add-shift-start").innerHTML = timePoints
-          .map(toOpt)
-          .join("");
+        document.getElementById("add-shift-start").innerHTML = timePoints.map(toOpt).join("");
         const endSel = document.getElementById("add-shift-end");
         endSel.innerHTML = timePoints.map(toOpt).join("");
         endSel.selectedIndex = Math.min(2, timePoints.length - 1);
-
         document.getElementById("add-shift-modal").classList.add("open");
       }
 
@@ -1633,54 +2033,35 @@
       }
 
       function confirmAddShift() {
-        const name = document.getElementById("add-shift-worker").value;
+        const name  = document.getElementById("add-shift-worker").value;
         if (!name) return alert("No employee selected.");
         const start = document.getElementById("add-shift-start").value;
-        const end = document.getElementById("add-shift-end").value;
-        const di = addShiftTarget;
+        const end   = document.getElementById("add-shift-end").value;
+        const di    = addShiftTarget;
         const isSat = scheduleData[di].day === "Saturday";
         if (timeToIndex(start, isSat) >= timeToIndex(end, isSat))
           return alert("End time must be after start time.");
-
         const worker = workers.find((w) => w.name === name);
-        const av = availability[name];
-        const avDay = av
-          ? av.find((x) => x.day === scheduleData[di].day.toLowerCase())
-          : null;
-
+        const av     = availability[name];
+        const avDay  = av ? av.find((x) => x.day === scheduleData[di].day.toLowerCase()) : null;
         closeAddShiftModal();
         scheduleData[di].assignments.push({
-          name,
-          start,
-          end,
-          priority: worker ? worker.priority : 0,
-          // null = no availability for this day — whole bar is OOB
+          name, start, end, priority: worker ? worker.priority : 0,
           availStart: avDay && avDay.selected ? avDay.start : null,
-          availEnd: avDay && avDay.selected ? avDay.end : null,
+          availEnd:   avDay && avDay.selected ? avDay.end   : null,
         });
-
-        setTimeout(() => {
-          renderEditScreen();
-          renderSchedule();
-        }, 0);
+        setTimeout(() => { renderEditScreen(); renderSchedule(); }, 0);
       }
 
-      document
-        .getElementById("add-shift-modal")
-        .addEventListener("click", function (e) {
-          if (e.target === this) closeAddShiftModal();
-        });
+      document.getElementById("add-shift-modal").addEventListener("click", function (e) {
+        if (e.target === this) closeAddShiftModal();
+      });
 
       // ── Clipboard ──────────────────────────────────────────
       function copyToClipboard() {
         const warnings = getOutOfBoundsWorkers();
         if (warnings.length > 0) {
-          if (
-            !confirm(
-              `⚠️ The following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`,
-            )
-          )
-            return;
+          if (!confirm(`⚠️ The following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`)) return;
         }
         navigator.clipboard.writeText(buildClipboardText()).then(() => {
           document.querySelectorAll("#copy-btn").forEach((btn) => {
@@ -1689,8 +2070,6 @@
           });
         });
       }
-
-      // continueWithoutCalendar removed
 
       // ── Google OAuth ────────────────────────────────────────
       let _oauthWin = null;
@@ -1703,7 +2082,6 @@
           const d = await r.json();
           if (d.error) throw new Error(d.error);
           _oauthWin = window.open(d.url, "_blank");
-          // If popup was blocked, redirect same tab
           if (!_oauthWin) window.location.href = d.url;
         } catch (e) {
           setAuthState("error", e.message);
@@ -1712,24 +2090,15 @@
 
       window.addEventListener("message", async (e) => {
         if (e.data?.type !== "oauth_success") return;
-        if (_oauthWin) {
-          try {
-            _oauthWin.close();
-          } catch (_) {}
-          _oauthWin = null;
-        }
+        if (_oauthWin) { try { _oauthWin.close(); } catch (_) {} _oauthWin = null; }
         const r = await fetch("/cal-status");
         const d = await r.json();
-        if (d.connected) {
-          setAuthState("success");
-          checkCalendarStatus();
-        } else {
-          setAuthState("error", "Token not saved — please try again.");
-        }
+        if (d.connected) { setAuthState("success"); checkCalendarStatus(); }
+        else { setAuthState("error", "Token not saved — please try again."); }
       });
 
       function setAuthState(state, msg) {
-        ["idle", "waiting", "success", "error"].forEach((s) => {
+        ["idle","waiting","success","error"].forEach((s) => {
           const el = document.getElementById("auth-state-" + s);
           if (el) el.style.display = s === state ? "block" : "none";
         });
@@ -1748,13 +2117,10 @@
       // ── Init ───────────────────────────────────────────────
       applyTheme();
       checkCalendarStatus();
-
-      // demo banner visibility on load — CSS handles show/hide via body.demo-active
       if (settings.demo) {
         document.body.classList.add("demo-active");
         activateDemo();
       }
-
       renderWorkers();
     </script>
   </body>
