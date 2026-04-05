@@ -124,8 +124,8 @@
         <div class="edit-timeline-wrap">
           <div id="edit-timeline"></div>
         </div>
+        <div id="hours-summary-edit" style="display:none;"></div>
       </div>
-      <div id="hours-summary-edit" style="display:none; padding: 0 24px 24px;"></div>
     </div>
 
     <!-- ── Screen: Google Calendar Connect ── -->
@@ -1491,10 +1491,30 @@
 
       // ── Edit Screen ────────────────────────────────────────
       function renderEditScreen() {
-        document.getElementById("edit-timeline").innerHTML = buildTimelineHTML(
-          scheduleData,
-          true,
-        );
+        const totals = {};
+        for (const day of scheduleData) {
+          const isSat = day.day === "Saturday";
+          for (const a of day.assignments) {
+            const si = timeToIndex(a.start, isSat);
+            const ei = timeToIndex(a.end, isSat);
+            totals[a.name] = (totals[a.name] || 0) + (ei - si) * 0.5;
+          }
+        }
+        const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+        let summaryHtml = "";
+        if (sorted.length > 0) {
+          const rows = sorted.map(([name, hrs]) => {
+            const color = getWorkerColor(name);
+            const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
+            return '<div class="hours-row"><div class="hours-dot" style="background:' + color + '"></div>'
+              + '<span class="hours-name">' + name + '</span>'
+              + '<span class="hours-val">' + label + '</span></div>';
+          }).join("");
+          summaryHtml = '<div class="hours-summary edit-hours-summary">'
+            + '<h3 class="hours-summary-title">Hours This Week</h3>'
+            + '<div class="hours-summary-list">' + rows + '</div></div>';
+        }
+        document.getElementById("edit-timeline").innerHTML = buildTimelineHTML(scheduleData, true) + summaryHtml;
         attachDragHandlers();
         updateOobBanner();
       }

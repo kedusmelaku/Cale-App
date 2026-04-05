@@ -1221,3 +1221,10 @@ body.dark {
   color: var(--text-mid);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Edit screen hours summary ── */
+.edit-hours-summary {
+  margin-top: 24px;
+  min-width: 300px;
+  max-width: 400px;
+}
