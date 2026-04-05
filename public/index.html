@@ -588,6 +588,8 @@
         checkCalendarStatus();
         document.getElementById("demo-toggle").checked = settings.demo;
         document.getElementById("settings-panel").classList.add("open");
+        async function openSettings() {
+}
       }
 
       function closeSettings() {
@@ -1219,8 +1221,10 @@
         const isSat = day.day === "Saturday";
 
         // Find student count for this slot from the last fetched event data
-        const students =
-          lastStudentData?.[day.day.toLowerCase()]?.[slotTime] ?? "—";
+        const dayKey = day.day.toLowerCase();
+        const students = lastStudentData
+          ? (lastStudentData[dayKey]?.[slotTime] ?? 0)
+          : "—";
         const isOneOnOne =
           lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
 
@@ -1369,18 +1373,19 @@
           // one extra label at the end for the closing boundary
           // N+1 boundary labels at i * SLOT_H, centered on each line via CSS translateY(-50%)
           const boundaries = [...slots, isSat ? "2" : "8"];
-          const slotLabels = boundaries
-            .map(
-              (s, i) =>
-                `<div class="timeline-line-label" style="top:${i * SLOT_H}px;">${s}</div>`,
-            )
+                    const slotLabels = boundaries
+            .map((s, i) => {
+              const isLast = i === boundaries.length - 1;
+              const slotKey = slots[i];
+              const handler = !isLast
+                ? `onmouseenter="showSlotTooltip(event,${di},'${slotKey}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`
+                : '';
+              return `<div class="timeline-line-label${!isLast ? ' tooltip-sensor' : ''}" style="top:${i * SLOT_H}px;" ${handler}>${s}</div>`;
+            })
             .join("");
-          const gridLines = slots
-            .map(() => `<div class="timeline-grid-line"></div>`)
+                    const gridLines = slots
+            .map(() => '<div class="timeline-grid-line"></div>')
             .join("");
-          const tooltipOverlay = `<div class="timeline-tooltip-overlay">${slots
-            .map((s) => `<div class="timeline-tooltip-row" onmouseenter="showSlotTooltip(event,${di},'${s}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"></div>`)
-            .join("")}</div>`;
           const totalSlots = slots.length;
 
           const workerCols = day.assignments
@@ -1442,7 +1447,7 @@
               <div class="timeline-day-header">${day.day}${dateStr}</div>
               <div class="timeline-body">
                 <div class="timeline-slots" style="height:${totalSlots * SLOT_H}px;">${slotLabels}</div>
-                <div class="timeline-workers" style="height:${totalSlots * SLOT_H}px;">${tooltipOverlay}${workerCols}</div>
+                <div class="timeline-workers" style="height:${totalSlots * SLOT_H}px;">${workerCols}</div>
               </div>
               ${addBtn}
             </div>`;

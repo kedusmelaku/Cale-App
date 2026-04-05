@@ -34,10 +34,12 @@ function parseEventTime(dateTimeStr) {
   }
 
   const days = [
+    "sunday",
     "monday",
     "tuesday",
     "wednesday",
     "thursday",
+    "friday",
     "saturday",
   ];
   return { day: days[localDate.getDay()], hour, minute };
