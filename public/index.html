@@ -299,28 +299,6 @@
               >
             </div>
           </div>
-          <div class="settings-row" style="margin-top: 14px">
-            <div>
-              <div class="settings-label">Calendar</div>
-              <div class="settings-sublabel">
-                Select which calendar has the student bookings
-              </div>
-            </div>
-            <select
-              id="calendar-select"
-              style="
-                font-size: 0.8rem;
-                padding: 6px 8px;
-                border: 1px solid var(--border);
-                border-radius: 6px;
-                background: var(--bg);
-                color: var(--text);
-              "
-              onchange="saveCalendarId(this.value)"
-            >
-              <option value="">Loading...</option>
-            </select>
-          </div>
         </div>
       </div>
     </div>
@@ -611,18 +589,6 @@
         document.getElementById("demo-toggle").checked = settings.demo;
         document.getElementById("settings-panel").classList.add("open");
         async function openSettings() {
-  // ... existing code ...
-  document.getElementById("calendar-select").innerHTML = "<option value=''>Loading...</option>";
-  try {
-    const res = await fetch("/calendars");
-    const data = await res.json();
-    document.getElementById("calendar-select").innerHTML = data.calendars
-      .map((c) => `<option value="${c.id}" ${settings.calendarId === c.id ? "selected" : ""}>${c.name}</option>`)
-      .join("");
-  } catch {
-    document.getElementById("calendar-select").innerHTML = "<option value=''>Unable to load</option>";
-  }
-  // ... rest of existing code ...
 }
       }
 

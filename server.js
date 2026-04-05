@@ -129,7 +129,7 @@ app.get("/events", async (req, res) => {
     const { getWeekEvents } = require("./calendar");
     const { studentData, oneOnOneData } = await getWeekEvents(
       new Date(monday + "T00:00:00"),
-      calendarId || "primary"
+      calendarId || "primary",
     );
     res.json({ studentData, oneOnOneData });
   } catch (err) {
@@ -199,22 +199,6 @@ app.post("/generate", (req, res) => {
   }));
 
   res.json({ schedule, text: "" });
-});
-
-app.get("/calendars", async (req, res) => {
-  try {
-    const { google } = require("googleapis");
-    const { getAuth } = require("./auth");
-    const calendar = google.calendar({ version: "v3", auth: getAuth() });
-    const response = await calendar.calendarList.list();
-    const calendars = response.data.items.map((c) => ({
-      id: c.id,
-      name: c.summary,
-    }));
-    res.json({ calendars });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 app.listen(3000, () => console.log("Server running on port 3000"));
