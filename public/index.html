@@ -685,7 +685,9 @@
         document.getElementById("hours-summary").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
+        _tutSwitchingScreen = true;
         showScreen("screen-workers");
+        _tutSwitchingScreen = false;
       }
 
       function buildDots() {
@@ -720,11 +722,13 @@
           const target = document.getElementById(step.screen);
           if (target) {
             // instant switch for tutorial (no animation jank)
+            _tutSwitchingScreen = true;
             document.querySelectorAll(".screen").forEach(s => {
               s.classList.remove("active");
               s.style.cssText = "";
             });
             target.classList.add("active");
+            _tutSwitchingScreen = false;
           }
         }
 
@@ -759,16 +763,14 @@
       }
 
       function positionTutCard(step) {
-        const card    = document.getElementById("tut-card");
-        const hole    = document.getElementById("tut-hole");
-        const dim     = document.getElementById("tut-dim");
-        const blocker = document.getElementById("tut-blocker");
+        const card = document.getElementById("tut-card");
+        const hole = document.getElementById("tut-hole");
+        const dim  = document.getElementById("tut-dim");
 
         if (!step.target || step.position === "center") {
-          // No highlight — center the card, full dim, blocker on
+          // No highlight — center the card, full dim
           hole.classList.remove("tut-hole-visible");
           dim.style.clipPath = "";
-          blocker.classList.add("tut-blocker-active");
           card.classList.add("tut-card-centered");
           card.style.top    = "";
           card.style.left   = "";
@@ -782,7 +784,6 @@
         if (!el) {
           hole.classList.remove("tut-hole-visible");
           dim.style.clipPath = "";
-          blocker.classList.add("tut-blocker-active");
           card.classList.add("tut-card-centered");
           card.style.top    = "";
           card.style.left   = "";
@@ -803,9 +804,6 @@
         hole.style.top    = hy + "px";
         hole.style.width  = hw + "px";
         hole.style.height = hh + "px";
-
-        // Blocker active — hole sits above it so clicks pass through to target
-        blocker.classList.add("tut-blocker-active");
 
         // Dim with cutout using clip-path polygon
         const vw = window.innerWidth;
@@ -865,7 +863,6 @@
       function hideTutHole() {
         document.getElementById("tut-hole").classList.remove("tut-hole-visible");
         document.getElementById("tut-dim").style.clipPath = "";
-        document.getElementById("tut-blocker").classList.remove("tut-blocker-active");
         document.getElementById("tut-card").classList.remove("tut-card-centered");
       }
 
@@ -886,6 +883,18 @@
         if (!tut.active) return;
         positionTutCard(TUTORIAL_STEPS[tut.step]);
       });
+
+      // Reposition when any scrollable container scrolls during tutorial
+      window.addEventListener("scroll", () => {
+        if (!tut.active) return;
+        positionTutCard(TUTORIAL_STEPS[tut.step]);
+      }, { passive: true });
+
+      // Also catch scroll inside the page-body / panel containers
+      document.addEventListener("scroll", (e) => {
+        if (!tut.active) return;
+        positionTutCard(TUTORIAL_STEPS[tut.step]);
+      }, { passive: true, capture: true });
 
 
       // ══════════════════════════════════════════════════════════════════
@@ -942,6 +951,8 @@
       function applyTheme() { document.body.classList.toggle("dark", settings.theme === "dark"); }
 
       function openSettings() {
+        // During tutorial, only allow settings to open when the tutorial explicitly opens it (step 22 onEnter)
+        if (tut.active && tutWaiting !== "settings-closed") return;
         document.getElementById("theme-light").classList.toggle("active", settings.theme === "light");
         document.getElementById("theme-dark").classList.toggle("active", settings.theme === "dark");
         document.getElementById("mode-simplified").classList.toggle("active", settings.mode === "simplified");
@@ -1019,7 +1030,9 @@
         document.getElementById("hours-summary-edit").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
+        _tutSwitchingScreen = true;
         showScreen("screen-workers");
+        _tutSwitchingScreen = false;
       }
 
       function deactivateDemo() {
@@ -1033,7 +1046,9 @@
         document.getElementById("hours-summary-edit").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
+        _tutSwitchingScreen = true;
         showScreen("screen-workers");
+        _tutSwitchingScreen = false;
       }
 
       // ── Helpers ────────────────────────────────────────────
@@ -1155,7 +1170,14 @@
       // ── Navigation ─────────────────────────────────────────
       const SCREEN_ORDER = ["screen-workers","screen-schedule","screen-edit","screen-auth"];
 
+      // Internal flag used by the tutorial to allow its own screen switches
+      let _tutSwitchingScreen = false;
+
       function showScreen(newId) {
+        // Block user-initiated screen changes during tutorial unless the tutorial
+        // itself is the one calling (flagged by _tutSwitchingScreen)
+        if (tut.active && !_tutSwitchingScreen) return;
+
         const current = document.querySelector(".screen.active");
         const next    = document.getElementById(newId);
         if (!current || current === next) return;
@@ -1259,6 +1281,7 @@
 
       // ── Add Employee Modal ─────────────────────────────────
       function openModal() {
+        if (tut.active) return; // disabled during tutorial
         document.getElementById("new-worker-name").value = "";
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
@@ -1889,6 +1912,7 @@
       }
 
       function goToAuth() {
+        if (tut.active) return;
         setAuthState("idle");
         document.getElementById("auth-back-btn").style.visibility = "hidden";
         showScreen("screen-auth");
