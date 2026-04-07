@@ -1228,3 +1228,232 @@ body.dark {
   min-width: 300px;
   max-width: 400px;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TUTORIAL SYSTEM
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Overlay container ── */
+#tut-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+
+#tut-overlay.active {
+  display: block;
+}
+
+/* ── Dim layer — covers everything, hole cut with clip-path ── */
+#tut-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.52);
+  pointer-events: none;
+  transition: clip-path 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Blocker — sits above dim, captures all pointer events ── */
+#tut-blocker {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* off by default */
+}
+
+#tut-blocker.tut-blocker-active {
+  pointer-events: all;
+}
+
+/* ── Hole — the cutout highlight, sits above blocker ── */
+#tut-hole {
+  display: none;
+  position: absolute;
+  border-radius: 10px;
+  pointer-events: all; /* passes clicks through to the target element */
+  box-shadow: 0 0 0 4px var(--accent), 0 0 0 7px rgba(42,95,173,0.25);
+  transition: left 0.35s cubic-bezier(0.4,0,0.2,1),
+              top 0.35s cubic-bezier(0.4,0,0.2,1),
+              width 0.35s cubic-bezier(0.4,0,0.2,1),
+              height 0.35s cubic-bezier(0.4,0,0.2,1);
+  z-index: 502;
+}
+
+#tut-hole.tut-hole-visible {
+  display: block;
+}
+
+/* Pulse ring */
+#tut-hole::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 14px;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: tut-pulse 1.8s ease-out infinite;
+}
+
+@keyframes tut-pulse {
+  0%   { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1.12); }
+}
+
+/* ── Step card ── */
+#tut-card {
+  position: absolute;
+  width: 320px;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 20px 22px 16px;
+  pointer-events: all;
+  transition: top 0.35s cubic-bezier(0.4,0,0.2,1),
+              left 0.35s cubic-bezier(0.4,0,0.2,1);
+  z-index: 503;
+}
+
+/* Centered variant for intro/outro steps */
+#tut-card.tut-card-centered {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.tut-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tut-step-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light);
+  border-radius: 99px;
+  padding: 2px 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tut-skip-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: "Noto Sans", sans-serif;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.tut-skip-btn:hover {
+  color: var(--text);
+}
+
+.tut-title {
+  font-family: "Noto Serif", serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.tut-body {
+  font-size: 0.84rem;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.tut-body strong {
+  color: var(--text);
+}
+
+/* Action hint — shown when waiting for user interaction */
+.tut-action-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.tut-action-hint::before {
+  content: "👆";
+  font-size: 0.85rem;
+}
+
+/* waiting state: hide next button, show hint */
+#tut-card.waiting .tut-next-btn    { display: none; }
+#tut-card.waiting .tut-action-hint { display: flex; }
+#tut-card:not(.waiting) .tut-action-hint { display: none; }
+
+.tut-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tut-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.tut-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--border-strong);
+  transition: background 0.2s, width 0.2s;
+}
+
+.tut-dot.done   { background: var(--accent); opacity: 0.4; }
+.tut-dot.active { background: var(--accent); width: 16px; }
+
+.tut-next-btn {
+  padding: 8px 18px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: "Noto Sans", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tut-next-btn:hover    { background: var(--accent-hover); }
+.tut-next-btn:disabled { background: var(--border-strong); color: var(--text-muted); cursor: default; }
+
+/* ── Start tutorial button on Employees screen ── */
+.btn-tutorial {
+  margin-top: 10px;
+  padding: 9px 20px;
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Noto Sans", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn-tutorial:hover { background: var(--accent-light); }

@@ -5,268 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Scheduler</title>
     <link rel="stylesheet" href="styles.css" />
-    <style>
-      /* ── Tutorial Overlay ── */
-      #tut-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 500;
-        pointer-events: none;
-      }
-      #tut-overlay.active { display: block; }
-
-      /* SVG spotlight mask — covers entire viewport, hole cut out over target */
-      #tut-svg {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-      }
-
-      /* Clickable blocker — stops interaction with everything except the target */
-      #tut-blocker {
-        position: absolute;
-        inset: 0;
-        pointer-events: all;
-      }
-
-      /* The target area is punched through — pointer events pass to it */
-      #tut-hole {
-        position: absolute;
-        border-radius: 10px;
-        pointer-events: none;
-        box-shadow: 0 0 0 4px var(--accent), 0 0 0 7px rgba(42,95,173,0.25);
-        transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
-        z-index: 502;
-      }
-
-      /* Pulse ring around the target */
-      #tut-hole::after {
-        content: "";
-        position: absolute;
-        inset: -6px;
-        border-radius: 14px;
-        border: 2px solid var(--accent);
-        opacity: 0;
-        animation: tut-pulse 1.8s ease-out infinite;
-      }
-
-      @keyframes tut-pulse {
-        0%   { opacity: 0.7; transform: scale(1); }
-        100% { opacity: 0;   transform: scale(1.12); }
-      }
-
-      /* Step card */
-      #tut-card {
-        position: absolute;
-        width: 320px;
-        background: var(--surface);
-        border: 1.5px solid var(--accent);
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-        padding: 20px 22px 16px;
-        pointer-events: all;
-        transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
-        z-index: 503;
-      }
-
-      .tut-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-      }
-
-      .tut-step-badge {
-        font-size: 0.68rem;
-        font-weight: 700;
-        color: var(--accent);
-        background: var(--accent-light);
-        border-radius: 99px;
-        padding: 2px 9px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-
-      .tut-skip-btn {
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        font-size: 0.75rem;
-        cursor: pointer;
-        font-family: "Noto Sans", sans-serif;
-        padding: 0;
-        transition: color 0.15s;
-      }
-      .tut-skip-btn:hover { color: var(--text); }
-
-      .tut-title {
-        font-family: "Noto Serif", serif;
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--text);
-        margin-bottom: 6px;
-      }
-
-      .tut-body {
-        font-size: 0.84rem;
-        color: var(--text-mid);
-        line-height: 1.6;
-        margin-bottom: 16px;
-      }
-
-      .tut-body strong { color: var(--text); }
-
-      .tut-action-hint {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 0.78rem;
-        color: var(--accent);
-        font-weight: 600;
-        margin-bottom: 14px;
-      }
-
-      .tut-action-hint::before {
-        content: "👆";
-        font-size: 0.85rem;
-      }
-
-      .tut-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      .tut-dots {
-        display: flex;
-        gap: 5px;
-        flex-wrap: wrap;
-        flex: 1;
-      }
-
-      .tut-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 99px;
-        background: var(--border-strong);
-        transition: background 0.2s, width 0.2s;
-      }
-      .tut-dot.done  { background: var(--accent); opacity: 0.4; }
-      .tut-dot.active { background: var(--accent); width: 16px; }
-
-      .tut-next-btn {
-        padding: 8px 18px;
-        background: var(--accent);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-family: "Noto Sans", sans-serif;
-        font-size: 0.82rem;
-        font-weight: 600;
-        transition: background 0.15s;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-      .tut-next-btn:hover { background: var(--accent-hover); }
-      .tut-next-btn:disabled {
-        background: var(--border-strong);
-        color: var(--text-muted);
-        cursor: default;
-      }
-
-      /* waiting-for-action state — next btn hidden, replaced by hint */
-      #tut-card.waiting .tut-next-btn { display: none; }
-      #tut-card.waiting .tut-action-hint { display: flex; }
-      #tut-card:not(.waiting) .tut-action-hint { display: none; }
-
-      /* Start tutorial button on screen 1 */
-      .btn-tutorial {
-        margin-top: 10px;
-        padding: 9px 20px;
-        background: transparent;
-        color: var(--accent);
-        border: 1.5px solid var(--accent);
-        border-radius: var(--radius);
-        cursor: pointer;
-        font-family: "Noto Sans", sans-serif;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.15s;
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .btn-tutorial:hover { background: var(--accent-light); }
-
-      /* dim overlay — semi-transparent except where hole is */
-      #tut-dim {
-        position: absolute;
-        inset: 0;
-        background: rgba(0,0,0,0.52);
-        pointer-events: none;
-        /* the hole is cut using clip-path updated by JS */
-        transition: clip-path 0.35s cubic-bezier(0.4,0,0.2,1);
-      }
-
-      /* Completed screen */
-      #tut-done-modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 600;
-        background: rgba(0,0,0,0.45);
-        justify-content: center;
-        align-items: center;
-      }
-      #tut-done-modal.open { display: flex; }
-
-      .tut-done-card {
-        background: var(--surface);
-        border: 1.5px solid var(--border);
-        border-radius: 14px;
-        padding: 36px 40px;
-        width: 380px;
-        text-align: center;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.2);
-      }
-
-      .tut-done-icon { font-size: 2.4rem; margin-bottom: 14px; }
-
-      .tut-done-title {
-        font-family: "Noto Serif", serif;
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: var(--text);
-        margin-bottom: 10px;
-      }
-
-      .tut-done-body {
-        font-size: 0.85rem;
-        color: var(--text-mid);
-        line-height: 1.7;
-        margin-bottom: 24px;
-      }
-
-      .tut-done-btn {
-        width: 100%;
-        padding: 12px;
-        background: var(--accent);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-family: "Noto Sans", sans-serif;
-        font-size: 0.9rem;
-        font-weight: 600;
-        transition: background 0.15s;
-      }
-      .tut-done-btn:hover { background: var(--accent-hover); }
-    </style>
+    <!-- Tutorial styles are in styles.css -->
   </head>
   <body>
     <!-- Demo banner -->
@@ -584,6 +323,7 @@
     <!-- ── Tutorial Overlay ── -->
     <div id="tut-overlay">
       <div id="tut-dim"></div>
+      <div id="tut-blocker"></div>
       <div id="tut-hole"></div>
       <div id="tut-card">
         <div class="tut-card-header">
@@ -600,17 +340,7 @@
       </div>
     </div>
 
-    <!-- ── Tutorial Done Modal ── -->
-    <div id="tut-done-modal">
-      <div class="tut-done-card">
-        <div class="tut-done-icon">🎉</div>
-        <div class="tut-done-title">You're all set!</div>
-        <div class="tut-done-body">
-          That's everything the scheduler can do. Your demo data will be cleared — head back to the Employees screen to build your real team.
-        </div>
-        <button class="tut-done-btn" onclick="finishTutorial()">Start using Scheduler →</button>
-      </div>
-    </div>
+    <!-- Tutorial done modal removed — Finish → button ends the tutorial -->
 
     <script>
       // ══════════════════════════════════════════════════════════════════
@@ -662,7 +392,7 @@
           screen: "screen-workers",
           target: ".wcard:first-child",
           title: "Priority Levels",
-          body: "<strong>Normal</strong> — high schoolers or people with limited hours.<br><strong>Priority</strong> — adults with moderate availability.<br><strong>High Priority</strong> — adults who are usually fully available.<br><br>Higher priority workers are assigned shifts first.",
+          body: "<strong>Normal</strong> — high schoolers or people with limited hours.<br><strong>Priority</strong> — adults with moderate availability.<br><strong>High Priority</strong> — adults who are usually fully available.<br><br>Higher priority employees are assigned shifts first.",
           position: "right",
         },
         // ── 3: Edit employee ────────────────────────────────────────────
@@ -735,7 +465,7 @@
           screen: "screen-schedule",
           target: "#btn-generate",
           title: "Generate the Schedule",
-          body: "Once availability is set and a date is chosen, click <strong>Generate Schedule</strong>. The algorithm assigns shifts based on student counts and worker priority.<br><br>You can change the scheduling mode (Normal vs Ultra-efficient) in <strong>Settings ⚙</strong>.",
+          body: "Once availability is set and a date is chosen, click <strong>Generate Schedule</strong>. The algorithm assigns shifts based on student counts and employee priority.<br><br>You can change the scheduling mode (Normal vs Ultra-efficient) in <strong>Settings ⚙</strong>.",
           hint: "Click Generate Schedule to continue",
           waitForAction: true,
           position: "bottom",
@@ -816,21 +546,20 @@
           body: "Use the <strong>+ Add Employee</strong> button under any day column to manually assign someone to that day with a custom start and end time.",
           position: "top",
         },
-        // ── 20: OOB warning ──────────────────────────────────────────────
+        // ── 20: OOB hatched overlay ──────────────────────────────────────
         {
           screen: "screen-edit",
-          target: "#oob-banner",
-          title: "Out-of-Bounds Warning",
-          body: "If you drag a shift outside an employee's stated availability, a <strong>hatched overlay</strong> appears on the bar and this banner lists the affected employees — so you always know before copying.",
-          position: "bottom",
+          target: ".oob-overlay",
+          title: "Out-of-Bounds Indicator",
+          body: "When a shift extends outside an employee's stated availability, a <strong>hatched pattern</strong> appears over the out-of-bounds portion of the bar — so you can see the problem at a glance.",
+          position: "right",
           onEnter: () => {
-            // Force an OOB situation so the banner is visible
+            // Force an OOB situation so the overlay is visible
             if (scheduleData.length > 0) {
               const day = scheduleData[0];
               const isSat = day.day === "Saturday";
               if (day.assignments.length > 0) {
                 const a = day.assignments[0];
-                // save original so we can restore
                 tut._savedAssignment = { di: 0, ai: 0, start: a.start, end: a.end, availStart: a.availStart, availEnd: a.availEnd };
                 a.start = isSat ? "10" : "3";
                 a.availStart = isSat ? 11 : 4;
@@ -839,37 +568,66 @@
             }
           },
         },
-        // ── 21: Settings ─────────────────────────────────────────────────
+        // ── 21: OOB banner ───────────────────────────────────────────────
         {
           screen: "screen-edit",
-          target: "header .btn-gear",
+          target: "#oob-banner",
+          title: "Out-of-Bounds Warning Banner",
+          body: "A warning banner also appears at the top of the screen listing every employee who is currently scheduled outside their availability — so you always know before copying or finishing.",
+          position: "bottom",
+        },
+        // ── 22: Settings — open panel ────────────────────────────────────
+        {
+          screen: "screen-edit",
+          target: ".settings-modal",
           title: "Settings",
-          body: "The <strong>⚙ gear icon</strong> opens Settings from any screen. Here you can switch the <strong>theme</strong> (light/dark), change the <strong>scheduling mode</strong>, and check your <strong>Google Calendar</strong> connection.",
-          position: "bottom",
+          body: "The <strong>⚙ gear icon</strong> in the header opens Settings from any screen. You can switch between <strong>light and dark</strong> theme here, and choose between <strong>Normal</strong> and <strong>Ultra-efficient</strong> scheduling modes.",
+          position: "left",
+          onEnter: () => {
+            // Restore saved OOB before opening settings
+            if (tut._savedAssignment) {
+              const { di, ai, start, end, availStart, availEnd } = tut._savedAssignment;
+              if (scheduleData[di] && scheduleData[di].assignments[ai]) {
+                scheduleData[di].assignments[ai].start = start;
+                scheduleData[di].assignments[ai].end = end;
+                scheduleData[di].assignments[ai].availStart = availStart;
+                scheduleData[di].assignments[ai].availEnd = availEnd;
+              }
+              tut._savedAssignment = null;
+              renderEditScreen();
+            }
+            openSettings();
+          },
         },
-        // ── 22: Demo mode ────────────────────────────────────────────────
+        // ── 23: Demo mode row ────────────────────────────────────────────
         {
           screen: "screen-edit",
-          target: "header .btn-gear",
+          target: "#demo-toggle",
           title: "Demo Mode",
-          body: "Settings also has a <strong>Demo Mode</strong> toggle. It loads a premade team with fake data so anyone can try the app without touching real schedules — just like what we did for this tutorial.",
-          position: "bottom",
+          body: "The <strong>Demo Mode</strong> toggle loads a premade team with fake data so anyone can try the app without touching real schedules — just like what we did for this tutorial.",
+          position: "left",
         },
-        // ── 23: Google Calendar ──────────────────────────────────────────
+        // ── 24: Google Calendar row ──────────────────────────────────────
         {
           screen: "screen-edit",
-          target: "header .btn-gear",
+          target: "#cal-status-wrap",
           title: "Google Calendar Integration",
-          body: "Under <strong>Google Calendar</strong> in Settings you can see if the app is connected. When connected, student booking counts are read directly from your calendar — no manual entry needed.",
-          position: "bottom",
+          body: "This shows whether the app is connected to Google Calendar. When connected, student booking counts are read directly from your calendar — no manual entry needed.",
+          hint: "Close Settings to continue",
+          waitForAction: true,
+          position: "left",
+          onEnter: () => { tutWaiting = "settings-closed"; },
         },
-        // ── 24: Done ─────────────────────────────────────────────────────
+        // ── 25: Finish — click the real button ───────────────────────────
         {
           screen: "screen-edit",
-          target: null,
-          title: "That's everything!",
-          body: "You've seen all the features. Close this tutorial and start building your real schedule.",
-          position: "center",
+          target: "#screen-edit header .btn-primary",
+          title: "That's Everything!",
+          body: "You've seen every feature. Click <strong>Finish →</strong> to wrap up and head back to the Employees screen — where you can build your real schedule.",
+          hint: "Click Finish → to complete the tutorial",
+          waitForAction: true,
+          position: "bottom",
+          onEnter: () => { tutWaiting = "finish-clicked"; },
         },
       ];
 
@@ -895,6 +653,8 @@
         tutWaiting = null;
         document.getElementById("tut-overlay").classList.remove("active");
         hideTutHole();
+        // close settings panel if open
+        document.getElementById("settings-panel").classList.remove("open");
         // restore saved OOB change if needed
         if (tut._savedAssignment) {
           const { di, ai, start, end, availStart, availEnd } = tut._savedAssignment;
@@ -915,9 +675,16 @@
         }
       }
 
-      function finishTutorial() {
-        document.getElementById("tut-done-modal").classList.remove("open");
+      // Called when the user clicks Finish → on the last tutorial step
+      function completeTutorial() {
         endTutorial();
+        // Reset schedule state and go back to employees screen
+        scheduleData = [];
+        document.getElementById("empty-state").style.display = "block";
+        document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("hours-summary").style.display = "none";
+        document.getElementById("copy-btn").disabled = true;
+        document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
       }
 
@@ -938,10 +705,8 @@
 
       function showTutStep(idx) {
         if (idx >= TUTORIAL_STEPS.length) {
-          // Done
-          document.getElementById("tut-overlay").classList.remove("active");
-          hideTutHole();
-          document.getElementById("tut-done-modal").classList.add("open");
+          // All steps done — Finish button was the trigger, clean up
+          completeTutorial();
           return;
         }
         tut.step = idx;
@@ -994,50 +759,58 @@
       }
 
       function positionTutCard(step) {
-        const card = document.getElementById("tut-card");
-        const hole = document.getElementById("tut-hole");
-        const dim  = document.getElementById("tut-dim");
+        const card    = document.getElementById("tut-card");
+        const hole    = document.getElementById("tut-hole");
+        const dim     = document.getElementById("tut-dim");
+        const blocker = document.getElementById("tut-blocker");
 
         if (!step.target || step.position === "center") {
-          // No highlight — center the card, no dim cutout
-          hole.style.display = "none";
-          dim.style.clipPath = "none";
-          dim.style.background = "rgba(0,0,0,0.52)";
-          card.style.top  = "50%";
-          card.style.left = "50%";
-          card.style.transform = "translate(-50%, -50%)";
+          // No highlight — center the card, full dim, blocker on
+          hole.classList.remove("tut-hole-visible");
+          dim.style.clipPath = "";
+          blocker.classList.add("tut-blocker-active");
+          card.classList.add("tut-card-centered");
+          card.style.top    = "";
+          card.style.left   = "";
+          card.style.transform = "";
           return;
         }
+
+        card.classList.remove("tut-card-centered");
 
         const el = document.querySelector(step.target);
         if (!el) {
-          // target not found — center
-          hole.style.display = "none";
-          dim.style.clipPath = "none";
-          card.style.top  = "50%";
-          card.style.left = "50%";
-          card.style.transform = "translate(-50%, -50%)";
+          hole.classList.remove("tut-hole-visible");
+          dim.style.clipPath = "";
+          blocker.classList.add("tut-blocker-active");
+          card.classList.add("tut-card-centered");
+          card.style.top    = "";
+          card.style.left   = "";
+          card.style.transform = "";
           return;
         }
 
-        const r = el.getBoundingClientRect();
+        const r   = el.getBoundingClientRect();
         const pad = 8;
-        const hx = r.left - pad;
-        const hy = r.top - pad;
-        const hw = r.width + pad * 2;
-        const hh = r.height + pad * 2;
+        const hx  = r.left - pad;
+        const hy  = r.top  - pad;
+        const hw  = r.width  + pad * 2;
+        const hh  = r.height + pad * 2;
 
         // Position highlight hole
-        hole.style.display = "block";
+        hole.classList.add("tut-hole-visible");
         hole.style.left   = hx + "px";
         hole.style.top    = hy + "px";
         hole.style.width  = hw + "px";
         hole.style.height = hh + "px";
 
-        // Dim with cutout using clip-path polygon (invert cutout trick)
+        // Blocker active — hole sits above it so clicks pass through to target
+        blocker.classList.add("tut-blocker-active");
+
+        // Dim with cutout using clip-path polygon
         const vw = window.innerWidth;
         const vh = window.innerHeight;
-        const r2 = 10; // border-radius approx
+        const r2 = 10;
         dim.style.clipPath = `polygon(
           0 0, ${vw}px 0, ${vw}px ${vh}px, 0 ${vh}px, 0 0,
           ${hx + r2}px ${hy}px,
@@ -1052,20 +825,18 @@
         )`;
 
         // Position card
-        const cw = 320 + 44; // card width + padding
-        const ch = 200; // approx card height
+        const cw     = 364;
+        const ch     = 220;
         const margin = 16;
         let top, left;
         card.style.transform = "";
 
         const pref = step.position || "auto";
-
-        // Try preferred, fall back automatically
         const fits = {
-          right:  r.right + margin + cw < vw,
-          left:   r.left - margin - cw > 0,
+          right:  r.right  + margin + cw < vw,
+          left:   r.left   - margin - cw > 0,
           bottom: r.bottom + margin + ch < vh,
-          top:    r.top - margin - ch > 0,
+          top:    r.top    - margin - ch > 0,
         };
 
         let pos = pref;
@@ -1077,24 +848,25 @@
           left = r.right + margin;
           top  = Math.max(8, Math.min(r.top, vh - ch - 8));
         } else if (pos === "left") {
-          left = r.left - margin - (cw - 44);
+          left = r.left - margin - cw;
           top  = Math.max(8, Math.min(r.top, vh - ch - 8));
         } else if (pos === "bottom") {
           top  = r.bottom + margin;
-          left = Math.max(8, Math.min(r.left, vw - cw));
+          left = Math.max(8, Math.min(r.left, vw - cw - 8));
         } else {
           top  = r.top - margin - ch;
-          left = Math.max(8, Math.min(r.left, vw - cw));
+          left = Math.max(8, Math.min(r.left, vw - cw - 8));
         }
 
-        card.style.top  = top + "px";
+        card.style.top  = top  + "px";
         card.style.left = left + "px";
       }
 
       function hideTutHole() {
-        document.getElementById("tut-hole").style.display = "none";
-        document.getElementById("tut-dim").style.clipPath = "none";
-        document.getElementById("tut-dim").style.background = "transparent";
+        document.getElementById("tut-hole").classList.remove("tut-hole-visible");
+        document.getElementById("tut-dim").style.clipPath = "";
+        document.getElementById("tut-blocker").classList.remove("tut-blocker-active");
+        document.getElementById("tut-card").classList.remove("tut-card-centered");
       }
 
       function tutNext() {
@@ -1180,7 +952,10 @@
         document.getElementById("settings-panel").classList.add("open");
       }
 
-      function closeSettings() { document.getElementById("settings-panel").classList.remove("open"); }
+      function closeSettings() {
+        document.getElementById("settings-panel").classList.remove("open");
+        tutAdvance("settings-closed");
+      }
 
       function setTheme(val) {
         settings.theme = val;
@@ -1426,6 +1201,11 @@
       }
 
       function finishEdit() {
+        // If tutorial is waiting for this action, let the tutorial handle teardown
+        if (tut.active && tutWaiting === "finish-clicked") {
+          tutAdvance("finish-clicked");
+          return;
+        }
         const warnings = getOutOfBoundsWorkers();
         const warnText = warnings.length > 0
           ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
