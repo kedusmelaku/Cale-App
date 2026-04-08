@@ -1251,14 +1251,12 @@ body.dark {
   position: absolute;
   inset: 0;
   background: rgba(0,0,0,0.52);
-  pointer-events: all; /* blocks clicks on dimmed area; hole element is above this */
+  pointer-events: none;
   transition: clip-path 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* ── Blocker — removed; navigation/modal blocking is done at the function level ── */
-#tut-blocker {
-  display: none;
-}
+/* ── Blocker removed ── */
+#tut-blocker { display: none; }
 
 /* ── Hole — the cutout highlight, sits above blocker ── */
 #tut-hole {

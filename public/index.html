@@ -673,6 +673,7 @@
           document.body.classList.remove("demo-active");
           deactivateDemo();
         }
+        tutRestoreNavButtons();
       }
 
       // Called when the user clicks Finish → on the last tutorial step
@@ -685,9 +686,7 @@
         document.getElementById("hours-summary").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
-        _tutSwitchingScreen = true;
         showScreen("screen-workers");
-        _tutSwitchingScreen = false;
       }
 
       function buildDots() {
@@ -722,13 +721,11 @@
           const target = document.getElementById(step.screen);
           if (target) {
             // instant switch for tutorial (no animation jank)
-            _tutSwitchingScreen = true;
             document.querySelectorAll(".screen").forEach(s => {
               s.classList.remove("active");
               s.style.cssText = "";
             });
             target.classList.add("active");
-            _tutSwitchingScreen = false;
           }
         }
 
@@ -740,6 +737,7 @@
           positionTutCard(step);
           updateDots(idx);
           updateTutCard(step, idx);
+          tutUpdateNavButtons(idx);
         }, 120);
       }
 
@@ -860,6 +858,38 @@
         card.style.left = left + "px";
       }
 
+      // Enable/disable screen-switch nav buttons based on the current tutorial step.
+      // Only the button the step explicitly requires is enabled; all others are disabled.
+      const TUT_NAV_SELECTORS = [
+        // [selector, stepIndex that needs it]
+        ["#screen-workers header .btn-primary",      6],  // Build Schedule → (step 6)
+        ["#screen-schedule #edit-btn",               15], // Edit Schedule (step 15)
+        ["#screen-edit header .btn-primary",         25], // Finish → (step 25)
+        ["#screen-schedule header .btn-back",        null], // ← Employees — never needed
+        ["#screen-edit header .btn-back",            null], // ← Schedule — never needed
+        ["#screen-auth header .btn-back",            null], // never reached in tutorial
+      ];
+
+      function tutUpdateNavButtons(stepIdx) {
+        TUT_NAV_SELECTORS.forEach(([sel, neededAt]) => {
+          const el = document.querySelector(sel);
+          if (!el) return;
+          el.disabled = tut.active ? (neededAt !== stepIdx) : false;
+        });
+      }
+
+      function tutRestoreNavButtons() {
+        TUT_NAV_SELECTORS.forEach(([sel]) => {
+          const el = document.querySelector(sel);
+          if (el) el.disabled = false;
+        });
+        // Re-apply normal disabled state for buttons that depend on scheduleData
+        const copyBtn = document.getElementById("copy-btn");
+        const editBtn = document.getElementById("edit-btn");
+        if (copyBtn) copyBtn.disabled = scheduleData.length === 0;
+        if (editBtn) editBtn.disabled = scheduleData.length === 0;
+      }
+
       function hideTutHole() {
         document.getElementById("tut-hole").classList.remove("tut-hole-visible");
         document.getElementById("tut-dim").style.clipPath = "";
@@ -951,8 +981,6 @@
       function applyTheme() { document.body.classList.toggle("dark", settings.theme === "dark"); }
 
       function openSettings() {
-        // During tutorial, only allow settings to open when the tutorial explicitly opens it (step 22 onEnter)
-        if (tut.active && tutWaiting !== "settings-closed") return;
         document.getElementById("theme-light").classList.toggle("active", settings.theme === "light");
         document.getElementById("theme-dark").classList.toggle("active", settings.theme === "dark");
         document.getElementById("mode-simplified").classList.toggle("active", settings.mode === "simplified");
@@ -1030,9 +1058,7 @@
         document.getElementById("hours-summary-edit").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
-        _tutSwitchingScreen = true;
         showScreen("screen-workers");
-        _tutSwitchingScreen = false;
       }
 
       function deactivateDemo() {
@@ -1046,9 +1072,7 @@
         document.getElementById("hours-summary-edit").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
-        _tutSwitchingScreen = true;
         showScreen("screen-workers");
-        _tutSwitchingScreen = false;
       }
 
       // ── Helpers ────────────────────────────────────────────
@@ -1170,14 +1194,7 @@
       // ── Navigation ─────────────────────────────────────────
       const SCREEN_ORDER = ["screen-workers","screen-schedule","screen-edit","screen-auth"];
 
-      // Internal flag used by the tutorial to allow its own screen switches
-      let _tutSwitchingScreen = false;
-
       function showScreen(newId) {
-        // Block user-initiated screen changes during tutorial unless the tutorial
-        // itself is the one calling (flagged by _tutSwitchingScreen)
-        if (tut.active && !_tutSwitchingScreen) return;
-
         const current = document.querySelector(".screen.active");
         const next    = document.getElementById(newId);
         if (!current || current === next) return;
@@ -1281,7 +1298,6 @@
 
       // ── Add Employee Modal ─────────────────────────────────
       function openModal() {
-        if (tut.active) return; // disabled during tutorial
         document.getElementById("new-worker-name").value = "";
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
@@ -1912,7 +1928,6 @@
       }
 
       function goToAuth() {
-        if (tut.active) return;
         setAuthState("idle");
         document.getElementById("auth-back-btn").style.visibility = "hidden";
         showScreen("screen-auth");
