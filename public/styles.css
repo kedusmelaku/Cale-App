@@ -1255,8 +1255,10 @@ body.dark {
   transition: clip-path 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* ── Blocker removed ── */
-#tut-blocker { display: none; }
+/* Modal lifted above tutorial dim when it needs interaction during tutorial */
+.tut-modal-active {
+  z-index: 510 !important;
+}
 
 /* ── Hole — the cutout highlight, sits above blocker ── */
 #tut-hole {
