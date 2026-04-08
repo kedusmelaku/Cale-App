@@ -676,14 +676,6 @@
       // Called when the user clicks Finish → on the last tutorial step
       function completeTutorial() {
         endTutorial();
-        // Reset schedule state and go back to employees screen
-        scheduleData = [];
-        document.getElementById("empty-state").style.display = "block";
-        document.getElementById("schedule-output").style.display = "none";
-        document.getElementById("hours-summary").style.display = "none";
-        document.getElementById("copy-btn").disabled = true;
-        document.getElementById("edit-btn").disabled = true;
-        showScreen("screen-workers");
       }
 
       function buildDots() {
