@@ -14,6 +14,12 @@
       <button onclick="exitDemo()">Exit Demo</button>
     </div>
 
+    <!-- Calendar disconnected warning banner -->
+    <div id="cal-warning-banner">
+      <span>⚠ Google Calendar is not connected — student data unavailable</span>
+      <button onclick="reconnectCalendarBanner()">Connect Now</button>
+    </div>
+
     <!-- ── Screen 1: Employees ── -->
     <div id="screen-workers" class="screen active">
       <header>
@@ -77,7 +83,12 @@
         </div>
         <div class="output-panel">
           <div class="output-panel-header">
-            <h2 class="panel-title">Schedule</h2>
+            <h2 class="panel-title">Schedule
+              <span class="schedule-cal-status" id="schedule-cal-status">
+                <span id="schedule-cal-dot" class="cal-status-dot"></span>
+                <span id="schedule-cal-text" class="schedule-cal-text">Checking…</span>
+              </span>
+            </h2>
             <div class="output-controls">
               <div class="date-field">
                 <label class="date-label">Week of (Monday)</label>
@@ -936,6 +947,7 @@
         document.body.classList.toggle("demo-active", checked);
         if (checked) activateDemo();
         else deactivateDemo();
+        updateCalWarningBanner();
       }
 
       function exitDemo() {
@@ -944,6 +956,7 @@
         document.getElementById("demo-toggle").checked = false;
         document.body.classList.remove("demo-active");
         deactivateDemo();
+        updateCalWarningBanner();
       }
 
       document.getElementById("settings-panel").addEventListener("click", function (e) {
@@ -1384,6 +1397,8 @@
       }
 
       // ── Calendar connection status ──────────────────────────
+      let _calConnected = null; // cached state for banner visibility
+
       async function checkCalendarStatus() {
         const dot  = document.getElementById("cal-status-dot");
         const text = document.getElementById("cal-status-text");
@@ -1396,19 +1411,47 @@
             dot.className  = "cal-status-dot connected";
             text.textContent = "Connected";
             link.style.display = "none";
+            _calConnected = true;
           } else {
             dot.className  = "cal-status-dot disconnected";
             text.textContent = "Not connected";
             link.style.display = "inline";
+            _calConnected = false;
           }
         } catch (e) {
           dot.className  = "cal-status-dot unknown";
           text.textContent = "Unable to reach server";
           link.style.display = "none";
+          _calConnected = null;
+        }
+        updateScheduleCalStatus();
+        updateCalWarningBanner();
+      }
+
+      function updateScheduleCalStatus() {
+        const dot  = document.getElementById("schedule-cal-dot");
+        const text = document.getElementById("schedule-cal-text");
+        if (!dot || !text) return;
+        if (_calConnected === true) {
+          dot.className = "cal-status-dot connected";
+          text.textContent = "Connected";
+        } else if (_calConnected === false) {
+          dot.className = "cal-status-dot disconnected";
+          text.textContent = "Not connected";
+        } else {
+          dot.className = "cal-status-dot unknown";
+          text.textContent = "Checking…";
         }
       }
 
+      function updateCalWarningBanner() {
+        // Show warning banner only when disconnected AND not in demo mode
+        const show = (_calConnected === false) && !settings.demo;
+        document.body.classList.toggle("cal-warning-active", show);
+      }
+
       function reconnectCalendar(e) { e.preventDefault(); goToAuth(); closeSettings(); }
+      function reconnectCalendarBanner() { goToAuth(); }
 
       // ── Slot tooltips ───────────────────────────────────────
       const slotTooltip = document.createElement("div");

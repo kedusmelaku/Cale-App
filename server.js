@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, "public")));
 //   3. User approves → Google redirects to GET /oauth/callback?code=...
 //   4. Server exchanges code for tokens, stores them on the auth client
 //   5. Callback page posts "oauth_success" to the opener window
-//   6. App shows success, prompts user to save token to Render env var
+//   6. App shows success, prompts user to save token to Vercel env var
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.get("/oauth/start", (req, res) => {
@@ -51,7 +51,7 @@ app.get("/oauth/callback", async (req, res) => {
 
     const tokenJson = JSON.stringify(tokens);
 
-    // Show a simple page — tells user to copy the token to Render, then close tab
+    // Show a simple page — tells user to copy the token to Vercel, then close tab
     res.send(`<!doctype html><html><head><title>Connected</title>
 <style>
   body{font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto;background:#f5f5f2;}
@@ -63,10 +63,10 @@ app.get("/oauth/callback", async (req, res) => {
 <h2>✅ Google Calendar connected!</h2>
 <p>The scheduler is connected and working. Close this tab and return to the app.</p>
 <hr>
-<h3>Save this token to Render (one-time setup)</h3>
+<h3>Save this token to Vercel (one-time setup)</h3>
 <p>This connection only lasts until the server restarts. To make it permanent:</p>
 <ol>
-  <li>Go to <strong>render.com</strong> → your service → <strong>Environment</strong></li>
+  <li>Go to <strong>vercel.com</strong> → your service → <strong>Environment</strong></li>
   <li>Find <code>GOOGLE_TOKEN</code> and replace its value with the text below</li>
   <li>Click <strong>Save Changes</strong> — no redeploy needed</li>
 </ol>

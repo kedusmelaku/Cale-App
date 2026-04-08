@@ -80,7 +80,66 @@ body.demo-active #demo-banner {
   color: #333; 
 }
 
-/* ── Screens ── */
+/* ── Cal Warning Banner ── */
+#cal-warning-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 199; /* just below demo banner */
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  color: #856404;
+  padding: 0 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  /* hidden by default */
+  transform: translateY(-100%);
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+
+body.cal-warning-active #cal-warning-banner {
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+/* when demo banner is also showing, push cal banner below it */
+body.demo-active.cal-warning-active #cal-warning-banner {
+  transform: translateY(34px);
+}
+
+#cal-warning-banner button {
+  background: none;
+  border: 1px solid #856404;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: "Noto Sans", sans-serif;
+}
+
+#cal-warning-banner button:hover {
+  background: #ffc107;
+  color: #333;
+}
+
+/* push screen content down when cal warning banner is visible (without demo) */
+body.cal-warning-active:not(.demo-active) .screen {
+  padding-top: 34px;
+}
+
+/* push screen content down when BOTH banners are visible */
+body.cal-warning-active.demo-active .screen {
+  padding-top: 68px;
+}
+
+ */
 .screen {
   display: none;
   min-height: 100vh;
@@ -1035,7 +1094,30 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .cal-reconnect-link:hover { color: var(--accent-hover); }
 
-/* ── Stale schedule banner ── */
+/* ── Schedule panel calendar status (inline next to "Schedule" heading) ── */
+.schedule-cal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  vertical-align: middle;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 9px 2px 7px;
+  position: relative;
+  top: -1px;
+}
+
+.schedule-cal-text {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-family: "Noto Sans", sans-serif;
+  white-space: nowrap;
+}
+
+ */
 .stale-banner {
   display: flex;
   align-items: center;
