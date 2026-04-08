@@ -323,8 +323,6 @@
     <!-- ── Tutorial Overlay ── -->
     <div id="tut-overlay">
       <div id="tut-dim"></div>
-      <div id="tut-blocker"></div>
-      <div id="tut-hole"></div>
       <div id="tut-card">
         <div class="tut-card-header">
           <span class="tut-step-badge" id="tut-badge">Step 1</span>
@@ -653,8 +651,6 @@
         tutWaiting = null;
         document.getElementById("tut-overlay").classList.remove("active");
         hideTutHole();
-        // remove modal lift classes
-        document.querySelectorAll(".tut-modal-active").forEach(el => el.classList.remove("tut-modal-active"));
         // close settings panel if open
         document.getElementById("settings-panel").classList.remove("open");
         // restore saved OOB change if needed
@@ -675,7 +671,6 @@
           document.body.classList.remove("demo-active");
           deactivateDemo();
         }
-        tutRestoreNavButtons();
       }
 
       // Called when the user clicks Finish → on the last tutorial step
@@ -734,21 +729,11 @@
         // Call onEnter
         if (step.onEnter) step.onEnter();
 
-        // Lift any modal that the step targets above the dim layer
-        const modalOverlays = ["#modal", "#edit-employee-modal", "#add-shift-modal", "#settings-panel"];
-        modalOverlays.forEach(sel => {
-          const el = document.querySelector(sel);
-          if (!el) return;
-          const shouldLift = step.target && step.target.startsWith(sel);
-          el.classList.toggle("tut-modal-active", shouldLift);
-        });
-
         // Small delay so DOM settles after screen switch / demo activation
         setTimeout(() => {
           positionTutCard(step);
           updateDots(idx);
           updateTutCard(step, idx);
-          tutUpdateNavButtons(idx);
         }, 120);
       }
 
@@ -773,17 +758,12 @@
 
       function positionTutCard(step) {
         const card = document.getElementById("tut-card");
-        const hole = document.getElementById("tut-hole");
         const dim  = document.getElementById("tut-dim");
 
         if (!step.target || step.position === "center") {
-          // No highlight — center the card, full dim
-          hole.classList.remove("tut-hole-visible");
           dim.style.clipPath = "";
           card.classList.add("tut-card-centered");
-          card.style.top    = "";
-          card.style.left   = "";
-          card.style.transform = "";
+          card.style.top = card.style.left = card.style.transform = "";
           return;
         }
 
@@ -791,53 +771,30 @@
 
         const el = document.querySelector(step.target);
         if (!el) {
-          hole.classList.remove("tut-hole-visible");
           dim.style.clipPath = "";
           card.classList.add("tut-card-centered");
-          card.style.top    = "";
-          card.style.left   = "";
-          card.style.transform = "";
+          card.style.top = card.style.left = card.style.transform = "";
           return;
         }
 
-        const r   = el.getBoundingClientRect();
+        const r  = el.getBoundingClientRect();
         const pad = 8;
-        const hx  = r.left - pad;
-        const hy  = r.top  - pad;
-        const hw  = r.width  + pad * 2;
-        const hh  = r.height + pad * 2;
-
-        // Position highlight hole
-        hole.classList.add("tut-hole-visible");
-        hole.style.left   = hx + "px";
-        hole.style.top    = hy + "px";
-        hole.style.width  = hw + "px";
-        hole.style.height = hh + "px";
-
-        // Dim with cutout using clip-path polygon
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
+        const hx = r.left - pad, hy = r.top - pad;
+        const hw = r.width + pad * 2, hh = r.height + pad * 2;
+        const vw = window.innerWidth, vh = window.innerHeight;
         const r2 = 10;
+
         dim.style.clipPath = `polygon(
           0 0, ${vw}px 0, ${vw}px ${vh}px, 0 ${vh}px, 0 0,
-          ${hx + r2}px ${hy}px,
-          ${hx}px ${hy + r2}px,
-          ${hx}px ${hy + hh - r2}px,
-          ${hx + r2}px ${hy + hh}px,
-          ${hx + hw - r2}px ${hy + hh}px,
-          ${hx + hw}px ${hy + hh - r2}px,
-          ${hx + hw}px ${hy + r2}px,
-          ${hx + hw - r2}px ${hy}px,
-          ${hx + r2}px ${hy}px
+          ${hx+r2}px ${hy}px, ${hx}px ${hy+r2}px,
+          ${hx}px ${hy+hh-r2}px, ${hx+r2}px ${hy+hh}px,
+          ${hx+hw-r2}px ${hy+hh}px, ${hx+hw}px ${hy+hh-r2}px,
+          ${hx+hw}px ${hy+r2}px, ${hx+hw-r2}px ${hy}px,
+          ${hx+r2}px ${hy}px
         )`;
 
-        // Position card
-        const cw     = 364;
-        const ch     = 220;
-        const margin = 16;
-        let top, left;
+        const cw = 364, ch = 220, margin = 16;
         card.style.transform = "";
-
         const pref = step.position || "auto";
         const fits = {
           right:  r.right  + margin + cw < vw,
@@ -845,64 +802,21 @@
           bottom: r.bottom + margin + ch < vh,
           top:    r.top    - margin - ch > 0,
         };
+        const pos = (pref === "auto" || !fits[pref])
+          ? (fits.right ? "right" : fits.left ? "left" : fits.bottom ? "bottom" : "top")
+          : pref;
 
-        let pos = pref;
-        if (pref === "auto" || !fits[pref]) {
-          pos = fits.right ? "right" : fits.left ? "left" : fits.bottom ? "bottom" : "top";
-        }
+        let top, left;
+        if      (pos === "right")  { left = r.right + margin;     top  = Math.max(8, Math.min(r.top, vh-ch-8)); }
+        else if (pos === "left")   { left = r.left - margin - cw; top  = Math.max(8, Math.min(r.top, vh-ch-8)); }
+        else if (pos === "bottom") { top  = r.bottom + margin;    left = Math.max(8, Math.min(r.left, vw-cw-8)); }
+        else                       { top  = r.top - margin - ch;  left = Math.max(8, Math.min(r.left, vw-cw-8)); }
 
-        if (pos === "right") {
-          left = r.right + margin;
-          top  = Math.max(8, Math.min(r.top, vh - ch - 8));
-        } else if (pos === "left") {
-          left = r.left - margin - cw;
-          top  = Math.max(8, Math.min(r.top, vh - ch - 8));
-        } else if (pos === "bottom") {
-          top  = r.bottom + margin;
-          left = Math.max(8, Math.min(r.left, vw - cw - 8));
-        } else {
-          top  = r.top - margin - ch;
-          left = Math.max(8, Math.min(r.left, vw - cw - 8));
-        }
-
-        card.style.top  = top  + "px";
+        card.style.top = top + "px";
         card.style.left = left + "px";
       }
 
-      // Enable/disable screen-switch nav buttons based on the current tutorial step.
-      // Only the button the step explicitly requires is enabled; all others are disabled.
-      const TUT_NAV_SELECTORS = [
-        // [selector, stepIndex that needs it]
-        ["#screen-workers header .btn-primary",      6],  // Build Schedule → (step 6)
-        ["#screen-schedule #edit-btn",               15], // Edit Schedule (step 15)
-        ["#screen-edit header .btn-primary",         25], // Finish → (step 25)
-        ["#screen-schedule header .btn-back",        null], // ← Employees — never needed
-        ["#screen-edit header .btn-back",            null], // ← Schedule — never needed
-        ["#screen-auth header .btn-back",            null], // never reached in tutorial
-      ];
-
-      function tutUpdateNavButtons(stepIdx) {
-        TUT_NAV_SELECTORS.forEach(([sel, neededAt]) => {
-          const el = document.querySelector(sel);
-          if (!el) return;
-          el.disabled = tut.active ? (neededAt !== stepIdx) : false;
-        });
-      }
-
-      function tutRestoreNavButtons() {
-        TUT_NAV_SELECTORS.forEach(([sel]) => {
-          const el = document.querySelector(sel);
-          if (el) el.disabled = false;
-        });
-        // Re-apply normal disabled state for buttons that depend on scheduleData
-        const copyBtn = document.getElementById("copy-btn");
-        const editBtn = document.getElementById("edit-btn");
-        if (copyBtn) copyBtn.disabled = scheduleData.length === 0;
-        if (editBtn) editBtn.disabled = scheduleData.length === 0;
-      }
-
       function hideTutHole() {
-        document.getElementById("tut-hole").classList.remove("tut-hole-visible");
         document.getElementById("tut-dim").style.clipPath = "";
         document.getElementById("tut-card").classList.remove("tut-card-centered");
       }

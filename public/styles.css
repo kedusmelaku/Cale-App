@@ -1255,45 +1255,6 @@ body.dark {
   transition: clip-path 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* Modal lifted above tutorial dim when it needs interaction during tutorial */
-.tut-modal-active {
-  z-index: 510 !important;
-}
-
-/* ── Hole — the cutout highlight, sits above blocker ── */
-#tut-hole {
-  display: none;
-  position: absolute;
-  border-radius: 10px;
-  pointer-events: all; /* passes clicks through to the target element */
-  box-shadow: 0 0 0 4px var(--accent), 0 0 0 7px rgba(42,95,173,0.25);
-  transition: left 0.35s cubic-bezier(0.4,0,0.2,1),
-              top 0.35s cubic-bezier(0.4,0,0.2,1),
-              width 0.35s cubic-bezier(0.4,0,0.2,1),
-              height 0.35s cubic-bezier(0.4,0,0.2,1);
-  z-index: 502;
-}
-
-#tut-hole.tut-hole-visible {
-  display: block;
-}
-
-/* Pulse ring */
-#tut-hole::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: 14px;
-  border: 2px solid var(--accent);
-  opacity: 0;
-  animation: tut-pulse 1.8s ease-out infinite;
-}
-
-@keyframes tut-pulse {
-  0%   { opacity: 0.7; transform: scale(1); }
-  100% { opacity: 0;   transform: scale(1.12); }
-}
-
 /* ── Step card ── */
 #tut-card {
   position: absolute;
