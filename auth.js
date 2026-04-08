@@ -16,12 +16,15 @@ function getAuth() {
   const { client_id, client_secret, redirect_uris } =
     credentials.web || credentials.installed;
 
-  _auth = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+  const redirectUri = process.env.OAUTH_REDIRECT_URI || redirect_uris[0];
+  _auth = new google.auth.OAuth2(client_id, client_secret, redirectUri);
 
   // When googleapis silently refreshes the access token it emits this event.
-  // We log the new tokens so you can update GOOGLE_TOKEN on Render if needed.
+  // We log the new tokens so you can update GOOGLE_TOKEN on Vercel if needed.
   _auth.on("tokens", (newTokens) => {
-    console.log("=== Token refreshed — update GOOGLE_TOKEN on Render with: ===");
+    console.log(
+      "=== Token refreshed — update GOOGLE_TOKEN on Vercel with: ===",
+    );
     // Merge with existing credentials so refresh_token isn't lost
     const merged = { ..._auth.credentials, ...newTokens };
     console.log(JSON.stringify(merged));
