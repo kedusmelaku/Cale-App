@@ -321,6 +321,7 @@ header {
   padding: 4px 8px;
   border-radius: var(--radius);
   transition: color 0.15s;
+  font-family: "Noto Emoji", sans-serif;
 }
 
 .btn-gear:hover { color: var(--text); }
