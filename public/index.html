@@ -8,6 +8,9 @@
     <meta name="description" content="A scheduling tool for tutoring centers- generates weekly staff schedules based on availability and student bookings from Google Calendar">
     <link rel="stylesheet" href="styles.css" />
     <!-- Tutorial styles are in styles.css -->
+    <!-- Vercel Web Analytics -->
+    <script src="/analytics.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <!-- Demo banner -->
@@ -460,7 +463,7 @@
           screen: "screen-schedule",
           target: ".av-section:first-child",
           title: "Custom Hours",
-          body: "By default each employee works a preset block. Uncheck <strong>Default hours</strong> on any day to set exact start and end times using the dropdowns.",
+          body: "When a day is checked, the day is set to full availability when <strong>Default hours</strong> is checked. Uncheck <strong>Default hours</strong> on any day to set exact start and end times using the dropdowns.",
           position: "right",
         },
         // ── 9: Week date ─────────────────────────────────────────────────
