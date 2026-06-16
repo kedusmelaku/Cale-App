@@ -1614,6 +1614,45 @@
         if (e.target === this) closeModal();
       });
 
+      // Open Add Employee modal when Enter is pressed while hovering the add button
+      (function () {
+        let hoveringAddButton = false;
+        const addBtn = document.getElementById("btn-add-worker");
+        if (!addBtn) return;
+
+        addBtn.addEventListener("mouseenter", () => (hoveringAddButton = true));
+        addBtn.addEventListener(
+          "mouseleave",
+          () => (hoveringAddButton = false),
+        );
+
+        // Also handle keyboard activation when the button itself has focus
+        addBtn.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            openModal();
+          }
+        });
+
+        // Global Enter handler: when not typing and hovering the button, open modal
+        document.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter") return;
+          const modalEl = document.getElementById("modal");
+          if (modalEl && modalEl.classList.contains("open")) return;
+          const active = document.activeElement;
+          const tag = active && active.tagName && active.tagName.toLowerCase();
+          const isTyping =
+            tag === "input" ||
+            tag === "textarea" ||
+            (active && active.isContentEditable);
+          if (isTyping) return;
+          if (hoveringAddButton) {
+            e.preventDefault();
+            openModal();
+          }
+        });
+      })();
+
       // ── Edit Employee Modal ────────────────────────────────
       function openEditEmployeeModal(wi) {
         editEmployeeIndex = wi;
