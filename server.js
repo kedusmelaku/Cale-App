@@ -102,6 +102,18 @@ app.get("/cal-status", (req, res) => {
   }
 });
 
+// Disconnect: clear in-memory OAuth tokens so the app is no longer connected
+app.post("/oauth/disconnect", (req, res) => {
+  try {
+    const { clearTokens } = require("./auth");
+    clearTokens();
+    res.json({ disconnected: true });
+  } catch (err) {
+    console.error("/oauth/disconnect:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // EVENTS
 // ─────────────────────────────────────────────────────────────────────────────

@@ -49,4 +49,17 @@ function applyTokens(tokens) {
   console.log("New OAuth tokens applied to auth client");
 }
 
-module.exports = { getAuth, applyTokens };
+// Clear in-memory tokens (does not modify environment variables).
+function clearTokens() {
+  if (_auth) {
+    try {
+      _auth.setCredentials({});
+      _auth.credentials = {};
+      console.log("Cleared OAuth tokens from auth client");
+    } catch (e) {
+      console.log("Error clearing tokens:", e.message);
+    }
+  }
+}
+
+module.exports = { getAuth, applyTokens, clearTokens };

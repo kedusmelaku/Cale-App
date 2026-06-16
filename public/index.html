@@ -351,6 +351,14 @@
                 onclick="reconnectCalendar(event)"
                 >Reconnect</a
               >
+              <a
+                id="cal-disconnect-link"
+                class="cal-reconnect-link"
+                href="#"
+                style="display: none; margin-left: 10px"
+                onclick="disconnectCalendar(event)"
+                >Disconnect</a
+              >
             </div>
           </div>
         </div>
@@ -1845,7 +1853,8 @@
       async function checkCalendarStatus() {
         const dot = document.getElementById("cal-status-dot");
         const text = document.getElementById("cal-status-text");
-        const link = document.getElementById("cal-reconnect-link");
+        const reconnectLink = document.getElementById("cal-reconnect-link");
+        const disconnectLink = document.getElementById("cal-disconnect-link");
         if (!dot) return;
         try {
           const res = await fetch("/cal-status", {
@@ -1855,18 +1864,21 @@
           if (data.connected) {
             dot.className = "cal-status-dot connected";
             text.textContent = "Connected";
-            link.style.display = "none";
+            reconnectLink && (reconnectLink.style.display = "none");
+            disconnectLink && (disconnectLink.style.display = "inline");
             _calConnected = true;
           } else {
             dot.className = "cal-status-dot disconnected";
             text.textContent = "Not connected";
-            link.style.display = "inline";
+            reconnectLink && (reconnectLink.style.display = "inline");
+            disconnectLink && (disconnectLink.style.display = "none");
             _calConnected = false;
           }
         } catch (e) {
           dot.className = "cal-status-dot unknown";
           text.textContent = "Unable to reach server";
-          link.style.display = "none";
+          reconnectLink && (reconnectLink.style.display = "none");
+          disconnectLink && (disconnectLink.style.display = "none");
           _calConnected = null;
         }
         updateScheduleCalStatus();
@@ -1902,6 +1914,27 @@
       }
       function reconnectCalendarBanner() {
         goToAuth();
+      }
+
+      async function disconnectCalendar(e) {
+        e && e.preventDefault();
+        if (
+          !confirm(
+            "Disconnect Google Calendar? This will stop calendar reads until you reconnect.",
+          )
+        )
+          return;
+        try {
+          const res = await fetch("/oauth/disconnect", { method: "POST" });
+          if (!res.ok) throw new Error("Failed to disconnect");
+          // Refresh status to update UI
+          await checkCalendarStatus();
+          alert(
+            "Disconnected. To permanently remove access, remove the server's stored token.",
+          );
+        } catch (err) {
+          alert("Error disconnecting: " + (err.message || err));
+        }
       }
 
       // ── Slot tooltips ───────────────────────────────────────
