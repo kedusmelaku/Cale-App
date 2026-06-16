@@ -4,8 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Scheduler - Smart Employee Scheduling for Tutoring Centers</title>
-    <meta name="og:title" content="Scheduler">
-    <meta name="description" content="A scheduling tool for tutoring centers- generates weekly staff schedules based on availability and student bookings from Google Calendar">
+    <meta name="og:title" content="Scheduler" />
+    <meta
+      name="description"
+      content="A scheduling tool for tutoring centers- generates weekly staff schedules based on availability and student bookings from Google Calendar"
+    />
     <link rel="stylesheet" href="styles.css" />
     <!-- Tutorial styles are in styles.css -->
     <!-- Vercel Web Analytics -->
@@ -46,11 +49,19 @@
           </p>
         </div>
         <div class="worker-grid" id="worker-grid"></div>
-        <button class="btn-add-worker" id="btn-add-worker" onclick="openModal()">
+        <button
+          class="btn-add-worker"
+          id="btn-add-worker"
+          onclick="openModal()"
+        >
           + Add Employee
         </button>
-        <br>
-        <button class="btn-tutorial" id="btn-start-tutorial" onclick="startTutorial()">
+        <br />
+        <button
+          class="btn-tutorial"
+          id="btn-start-tutorial"
+          onclick="startTutorial()"
+        >
           ▶ Take the Tutorial
         </button>
       </div>
@@ -88,10 +99,13 @@
         </div>
         <div class="output-panel">
           <div class="output-panel-header">
-            <h2 class="panel-title">Schedule
+            <h2 class="panel-title">
+              Schedule
               <span class="schedule-cal-status" id="schedule-cal-status">
                 <span id="schedule-cal-dot" class="cal-status-dot"></span>
-                <span id="schedule-cal-text" class="schedule-cal-text">Checking…</span>
+                <span id="schedule-cal-text" class="schedule-cal-text"
+                  >Checking…</span
+                >
               </span>
             </h2>
             <div class="output-controls">
@@ -120,7 +134,7 @@
               Enter a date and click <strong>Generate Schedule</strong>.
             </div>
             <div id="schedule-output" style="display: none"></div>
-            <div id="hours-summary" style="display:none;"></div>
+            <div id="hours-summary" style="display: none"></div>
           </div>
         </div>
       </div>
@@ -145,7 +159,7 @@
         <div class="edit-timeline-wrap">
           <div id="edit-timeline"></div>
         </div>
-        <div id="hours-summary-edit" style="display:none;"></div>
+        <div id="hours-summary-edit" style="display: none"></div>
       </div>
     </div>
 
@@ -210,7 +224,11 @@
           <p>❌ <strong>Connection failed</strong></p>
           <p
             id="auth-error-msg"
-            style="font-size: 0.85rem; color: var(--text-muted); margin: 8px 0 12px;"
+            style="
+              font-size: 0.85rem;
+              color: var(--text-muted);
+              margin: 8px 0 12px;
+            "
           ></p>
           <button class="btn-primary" onclick="startOAuth()">Try again</button>
         </div>
@@ -229,11 +247,25 @@
           <div class="settings-row">
             <div>
               <div class="settings-label">Theme</div>
-              <div class="settings-sublabel">Switch between light and dark mode</div>
+              <div class="settings-sublabel">
+                Switch between light and dark mode
+              </div>
             </div>
             <div class="toggle-group">
-              <button class="toggle-opt active" id="theme-light" onclick="setTheme('light')">Light</button>
-              <button class="toggle-opt" id="theme-dark" onclick="setTheme('dark')">Dark</button>
+              <button
+                class="toggle-opt active"
+                id="theme-light"
+                onclick="setTheme('light')"
+              >
+                Light
+              </button>
+              <button
+                class="toggle-opt"
+                id="theme-dark"
+                onclick="setTheme('dark')"
+              >
+                Dark
+              </button>
             </div>
           </div>
         </div>
@@ -241,12 +273,43 @@
           <h3 class="settings-section-title">Model</h3>
           <div class="settings-row">
             <div>
-              <div class="settings-label" style="display:flex;align-items:center;gap:6px;">Scheduling Mode <span class="info-tag">i<span class="info-tooltip" style="width:260px;"><strong>Normal:</strong> Assigns workers in shift blocks (4–8, 4–6, 6–8). Faster and produces clean, regular shifts — best for most weeks.<br><br><strong>Ultra-efficient:</strong> Assigns workers slot-by-slot every 30 minutes based on exact student counts. More precise but may produce shorter or irregular shift times.</span></span></div>
-              <div class="settings-sublabel">Choose how the schedule is generated</div>
+              <div
+                class="settings-label"
+                style="display: flex; align-items: center; gap: 6px"
+              >
+                Scheduling Mode
+                <span class="info-tag"
+                  >i<span class="info-tooltip" style="width: 260px"
+                    ><strong>Normal:</strong> Assigns workers in shift blocks
+                    (4–8, 4–6, 6–8). Faster and produces clean, regular shifts —
+                    best for most weeks.<br /><br /><strong
+                      >Ultra-efficient:</strong
+                    >
+                    Assigns workers slot-by-slot every 30 minutes based on exact
+                    student counts. More precise but may produce shorter or
+                    irregular shift times.</span
+                  ></span
+                >
+              </div>
+              <div class="settings-sublabel">
+                Choose how the schedule is generated
+              </div>
             </div>
             <div class="toggle-group">
-              <button class="toggle-opt active" id="mode-simplified" onclick="setMode('simplified')">Normal</button>
-              <button class="toggle-opt" id="mode-ultra" onclick="setMode('ultra')">Ultra-efficient</button>
+              <button
+                class="toggle-opt active"
+                id="mode-simplified"
+                onclick="setMode('simplified')"
+              >
+                Normal
+              </button>
+              <button
+                class="toggle-opt"
+                id="mode-ultra"
+                onclick="setMode('ultra')"
+              >
+                Ultra-efficient
+              </button>
             </div>
           </div>
         </div>
@@ -255,22 +318,39 @@
           <div class="settings-row">
             <div>
               <div class="settings-label">Demo Mode</div>
-              <div class="settings-sublabel">Load a premade team with fake availability and student counts</div>
+              <div class="settings-sublabel">
+                Load a premade team with fake availability and student counts
+              </div>
             </div>
             <label class="switch">
-              <input type="checkbox" id="demo-toggle" onchange="setDemo(this.checked)" />
+              <input
+                type="checkbox"
+                id="demo-toggle"
+                onchange="setDemo(this.checked)"
+              />
               <span class="switch-slider"></span>
             </label>
           </div>
           <div class="settings-row" style="margin-top: 14px">
             <div>
               <div class="settings-label">Google Calendar</div>
-              <div class="settings-sublabel">Student booking data for schedule generation</div>
+              <div class="settings-sublabel">
+                Student booking data for schedule generation
+              </div>
             </div>
             <div id="cal-status-wrap" class="cal-status-wrap">
               <span id="cal-status-dot" class="cal-status-dot"></span>
-              <span id="cal-status-text" class="cal-status-text">Checking…</span>
-              <a id="cal-reconnect-link" class="cal-reconnect-link" href="#" style="display: none" onclick="reconnectCalendar(event)">Reconnect</a>
+              <span id="cal-status-text" class="cal-status-text"
+                >Checking…</span
+              >
+              <a
+                id="cal-reconnect-link"
+                class="cal-reconnect-link"
+                href="#"
+                style="display: none"
+                onclick="reconnectCalendar(event)"
+                >Reconnect</a
+              >
             </div>
           </div>
         </div>
@@ -283,17 +363,37 @@
         <h3>Add Employee</h3>
         <label class="field-label">Name</label>
         <input type="text" id="new-worker-name" placeholder="Full name" />
-        <label class="field-label">Priority
-          <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+        <label class="field-label"
+          >Priority
+          <span class="info-tag"
+            >i<span class="info-tooltip"
+              ><strong>Normal:</strong> High schoolers or people with limited
+              availability.<br /><strong>Priority:</strong> Adults with moderate
+              availability.<br /><strong>High Priority:</strong> Adults who are
+              usually fully available.</span
+            ></span
+          >
         </label>
         <div class="priority-picker">
-          <button class="priority-opt active" data-val="0" onclick="selectPriority(0)">Normal</button>
-          <button class="priority-opt" data-val="1" onclick="selectPriority(1)">Priority</button>
-          <button class="priority-opt" data-val="2" onclick="selectPriority(2)">High Priority</button>
+          <button
+            class="priority-opt active"
+            data-val="0"
+            onclick="selectPriority(0)"
+          >
+            Normal
+          </button>
+          <button class="priority-opt" data-val="1" onclick="selectPriority(1)">
+            Priority
+          </button>
+          <button class="priority-opt" data-val="2" onclick="selectPriority(2)">
+            High Priority
+          </button>
         </div>
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-          <button class="btn-confirm" onclick="addWorker()">Add Employee</button>
+          <button class="btn-confirm" onclick="addWorker()">
+            Add Employee
+          </button>
         </div>
       </div>
     </div>
@@ -309,7 +409,9 @@
         <label class="field-label" style="margin-top: 14px">End</label>
         <select id="add-shift-end" class="field-select"></select>
         <div class="modal-actions" style="margin-top: 20px">
-          <button class="btn-cancel" onclick="closeAddShiftModal()">Cancel</button>
+          <button class="btn-cancel" onclick="closeAddShiftModal()">
+            Cancel
+          </button>
           <button class="btn-confirm" onclick="confirmAddShift()">Add</button>
         </div>
       </div>
@@ -321,17 +423,47 @@
         <h3>Edit Employee</h3>
         <label class="field-label">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
-        <label class="field-label">Priority
-          <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+        <label class="field-label"
+          >Priority
+          <span class="info-tag"
+            >i<span class="info-tooltip"
+              ><strong>Normal:</strong> High schoolers or people with limited
+              availability.<br /><strong>Priority:</strong> Adults with moderate
+              availability.<br /><strong>High Priority:</strong> Adults who are
+              usually fully available.</span
+            ></span
+          >
         </label>
         <div class="priority-picker" id="edit-priority-picker">
-          <button class="priority-opt active" data-val="0" onclick="selectEditPriority(0)">Normal</button>
-          <button class="priority-opt" data-val="1" onclick="selectEditPriority(1)">Priority</button>
-          <button class="priority-opt" data-val="2" onclick="selectEditPriority(2)">High Priority</button>
+          <button
+            class="priority-opt active"
+            data-val="0"
+            onclick="selectEditPriority(0)"
+          >
+            Normal
+          </button>
+          <button
+            class="priority-opt"
+            data-val="1"
+            onclick="selectEditPriority(1)"
+          >
+            Priority
+          </button>
+          <button
+            class="priority-opt"
+            data-val="2"
+            onclick="selectEditPriority(2)"
+          >
+            High Priority
+          </button>
         </div>
         <div class="modal-actions" style="margin-top: 20px">
-          <button class="btn-cancel" onclick="closeEditEmployeeModal()">Cancel</button>
-          <button class="btn-confirm" onclick="confirmEditEmployee()">Save</button>
+          <button class="btn-cancel" onclick="closeEditEmployeeModal()">
+            Cancel
+          </button>
+          <button class="btn-confirm" onclick="confirmEditEmployee()">
+            Save
+          </button>
         </div>
       </div>
     </div>
@@ -342,14 +474,18 @@
       <div id="tut-card">
         <div class="tut-card-header">
           <span class="tut-step-badge" id="tut-badge">Step 1</span>
-          <button class="tut-skip-btn" onclick="endTutorial()">Skip tutorial</button>
+          <button class="tut-skip-btn" onclick="endTutorial()">
+            Skip tutorial
+          </button>
         </div>
         <div class="tut-title" id="tut-title"></div>
         <div class="tut-body" id="tut-body"></div>
         <div class="tut-action-hint" id="tut-hint"></div>
         <div class="tut-footer">
           <div class="tut-dots" id="tut-dots"></div>
-          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">Next →</button>
+          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">
+            Next →
+          </button>
         </div>
       </div>
     </div>
@@ -418,7 +554,9 @@
           hint: "Click the Edit button on the first employee card",
           waitForAction: true,
           position: "right",
-          onEnter: () => { tutWaiting = "edit-employee-opened"; },
+          onEnter: () => {
+            tutWaiting = "edit-employee-opened";
+          },
         },
         // ── 4: Close edit modal (info step) ─────────────────────────────
         {
@@ -429,7 +567,9 @@
           hint: "Close the modal to continue",
           waitForAction: true,
           position: "right",
-          onEnter: () => { tutWaiting = "edit-employee-closed"; },
+          onEnter: () => {
+            tutWaiting = "edit-employee-closed";
+          },
         },
         // ── 5: Add employee ──────────────────────────────────────────────
         {
@@ -448,7 +588,9 @@
           hint: "Click Build Schedule → to continue",
           waitForAction: true,
           position: "bottom",
-          onEnter: () => { tutWaiting = "went-to-schedule"; },
+          onEnter: () => {
+            tutWaiting = "went-to-schedule";
+          },
         },
         // ── 7: Availability panel ────────────────────────────────────────
         {
@@ -483,7 +625,9 @@
           hint: "Click Generate Schedule to continue",
           waitForAction: true,
           position: "bottom",
-          onEnter: () => { tutWaiting = "schedule-generated"; },
+          onEnter: () => {
+            tutWaiting = "schedule-generated";
+          },
         },
         // ── 11: Timeline view ────────────────────────────────────────────
         {
@@ -526,7 +670,9 @@
           hint: "Click Edit Schedule to continue",
           waitForAction: true,
           position: "bottom",
-          onEnter: () => { tutWaiting = "went-to-edit"; },
+          onEnter: () => {
+            tutWaiting = "went-to-edit";
+          },
         },
         // ── 16: Drag to move ─────────────────────────────────────────────
         {
@@ -574,7 +720,14 @@
               const isSat = day.day === "Saturday";
               if (day.assignments.length > 0) {
                 const a = day.assignments[0];
-                tut._savedAssignment = { di: 0, ai: 0, start: a.start, end: a.end, availStart: a.availStart, availEnd: a.availEnd };
+                tut._savedAssignment = {
+                  di: 0,
+                  ai: 0,
+                  start: a.start,
+                  end: a.end,
+                  availStart: a.availStart,
+                  availEnd: a.availEnd,
+                };
                 a.start = isSat ? "10" : "3";
                 a.availStart = isSat ? 11 : 4;
                 renderEditScreen();
@@ -600,7 +753,8 @@
           onEnter: () => {
             // Restore saved OOB before opening settings
             if (tut._savedAssignment) {
-              const { di, ai, start, end, availStart, availEnd } = tut._savedAssignment;
+              const { di, ai, start, end, availStart, availEnd } =
+                tut._savedAssignment;
               if (scheduleData[di] && scheduleData[di].assignments[ai]) {
                 scheduleData[di].assignments[ai].start = start;
                 scheduleData[di].assignments[ai].end = end;
@@ -630,7 +784,9 @@
           hint: "Close Settings to continue",
           waitForAction: true,
           position: "left",
-          onEnter: () => { tutWaiting = "settings-closed"; },
+          onEnter: () => {
+            tutWaiting = "settings-closed";
+          },
         },
         // ── 25: Finish — click the real button ───────────────────────────
         {
@@ -641,7 +797,9 @@
           hint: "Click Finish → to complete the tutorial",
           waitForAction: true,
           position: "bottom",
-          onEnter: () => { tutWaiting = "finish-clicked"; },
+          onEnter: () => {
+            tutWaiting = "finish-clicked";
+          },
         },
       ];
 
@@ -671,7 +829,8 @@
         document.getElementById("settings-panel").classList.remove("open");
         // restore saved OOB change if needed
         if (tut._savedAssignment) {
-          const { di, ai, start, end, availStart, availEnd } = tut._savedAssignment;
+          const { di, ai, start, end, availStart, availEnd } =
+            tut._savedAssignment;
           if (scheduleData[di] && scheduleData[di].assignments[ai]) {
             scheduleData[di].assignments[ai].start = start;
             scheduleData[di].assignments[ai].end = end;
@@ -696,8 +855,8 @@
 
       function buildDots() {
         const el = document.getElementById("tut-dots");
-        el.innerHTML = TUTORIAL_STEPS.map((_, i) =>
-          `<div class="tut-dot" id="tut-dot-${i}"></div>`
+        el.innerHTML = TUTORIAL_STEPS.map(
+          (_, i) => `<div class="tut-dot" id="tut-dot-${i}"></div>`,
         ).join("");
       }
 
@@ -705,7 +864,8 @@
         TUTORIAL_STEPS.forEach((_, i) => {
           const d = document.getElementById(`tut-dot-${i}`);
           if (!d) return;
-          d.className = "tut-dot" + (i < step ? " done" : i === step ? " active" : "");
+          d.className =
+            "tut-dot" + (i < step ? " done" : i === step ? " active" : "");
         });
       }
 
@@ -726,7 +886,7 @@
           const target = document.getElementById(step.screen);
           if (target) {
             // instant switch for tutorial (no animation jank)
-            document.querySelectorAll(".screen").forEach(s => {
+            document.querySelectorAll(".screen").forEach((s) => {
               s.classList.remove("active");
               s.style.cssText = "";
             });
@@ -746,7 +906,8 @@
       }
 
       function updateTutCard(step, idx) {
-        document.getElementById("tut-badge").textContent = `Step ${idx + 1} of ${TUTORIAL_STEPS.length}`;
+        document.getElementById("tut-badge").textContent =
+          `Step ${idx + 1} of ${TUTORIAL_STEPS.length}`;
         document.getElementById("tut-title").textContent = step.title;
         document.getElementById("tut-body").innerHTML = step.body;
         document.getElementById("tut-hint").textContent = step.hint || "";
@@ -766,7 +927,7 @@
 
       function positionTutCard(step) {
         const card = document.getElementById("tut-card");
-        const dim  = document.getElementById("tut-dim");
+        const dim = document.getElementById("tut-dim");
 
         if (!step.target || step.position === "center") {
           dim.style.clipPath = "";
@@ -785,40 +946,61 @@
           return;
         }
 
-        const r  = el.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
         const pad = 8;
-        const hx = r.left - pad, hy = r.top - pad;
-        const hw = r.width + pad * 2, hh = r.height + pad * 2;
-        const vw = window.innerWidth, vh = window.innerHeight;
+        const hx = r.left - pad,
+          hy = r.top - pad;
+        const hw = r.width + pad * 2,
+          hh = r.height + pad * 2;
+        const vw = window.innerWidth,
+          vh = window.innerHeight;
         const r2 = 10;
 
         dim.style.clipPath = `polygon(
           0 0, ${vw}px 0, ${vw}px ${vh}px, 0 ${vh}px, 0 0,
-          ${hx+r2}px ${hy}px, ${hx}px ${hy+r2}px,
-          ${hx}px ${hy+hh-r2}px, ${hx+r2}px ${hy+hh}px,
-          ${hx+hw-r2}px ${hy+hh}px, ${hx+hw}px ${hy+hh-r2}px,
-          ${hx+hw}px ${hy+r2}px, ${hx+hw-r2}px ${hy}px,
-          ${hx+r2}px ${hy}px
+          ${hx + r2}px ${hy}px, ${hx}px ${hy + r2}px,
+          ${hx}px ${hy + hh - r2}px, ${hx + r2}px ${hy + hh}px,
+          ${hx + hw - r2}px ${hy + hh}px, ${hx + hw}px ${hy + hh - r2}px,
+          ${hx + hw}px ${hy + r2}px, ${hx + hw - r2}px ${hy}px,
+          ${hx + r2}px ${hy}px
         )`;
 
-        const cw = 364, ch = 220, margin = 16;
+        const cw = 364,
+          ch = 220,
+          margin = 16;
         card.style.transform = "";
         const pref = step.position || "auto";
         const fits = {
-          right:  r.right  + margin + cw < vw,
-          left:   r.left   - margin - cw > 0,
+          right: r.right + margin + cw < vw,
+          left: r.left - margin - cw > 0,
           bottom: r.bottom + margin + ch < vh,
-          top:    r.top    - margin - ch > 0,
+          top: r.top - margin - ch > 0,
         };
-        const pos = (pref === "auto" || !fits[pref])
-          ? (fits.right ? "right" : fits.left ? "left" : fits.bottom ? "bottom" : "top")
-          : pref;
+        const pos =
+          pref === "auto" || !fits[pref]
+            ? fits.right
+              ? "right"
+              : fits.left
+                ? "left"
+                : fits.bottom
+                  ? "bottom"
+                  : "top"
+            : pref;
 
         let top, left;
-        if      (pos === "right")  { left = r.right + margin;     top  = Math.max(8, Math.min(r.top, vh-ch-8)); }
-        else if (pos === "left")   { left = r.left - margin - cw; top  = Math.max(8, Math.min(r.top, vh-ch-8)); }
-        else if (pos === "bottom") { top  = r.bottom + margin;    left = Math.max(8, Math.min(r.left, vw-cw-8)); }
-        else                       { top  = r.top - margin - ch;  left = Math.max(8, Math.min(r.left, vw-cw-8)); }
+        if (pos === "right") {
+          left = r.right + margin;
+          top = Math.max(8, Math.min(r.top, vh - ch - 8));
+        } else if (pos === "left") {
+          left = r.left - margin - cw;
+          top = Math.max(8, Math.min(r.top, vh - ch - 8));
+        } else if (pos === "bottom") {
+          top = r.bottom + margin;
+          left = Math.max(8, Math.min(r.left, vw - cw - 8));
+        } else {
+          top = r.top - margin - ch;
+          left = Math.max(8, Math.min(r.left, vw - cw - 8));
+        }
 
         card.style.top = top + "px";
         card.style.left = left + "px";
@@ -826,7 +1008,9 @@
 
       function hideTutHole() {
         document.getElementById("tut-dim").style.clipPath = "";
-        document.getElementById("tut-card").classList.remove("tut-card-centered");
+        document
+          .getElementById("tut-card")
+          .classList.remove("tut-card-centered");
       }
 
       function tutNext() {
@@ -848,17 +1032,24 @@
       });
 
       // Reposition when any scrollable container scrolls during tutorial
-      window.addEventListener("scroll", () => {
-        if (!tut.active) return;
-        positionTutCard(TUTORIAL_STEPS[tut.step]);
-      }, { passive: true });
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (!tut.active) return;
+          positionTutCard(TUTORIAL_STEPS[tut.step]);
+        },
+        { passive: true },
+      );
 
       // Also catch scroll inside the page-body / panel containers
-      document.addEventListener("scroll", (e) => {
-        if (!tut.active) return;
-        positionTutCard(TUTORIAL_STEPS[tut.step]);
-      }, { passive: true, capture: true });
-
+      document.addEventListener(
+        "scroll",
+        (e) => {
+          if (!tut.active) return;
+          positionTutCard(TUTORIAL_STEPS[tut.step]);
+        },
+        { passive: true, capture: true },
+      );
 
       // ══════════════════════════════════════════════════════════════════
       // ORIGINAL APP CODE (unchanged except for tutAdvance hooks)
@@ -875,30 +1066,107 @@
       const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
       const PRIORITY_CLASSES = ["", "p1", "p2"];
       const WORKER_COLORS = [
-        "#4f86c6","#e05c5c","#3aaa72","#e08c2a","#8a6bbf",
-        "#2aaab4","#c47a2a","#5a8a5a","#c45a8a","#2a7ac4","#7aaa3a",
+        "#4f86c6",
+        "#e05c5c",
+        "#3aaa72",
+        "#e08c2a",
+        "#8a6bbf",
+        "#2aaab4",
+        "#c47a2a",
+        "#5a8a5a",
+        "#c45a8a",
+        "#2a7ac4",
+        "#7aaa3a",
       ];
-      const WEEKDAY_SLOTS = ["3","3:30","4","4:30","5","5:30","6","6:30","7","7:30"];
-      const SAT_SLOTS = ["10","10:30","11","11:30","12","12:30","1","1:30"];
+      const WEEKDAY_SLOTS = [
+        "3",
+        "3:30",
+        "4",
+        "4:30",
+        "5",
+        "5:30",
+        "6",
+        "6:30",
+        "7",
+        "7:30",
+      ];
+      const SAT_SLOTS = [
+        "10",
+        "10:30",
+        "11",
+        "11:30",
+        "12",
+        "12:30",
+        "1",
+        "1:30",
+      ];
       const SLOT_H = 40;
 
       const DEMO_WORKERS = [
-        { name: "Alex",   priority: 2, defaultStart: 3, defaultEnd: 8 },
+        { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
         { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
         { name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8 },
         { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Casey",  priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Riley",  priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
       ];
 
       function buildDemoAvailability() {
         return {
-          Alex:   DAYS.map((d) => ({ day: d, selected: true,  allDay: false, start: d === "saturday" ? 10 : 3,  end: d === "saturday" ? 14 : 8,  startMinute: 0, endMinute: 0 })),
-          Jordan: DAYS.map((d) => ({ day: d, selected: d !== "wednesday", allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
-          Taylor: DAYS.map((d) => ({ day: d, selected: d !== "thursday",  allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
-          Morgan: DAYS.map((d) => ({ day: d, selected: ["monday","wednesday","saturday"].includes(d), allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
-          Casey:  DAYS.map((d) => ({ day: d, selected: ["tuesday","thursday"].includes(d), allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
-          Riley:  DAYS.map((d) => ({ day: d, selected: ["monday","tuesday","saturday"].includes(d), allDay: true, start: d === "saturday" ? 10 : 4, end: d === "saturday" ? 14 : 8, startMinute: 0, endMinute: 0 })),
+          Alex: DAYS.map((d) => ({
+            day: d,
+            selected: true,
+            allDay: false,
+            start: d === "saturday" ? 10 : 3,
+            end: d === "saturday" ? 14 : 8,
+            startMinute: 0,
+            endMinute: 0,
+          })),
+          Jordan: DAYS.map((d) => ({
+            day: d,
+            selected: d !== "wednesday",
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+            startMinute: 0,
+            endMinute: 0,
+          })),
+          Taylor: DAYS.map((d) => ({
+            day: d,
+            selected: d !== "thursday",
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+            startMinute: 0,
+            endMinute: 0,
+          })),
+          Morgan: DAYS.map((d) => ({
+            day: d,
+            selected: ["monday", "wednesday", "saturday"].includes(d),
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+            startMinute: 0,
+            endMinute: 0,
+          })),
+          Casey: DAYS.map((d) => ({
+            day: d,
+            selected: ["tuesday", "thursday"].includes(d),
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+            startMinute: 0,
+            endMinute: 0,
+          })),
+          Riley: DAYS.map((d) => ({
+            day: d,
+            selected: ["monday", "tuesday", "saturday"].includes(d),
+            allDay: true,
+            start: d === "saturday" ? 10 : 4,
+            end: d === "saturday" ? 14 : 8,
+            startMinute: 0,
+            endMinute: 0,
+          })),
         };
       }
 
@@ -910,15 +1178,27 @@
         ...JSON.parse(localStorage.getItem("scheduler-settings") || "{}"),
       };
 
-      function saveSettings() { localStorage.setItem("scheduler-settings", JSON.stringify(settings)); }
-      function applyTheme() { document.body.classList.toggle("dark", settings.theme === "dark"); }
+      function saveSettings() {
+        localStorage.setItem("scheduler-settings", JSON.stringify(settings));
+      }
+      function applyTheme() {
+        document.body.classList.toggle("dark", settings.theme === "dark");
+      }
 
       function openSettings() {
-        document.getElementById("theme-light").classList.toggle("active", settings.theme === "light");
-        document.getElementById("theme-dark").classList.toggle("active", settings.theme === "dark");
-        document.getElementById("mode-simplified").classList.toggle("active", settings.mode === "simplified");
+        document
+          .getElementById("theme-light")
+          .classList.toggle("active", settings.theme === "light");
+        document
+          .getElementById("theme-dark")
+          .classList.toggle("active", settings.theme === "dark");
+        document
+          .getElementById("mode-simplified")
+          .classList.toggle("active", settings.mode === "simplified");
         if (document.getElementById("mode-ultra"))
-          document.getElementById("mode-ultra").classList.toggle("active", settings.mode === "ultra");
+          document
+            .getElementById("mode-ultra")
+            .classList.toggle("active", settings.mode === "ultra");
         checkCalendarStatus();
         document.getElementById("demo-toggle").checked = settings.demo;
         document.getElementById("settings-panel").classList.add("open");
@@ -933,14 +1213,20 @@
         settings.theme = val;
         saveSettings();
         applyTheme();
-        document.getElementById("theme-light").classList.toggle("active", val === "light");
-        document.getElementById("theme-dark").classList.toggle("active", val === "dark");
+        document
+          .getElementById("theme-light")
+          .classList.toggle("active", val === "light");
+        document
+          .getElementById("theme-dark")
+          .classList.toggle("active", val === "dark");
       }
 
       function setMode(val) {
         settings.mode = val;
         saveSettings();
-        document.getElementById("mode-simplified").classList.toggle("active", val === "simplified");
+        document
+          .getElementById("mode-simplified")
+          .classList.toggle("active", val === "simplified");
         const ultraBtn = document.getElementById("mode-ultra");
         if (ultraBtn) ultraBtn.classList.toggle("active", val === "ultra");
         markStale();
@@ -964,12 +1250,16 @@
         updateCalWarningBanner();
       }
 
-      document.getElementById("settings-panel").addEventListener("click", function (e) {
-        if (e.target === this) closeSettings();
-      });
+      document
+        .getElementById("settings-panel")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeSettings();
+        });
 
       // ── State ──────────────────────────────────────────────
-      let workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
+      let workers = JSON.parse(
+        localStorage.getItem("scheduler-workers") || "[]",
+      );
       let availability = {};
       let newWorkerPriority = 0;
       let scheduleData = [];
@@ -978,7 +1268,9 @@
       let editEmployeePriority = 0;
       let dragState = null;
 
-      function saveWorkers() { localStorage.setItem("scheduler-workers", JSON.stringify(workers)); }
+      function saveWorkers() {
+        localStorage.setItem("scheduler-workers", JSON.stringify(workers));
+      }
 
       // ── Demo ───────────────────────────────────────────────
       function activateDemo() {
@@ -1023,7 +1315,9 @@
         });
       }
 
-      function slotList(isSat) { return isSat ? SAT_SLOTS : WEEKDAY_SLOTS; }
+      function slotList(isSat) {
+        return isSat ? SAT_SLOTS : WEEKDAY_SLOTS;
+      }
 
       function timeToIndex(time, isSat) {
         const parts = time.split(":");
@@ -1047,7 +1341,13 @@
       function getDatesForWeek(mondayStr) {
         if (!mondayStr) return {};
         const base = new Date(mondayStr + "T00:00:00");
-        const offsets = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, saturday: 5 };
+        const offsets = {
+          monday: 0,
+          tuesday: 1,
+          wednesday: 2,
+          thursday: 3,
+          saturday: 5,
+        };
         const result = {};
         for (const [day, offset] of Object.entries(offsets)) {
           const d = new Date(base);
@@ -1072,23 +1372,34 @@
       function timeOptions(isSaturday) {
         const options = [];
         const start = isSaturday ? 10 : 3;
-        const end   = isSaturday ? 14 : 8;
+        const end = isSaturday ? 14 : 8;
         for (let h = start; h <= end; h++) {
           for (let m of [0, 30]) {
             if (h === end && m === 30) break;
             const totalMins = h * 60 + m;
-            const displayH  = h > 12 ? h - 12 : h;
-            const displayM  = m === 0 ? "00" : "30";
+            const displayH = h > 12 ? h - 12 : h;
+            const displayM = m === 0 ? "00" : "30";
             const ampm = isSaturday ? (h >= 12 ? "PM" : "AM") : "PM";
-            options.push({ value: totalMins, hour: h, minute: m, label: `${displayH}:${displayM} ${ampm}` });
+            options.push({
+              value: totalMins,
+              hour: h,
+              minute: m,
+              label: `${displayH}:${displayM} ${ampm}`,
+            });
           }
         }
         return options;
       }
 
-      function minsToHour(mins)         { return Math.floor(mins / 60); }
-      function minsToMinute(mins)        { return mins % 60; }
-      function hourMinToMins(h, m)       { return h * 60 + (m || 0); }
+      function minsToHour(mins) {
+        return Math.floor(mins / 60);
+      }
+      function minsToMinute(mins) {
+        return mins % 60;
+      }
+      function hourMinToMins(h, m) {
+        return h * 60 + (m || 0);
+      }
 
       function buildClipboardText() {
         let text = "";
@@ -1111,15 +1422,19 @@
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
             if (a.availStart === null || a.availEnd === null) {
-              warnings.push(`${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`);
+              warnings.push(
+                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
+              );
               continue;
             }
             const shiftStart = timeToIndex(a.start, isSat);
-            const shiftEnd   = timeToIndex(a.end,   isSat);
+            const shiftEnd = timeToIndex(a.end, isSat);
             const avStartIdx = timeToIndex(a.availStart.toString(), isSat);
-            const avEndIdx   = timeToIndex(a.availEnd.toString(),   isSat);
+            const avEndIdx = timeToIndex(a.availEnd.toString(), isSat);
             if (shiftStart < avStartIdx || shiftEnd > avEndIdx) {
-              warnings.push(`${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`);
+              warnings.push(
+                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
+              );
             }
           }
         }
@@ -1127,25 +1442,34 @@
       }
 
       // ── Navigation ─────────────────────────────────────────
-      const SCREEN_ORDER = ["screen-workers","screen-schedule","screen-edit","screen-auth"];
+      const SCREEN_ORDER = [
+        "screen-workers",
+        "screen-schedule",
+        "screen-edit",
+        "screen-auth",
+      ];
 
       function showScreen(newId) {
         const current = document.querySelector(".screen.active");
-        const next    = document.getElementById(newId);
+        const next = document.getElementById(newId);
         if (!current || current === next) return;
 
         const currentIdx = SCREEN_ORDER.indexOf(current.id);
-        const nextIdx    = SCREEN_ORDER.indexOf(newId);
-        const forward    = nextIdx > currentIdx;
+        const nextIdx = SCREEN_ORDER.indexOf(newId);
+        const forward = nextIdx > currentIdx;
 
-        next.style.transform  = forward ? "translateX(100%)" : "translateX(-100%)";
-        next.style.display    = "flex";
+        next.style.transform = forward
+          ? "translateX(100%)"
+          : "translateX(-100%)";
+        next.style.display = "flex";
         next.offsetHeight;
 
-        next.style.transition    = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
+        next.style.transition = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
         current.style.transition = "transform 0.3s cubic-bezier(0.4,0,0.2,1)";
-        next.style.transform     = "translateX(0%)";
-        current.style.transform  = forward ? "translateX(-100%)" : "translateX(100%)";
+        next.style.transform = "translateX(0%)";
+        current.style.transform = forward
+          ? "translateX(-100%)"
+          : "translateX(100%)";
 
         setTimeout(() => {
           current.classList.remove("active");
@@ -1155,11 +1479,17 @@
         }, 300);
       }
 
-      function goToWorkers() { showScreen("screen-workers"); }
+      function goToWorkers() {
+        showScreen("screen-workers");
+      }
 
       function goToSchedule() {
-        if (workers.length === 0) return alert("Add at least one employee first.");
-        if (Object.keys(availability).length === 0 || !workers.every((w) => availability[w.name])) {
+        if (workers.length === 0)
+          return alert("Add at least one employee first.");
+        if (
+          Object.keys(availability).length === 0 ||
+          !workers.every((w) => availability[w.name])
+        ) {
           buildAvailability();
         }
         const dateInput = document.getElementById("week-date");
@@ -1181,9 +1511,10 @@
           return;
         }
         const warnings = getOutOfBoundsWorkers();
-        const warnText = warnings.length > 0
-          ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
-          : "";
+        const warnText =
+          warnings.length > 0
+            ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
+            : "";
         if (!confirm(`${warnText}Finish editing and return to start?`)) return;
         scheduleData = [];
         document.getElementById("empty-state").style.display = "block";
@@ -1236,15 +1567,23 @@
         document.getElementById("new-worker-name").value = "";
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
-        setTimeout(() => document.getElementById("new-worker-name").focus(), 50);
+        setTimeout(
+          () => document.getElementById("new-worker-name").focus(),
+          50,
+        );
       }
 
-      function closeModal() { document.getElementById("modal").classList.remove("open"); }
+      function closeModal() {
+        document.getElementById("modal").classList.remove("open");
+      }
 
       function selectPriority(val) {
         newWorkerPriority = val;
-        document.querySelectorAll("#modal .priority-opt").forEach((btn) =>
-          btn.classList.toggle("active", parseInt(btn.dataset.val) === val));
+        document
+          .querySelectorAll("#modal .priority-opt")
+          .forEach((btn) =>
+            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
+          );
       }
 
       function addWorker() {
@@ -1258,6 +1597,18 @@
         closeModal();
         tutAdvance("worker-added");
       }
+
+      // Submit Add Employee on Enter when modal is open
+      document
+        .getElementById("new-worker-name")
+        .addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            // ensure the add-employee modal is currently open
+            const modalEl = document.getElementById("modal");
+            if (modalEl.classList.contains("open")) addWorker();
+          }
+        });
 
       document.getElementById("modal").addEventListener("click", function (e) {
         if (e.target === this) closeModal();
@@ -1282,36 +1633,48 @@
 
       function selectEditPriority(val) {
         editEmployeePriority = val;
-        document.querySelectorAll("#edit-priority-picker .priority-opt").forEach((btn) =>
-          btn.classList.toggle("active", parseInt(btn.dataset.val) === val));
+        document
+          .querySelectorAll("#edit-priority-picker .priority-opt")
+          .forEach((btn) =>
+            btn.classList.toggle("active", parseInt(btn.dataset.val) === val),
+          );
       }
 
       function confirmEditEmployee() {
         const name = document.getElementById("edit-employee-name").value.trim();
         if (!name) return alert("Enter a name.");
-        const existing = workers.find((w, i) =>
-          w.name.toLowerCase() === name.toLowerCase() && i !== editEmployeeIndex);
-        if (existing) return alert("Another employee with that name already exists.");
-        workers[editEmployeeIndex].name     = name;
+        const existing = workers.find(
+          (w, i) =>
+            w.name.toLowerCase() === name.toLowerCase() &&
+            i !== editEmployeeIndex,
+        );
+        if (existing)
+          return alert("Another employee with that name already exists.");
+        workers[editEmployeeIndex].name = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
         saveWorkers();
         renderWorkers();
         closeEditEmployeeModal();
       }
 
-      document.getElementById("edit-employee-modal").addEventListener("click", function (e) {
-        if (e.target === this) closeEditEmployeeModal();
-      });
+      document
+        .getElementById("edit-employee-modal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeEditEmployeeModal();
+        });
 
       // ── Availability ───────────────────────────────────────
       function buildAvailability() {
         availability = {};
         workers.forEach((w) => {
           availability[w.name] = DAYS.map((d) => ({
-            day: d, selected: false, allDay: true,
-            start: d === "saturday" ? 10 : (w.priority === 2 ? 3 : 4),
-            end:   d === "saturday" ? 14 : 8,
-            startMinute: 0, endMinute: 0,
+            day: d,
+            selected: false,
+            allDay: true,
+            start: d === "saturday" ? 10 : w.priority === 2 ? 3 : 4,
+            end: d === "saturday" ? 14 : 8,
+            startMinute: 0,
+            endMinute: 0,
           }));
         });
         renderAvailability();
@@ -1338,57 +1701,93 @@
               </label>
             </div>
             <div class="av-days">
-              ${av.map((d, di) => `
+              ${av
+                .map(
+                  (d, di) => `
                 <div class="av-day-row ${d.selected ? "selected" : ""}">
                   <label class="av-day-check">
                     <input type="checkbox" ${d.selected ? "checked" : ""} onchange="toggleDay('${w.name}', ${di}, this.checked)">
                     <span class="av-day-label">${DAY_FULL[d.day]}</span>
                   </label>
-                  ${d.selected ? `
+                  ${
+                    d.selected
+                      ? `
                     <div class="av-hours">
                       <label class="av-hours-check">
                         <input type="checkbox" ${d.allDay ? "checked" : ""} onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
                         <span>Default hours</span>
                       </label>
-                      ${!d.allDay ? `
+                      ${
+                        !d.allDay
+                          ? `
                         <div class="av-time-inputs">
                           <select onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
-                            ${timeOptions(d.day === "saturday").map((o) =>
-                              `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? "selected" : ""}>${o.label}</option>`
-                            ).join("")}
+                            ${timeOptions(d.day === "saturday")
+                              .map(
+                                (o) =>
+                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? "selected" : ""}>${o.label}</option>`,
+                              )
+                              .join("")}
                           </select>
                           <span>–</span>
                           <select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
-                            ${timeOptions(d.day === "saturday").map((o) =>
-                              `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? "selected" : ""}>${o.label}</option>`
-                            ).join("")}
+                            ${timeOptions(d.day === "saturday")
+                              .map(
+                                (o) =>
+                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? "selected" : ""}>${o.label}</option>`,
+                              )
+                              .join("")}
                           </select>
-                        </div>` : ""}
-                    </div>` : ""}
-                </div>`).join("")}
+                        </div>`
+                          : ""
+                      }
+                    </div>`
+                      : ""
+                  }
+                </div>`,
+                )
+                .join("")}
             </div>`;
           list.appendChild(section);
         });
       }
 
-      function toggleAllDays(name, checked) { availability[name].forEach((d) => (d.selected = checked)); renderAvailability(); markStale(); }
-      function toggleDay(name, di, checked) { availability[name][di].selected = checked; renderAvailability(); markStale(); }
-      function toggleAllDay(name, di, checked) { availability[name][di].allDay = checked; renderAvailability(); markStale(); }
+      function toggleAllDays(name, checked) {
+        availability[name].forEach((d) => (d.selected = checked));
+        renderAvailability();
+        markStale();
+      }
+      function toggleDay(name, di, checked) {
+        availability[name][di].selected = checked;
+        renderAvailability();
+        markStale();
+      }
+      function toggleAllDay(name, di, checked) {
+        availability[name][di].allDay = checked;
+        renderAvailability();
+        markStale();
+      }
 
       function updateHour(name, di, field, val) {
         const totalMins = parseInt(val);
         const d = availability[name][di];
         if (field === "start") {
           const endMins = hourMinToMins(d.end, d.endMinute || 0);
-          if (totalMins >= endMins) { renderAvailability(); return; }
+          if (totalMins >= endMins) {
+            renderAvailability();
+            return;
+          }
         }
         if (field === "end") {
           const startMins = hourMinToMins(d.start, d.startMinute || 0);
-          if (totalMins <= startMins) { renderAvailability(); return; }
+          if (totalMins <= startMins) {
+            renderAvailability();
+            return;
+          }
         }
         d[field] = minsToHour(totalMins);
         if (field === "start") d.startMinute = minsToMinute(totalMins);
-        if (field === "end")   d.endMinute   = minsToMinute(totalMins);
+        if (field === "end") d.endMinute = minsToMinute(totalMins);
         markStale();
       }
 
@@ -1405,26 +1804,28 @@
       let _calConnected = null; // cached state for banner visibility
 
       async function checkCalendarStatus() {
-        const dot  = document.getElementById("cal-status-dot");
+        const dot = document.getElementById("cal-status-dot");
         const text = document.getElementById("cal-status-text");
         const link = document.getElementById("cal-reconnect-link");
         if (!dot) return;
         try {
-          const res  = await fetch("/cal-status", { signal: AbortSignal.timeout(4000) });
+          const res = await fetch("/cal-status", {
+            signal: AbortSignal.timeout(4000),
+          });
           const data = await res.json();
           if (data.connected) {
-            dot.className  = "cal-status-dot connected";
+            dot.className = "cal-status-dot connected";
             text.textContent = "Connected";
             link.style.display = "none";
             _calConnected = true;
           } else {
-            dot.className  = "cal-status-dot disconnected";
+            dot.className = "cal-status-dot disconnected";
             text.textContent = "Not connected";
             link.style.display = "inline";
             _calConnected = false;
           }
         } catch (e) {
-          dot.className  = "cal-status-dot unknown";
+          dot.className = "cal-status-dot unknown";
           text.textContent = "Unable to reach server";
           link.style.display = "none";
           _calConnected = null;
@@ -1434,7 +1835,7 @@
       }
 
       function updateScheduleCalStatus() {
-        const dot  = document.getElementById("schedule-cal-dot");
+        const dot = document.getElementById("schedule-cal-dot");
         const text = document.getElementById("schedule-cal-text");
         if (!dot || !text) return;
         if (_calConnected === true) {
@@ -1451,12 +1852,18 @@
 
       function updateCalWarningBanner() {
         // Show warning banner only when disconnected AND not in demo mode
-        const show = (_calConnected === false) && !settings.demo;
+        const show = _calConnected === false && !settings.demo;
         document.body.classList.toggle("cal-warning-active", show);
       }
 
-      function reconnectCalendar(e) { e.preventDefault(); goToAuth(); closeSettings(); }
-      function reconnectCalendarBanner() { goToAuth(); }
+      function reconnectCalendar(e) {
+        e.preventDefault();
+        goToAuth();
+        closeSettings();
+      }
+      function reconnectCalendarBanner() {
+        goToAuth();
+      }
 
       // ── Slot tooltips ───────────────────────────────────────
       const slotTooltip = document.createElement("div");
@@ -1467,18 +1874,23 @@
       function showSlotTooltip(e, dayIndex, slotTime) {
         const day = scheduleData[dayIndex];
         if (!day) return;
-        const isSat    = day.day === "Saturday";
-        const dayKey   = day.day.toLowerCase();
-        const students = lastStudentData ? (lastStudentData[dayKey]?.[slotTime] ?? 0) : "—";
-        const isOneOnOne = lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
-        const slotIdx  = timeToIndex(slotTime, isSat);
+        const isSat = day.day === "Saturday";
+        const dayKey = day.day.toLowerCase();
+        const students = lastStudentData
+          ? (lastStudentData[dayKey]?.[slotTime] ?? 0)
+          : "—";
+        const isOneOnOne =
+          lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
+        const slotIdx = timeToIndex(slotTime, isSat);
         const workersHere = day.assignments.filter((a) => {
           const si = timeToIndex(a.start, isSat);
-          const ei = timeToIndex(a.end,   isSat);
+          const ei = timeToIndex(a.end, isSat);
           return slotIdx >= si && slotIdx < ei;
         });
         const needed = students === "—" ? "—" : Math.ceil(students / 3);
-        const oneOnOneTag = isOneOnOne ? ' <span class="tooltip-tag ooo">1-on-1</span>' : "";
+        const oneOnOneTag = isOneOnOne
+          ? ' <span class="tooltip-tag ooo">1-on-1</span>'
+          : "";
         slotTooltip.innerHTML = `
           <div class="tooltip-time">${slotTime}${isSat ? "" : " PM"}</div>
           <div class="tooltip-row"><span class="tooltip-label">Students</span><span class="tooltip-val">${students}${oneOnOneTag}</span></div>
@@ -1493,59 +1905,72 @@
         const th = slotTooltip.offsetHeight;
         let x = e.clientX + 14;
         let y = e.clientY - th / 2;
-        if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - 14;
+        if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 14;
         if (y < 8) y = 8;
         if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
         slotTooltip.style.left = x + "px";
-        slotTooltip.style.top  = y + "px";
+        slotTooltip.style.top = y + "px";
       }
 
-      function hideSlotTooltip() { slotTooltip.style.display = "none"; }
+      function hideSlotTooltip() {
+        slotTooltip.style.display = "none";
+      }
 
-      let lastStudentData  = null;
+      let lastStudentData = null;
       let lastOneOnOneData = null;
 
       // ── Generate ───────────────────────────────────────────
       async function generate() {
         const mondayVal = document.getElementById("week-date").value;
-        if (!mondayVal) return alert("Please enter the Monday date for this week.");
+        if (!mondayVal)
+          return alert("Please enter the Monday date for this week.");
 
-        const payload = workers.map((w) => {
-          const days = (availability[w.name] || [])
-            .filter((d) => d.selected)
-            .map((d) => ({
-              day: d.day, allDay: d.allDay,
-              start: d.start, end: d.end,
-              startMinute: d.startMinute || 0, endMinute: d.endMinute || 0,
-            }));
-          return { name: w.name, priority: w.priority, days };
-        }).filter((w) => w.days.length > 0);
+        const payload = workers
+          .map((w) => {
+            const days = (availability[w.name] || [])
+              .filter((d) => d.selected)
+              .map((d) => ({
+                day: d.day,
+                allDay: d.allDay,
+                start: d.start,
+                end: d.end,
+                startMinute: d.startMinute || 0,
+                endMinute: d.endMinute || 0,
+              }));
+            return { name: w.name, priority: w.priority, days };
+          })
+          .filter((w) => w.days.length > 0);
 
         if (payload.length === 0) return alert("No availability set.");
 
-        let studentData  = null;
+        let studentData = null;
         let oneOnOneData = null;
 
         try {
           if (settings.demo) throw new Error("skipped");
           const eventsRes = await fetch(`/events?monday=${mondayVal}`);
-          if (eventsRes.status === 401) { goToAuth(); return; }
+          if (eventsRes.status === 401) {
+            goToAuth();
+            return;
+          }
           if (eventsRes.ok) {
             const eventsData = await eventsRes.json();
-            studentData  = eventsData.studentData;
+            studentData = eventsData.studentData;
             oneOnOneData = eventsData.oneOnOneData;
-            lastStudentData  = studentData;
+            lastStudentData = studentData;
             lastOneOnOneData = oneOnOneData;
           }
         } catch (err) {
           console.warn("Calendar fetch skipped or failed:", err.message);
         }
 
-        const res  = await fetch("/generate", {
+        const res = await fetch("/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            workers: payload, studentData, oneOnOneData,
+            workers: payload,
+            studentData,
+            oneOnOneData,
             mode: settings.mode === "ultra" ? "ultra" : "simplified",
           }),
         });
@@ -1557,12 +1982,14 @@
           date: dates[d.day.toLowerCase()] || "",
           assignments: d.assignments.map((a) => {
             const worker = workers.find((w) => w.name === a.name);
-            const av     = worker ? availability[worker.name] : null;
-            const avDay  = av ? av.find((x) => x.day === d.day.toLowerCase()) : null;
+            const av = worker ? availability[worker.name] : null;
+            const avDay = av
+              ? av.find((x) => x.day === d.day.toLowerCase())
+              : null;
             return {
               ...a,
               availStart: avDay && avDay.selected ? avDay.start : null,
-              availEnd:   avDay && avDay.selected ? avDay.end   : null,
+              availEnd: avDay && avDay.selected ? avDay.end : null,
             };
           }),
         }));
@@ -1592,19 +2019,26 @@
         for (const day of scheduleData) {
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            const si  = timeToIndex(a.start, isSat);
-            const ei  = timeToIndex(a.end,   isSat);
+            const si = timeToIndex(a.start, isSat);
+            const ei = timeToIndex(a.end, isSat);
             const hrs = (ei - si) * 0.5;
             totals[a.name] = (totals[a.name] || 0) + hrs;
           }
         }
-        const sorted = Object.entries(totals).filter(([,h]) => h > 0).sort((a, b) => b[1] - a[1]);
-        if (sorted.length === 0) { el.style.display = "none"; return; }
-        let rows = sorted.map(([name, hrs]) => {
-          const color = getWorkerColor(name);
-          const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
-          return `<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
-        }).join("");
+        const sorted = Object.entries(totals)
+          .filter(([, h]) => h > 0)
+          .sort((a, b) => b[1] - a[1]);
+        if (sorted.length === 0) {
+          el.style.display = "none";
+          return;
+        }
+        let rows = sorted
+          .map(([name, hrs]) => {
+            const color = getWorkerColor(name);
+            const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
+            return `<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
+          })
+          .join("");
         el.innerHTML = `<div class="hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`;
         el.style.display = "block";
       }
@@ -1612,48 +2046,59 @@
       function buildTimelineHTML(data, isEdit) {
         let html = `<div class="timeline${isEdit ? " timeline-edit" : ""}">`;
         data.forEach((day, di) => {
-          const isSat   = day.day === "Saturday";
-          const slots   = slotList(isSat);
+          const isSat = day.day === "Saturday";
+          const slots = slotList(isSat);
           const boundaries = [...slots, isSat ? "2" : "8"];
-          const slotLabels = boundaries.map((s, i) => {
-            const isLast = i === boundaries.length - 1;
-            const slotKey = slots[i];
-            const handler = !isLast
-              ? `onmouseenter="showSlotTooltip(event,${di},'${slotKey}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`
-              : "";
-            return `<div class="timeline-line-label${!isLast ? " tooltip-sensor" : ""}" style="top:${i * SLOT_H}px;" ${handler}>${s}</div>`;
-          }).join("");
-          const gridLines  = slots.map(() => '<div class="timeline-grid-line"></div>').join("");
+          const slotLabels = boundaries
+            .map((s, i) => {
+              const isLast = i === boundaries.length - 1;
+              const slotKey = slots[i];
+              const handler = !isLast
+                ? `onmouseenter="showSlotTooltip(event,${di},'${slotKey}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`
+                : "";
+              return `<div class="timeline-line-label${!isLast ? " tooltip-sensor" : ""}" style="top:${i * SLOT_H}px;" ${handler}>${s}</div>`;
+            })
+            .join("");
+          const gridLines = slots
+            .map(() => '<div class="timeline-grid-line"></div>')
+            .join("");
           const totalSlots = slots.length;
 
-          const workerCols = day.assignments.map((a, ai) => {
-            const si    = timeToIndex(a.start, isSat);
-            const ei    = timeToIndex(a.end,   isSat);
-            const color = getWorkerColor(a.name);
-            const draggable = isEdit ? `data-day="${di}" data-ai="${ai}"` : "";
-            const resizable = isEdit ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>` : "";
-            const removable = isEdit ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>` : "";
+          const workerCols = day.assignments
+            .map((a, ai) => {
+              const si = timeToIndex(a.start, isSat);
+              const ei = timeToIndex(a.end, isSat);
+              const color = getWorkerColor(a.name);
+              const draggable = isEdit
+                ? `data-day="${di}" data-ai="${ai}"`
+                : "";
+              const resizable = isEdit
+                ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
+                : "";
+              const removable = isEdit
+                ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>`
+                : "";
 
-            let oobOverlay = "";
-            if (isEdit) {
-              if (a.availStart === null || a.availEnd === null) {
-                oobOverlay = `<div class="oob-overlay" style="top:0; height:${(ei - si) * SLOT_H}px;"></div>`;
-              } else {
-                const avSi = timeToIndex(a.availStart.toString(), isSat);
-                const avEi = timeToIndex(a.availEnd.toString(),   isSat);
-                if (si < avSi) {
-                  const h = Math.min(avSi - si, ei - si) * SLOT_H;
-                  oobOverlay += `<div class="oob-overlay" style="top:0; height:${h}px;"></div>`;
-                }
-                if (ei > avEi) {
-                  const top = Math.max(avEi - si, 0) * SLOT_H;
-                  const h   = (ei - Math.max(avEi, si)) * SLOT_H;
-                  oobOverlay += `<div class="oob-overlay" style="top:${top}px; height:${h}px;"></div>`;
+              let oobOverlay = "";
+              if (isEdit) {
+                if (a.availStart === null || a.availEnd === null) {
+                  oobOverlay = `<div class="oob-overlay" style="top:0; height:${(ei - si) * SLOT_H}px;"></div>`;
+                } else {
+                  const avSi = timeToIndex(a.availStart.toString(), isSat);
+                  const avEi = timeToIndex(a.availEnd.toString(), isSat);
+                  if (si < avSi) {
+                    const h = Math.min(avSi - si, ei - si) * SLOT_H;
+                    oobOverlay += `<div class="oob-overlay" style="top:0; height:${h}px;"></div>`;
+                  }
+                  if (ei > avEi) {
+                    const top = Math.max(avEi - si, 0) * SLOT_H;
+                    const h = (ei - Math.max(avEi, si)) * SLOT_H;
+                    oobOverlay += `<div class="oob-overlay" style="top:${top}px; height:${h}px;"></div>`;
+                  }
                 }
               }
-            }
 
-            return `
+              return `
               <div class="timeline-worker-col">
                 <div class="timeline-grid-lines">${gridLines}</div>
                 <div class="worker-block ${isEdit ? "draggable" : ""}"
@@ -1662,10 +2107,15 @@
                   ${a.name}${oobOverlay}${resizable}${removable}
                 </div>
               </div>`;
-          }).join("");
+            })
+            .join("");
 
-          const addBtn = isEdit ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>` : "";
-          const dateStr = day.date ? ` <span class="day-date">${day.date}</span>` : "";
+          const addBtn = isEdit
+            ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>`
+            : "";
+          const dateStr = day.date
+            ? ` <span class="day-date">${day.date}</span>`
+            : "";
 
           html += `
             <div class="timeline-day">
@@ -1687,28 +2137,31 @@
         for (const day of scheduleData) {
           const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            const si  = timeToIndex(a.start, isSat);
-            const ei  = timeToIndex(a.end,   isSat);
+            const si = timeToIndex(a.start, isSat);
+            const ei = timeToIndex(a.end, isSat);
             totals[a.name] = (totals[a.name] || 0) + (ei - si) * 0.5;
           }
         }
         const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
         let summaryHtml = "";
         if (sorted.length > 0) {
-          const rows = sorted.map(([name, hrs]) => {
-            const color = getWorkerColor(name);
-            const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
-            return `<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
-          }).join("");
+          const rows = sorted
+            .map(([name, hrs]) => {
+              const color = getWorkerColor(name);
+              const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
+              return `<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
+            })
+            .join("");
           summaryHtml = `<div class="hours-summary edit-hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`;
         }
-        document.getElementById("edit-timeline").innerHTML = buildTimelineHTML(scheduleData, true) + summaryHtml;
+        document.getElementById("edit-timeline").innerHTML =
+          buildTimelineHTML(scheduleData, true) + summaryHtml;
         attachDragHandlers();
         updateOobBanner();
       }
 
       function updateOobBanner() {
-        const banner   = document.getElementById("oob-banner");
+        const banner = document.getElementById("oob-banner");
         const warnings = getOutOfBoundsWorkers();
         banner.style.display = warnings.length === 0 ? "none" : "block";
         if (warnings.length > 0)
@@ -1716,39 +2169,61 @@
       }
 
       function attachDragHandlers() {
-        document.querySelectorAll(".worker-block.draggable").forEach((block) =>
-          block.addEventListener("mousedown", onBlockMouseDown));
-        document.querySelectorAll(".resize-handle").forEach((handle) =>
-          handle.addEventListener("mousedown", onResizeMouseDown));
+        document
+          .querySelectorAll(".worker-block.draggable")
+          .forEach((block) =>
+            block.addEventListener("mousedown", onBlockMouseDown),
+          );
+        document
+          .querySelectorAll(".resize-handle")
+          .forEach((handle) =>
+            handle.addEventListener("mousedown", onResizeMouseDown),
+          );
       }
 
       function onBlockMouseDown(e) {
         if (e.target.classList.contains("resize-handle")) return;
-        if (e.target.classList.contains("remove-btn"))   return;
-        e.preventDefault(); e.stopPropagation();
+        if (e.target.classList.contains("remove-btn")) return;
+        e.preventDefault();
+        e.stopPropagation();
         const block = e.currentTarget;
         const di = parseInt(block.dataset.day);
         const ai = parseInt(block.dataset.ai);
-        dragState = { type: "move", block, di, ai, startY: e.clientY, startTop: parseInt(block.style.top) };
+        dragState = {
+          type: "move",
+          block,
+          di,
+          ai,
+          startY: e.clientY,
+          startTop: parseInt(block.style.top),
+        };
         document.addEventListener("mousemove", onDragMove);
         window.addEventListener("mouseup", cancelDrag);
       }
 
       function onResizeMouseDown(e) {
-        e.preventDefault(); e.stopPropagation();
-        const di    = parseInt(e.currentTarget.dataset.day);
-        const ai    = parseInt(e.currentTarget.dataset.ai);
+        e.preventDefault();
+        e.stopPropagation();
+        const di = parseInt(e.currentTarget.dataset.day);
+        const ai = parseInt(e.currentTarget.dataset.ai);
         const block = e.currentTarget.closest(".worker-block");
-        dragState = { type: "resize", block, di, ai, startY: e.clientY, startHeight: parseInt(block.style.height) };
+        dragState = {
+          type: "resize",
+          block,
+          di,
+          ai,
+          startY: e.clientY,
+          startHeight: parseInt(block.style.height),
+        };
         document.addEventListener("mousemove", onDragMove);
         window.addEventListener("mouseup", cancelDrag);
       }
 
       function onDragMove(e) {
         if (!dragState) return;
-        const isSat     = scheduleData[dragState.di].day === "Saturday";
+        const isSat = scheduleData[dragState.di].day === "Saturday";
         const totalSlots = slotList(isSat).length;
-        const dy         = e.clientY - dragState.startY;
+        const dy = e.clientY - dragState.startY;
         if (dragState.type === "move") {
           let newTop = Math.round((dragState.startTop + dy) / SLOT_H) * SLOT_H;
           const blockH = parseInt(dragState.block.style.height);
@@ -1766,15 +2241,15 @@
       function cancelDrag() {
         if (!dragState) return;
         const { di, ai, block } = dragState;
-        const isSat  = scheduleData[di].day === "Saturday";
-        const top    = parseInt(block.style.top);
+        const isSat = scheduleData[di].day === "Saturday";
+        const top = parseInt(block.style.top);
         const height = parseInt(block.style.height);
         const si = Math.round(top / SLOT_H);
         const ei = Math.round((top + height) / SLOT_H);
         scheduleData[di].assignments[ai].start = indexToTime(si, isSat);
-        scheduleData[di].assignments[ai].end   = indexToTime(ei, isSat);
+        scheduleData[di].assignments[ai].end = indexToTime(ei, isSat);
         document.removeEventListener("mousemove", onDragMove);
-        window.removeEventListener("mouseup",   cancelDrag);
+        window.removeEventListener("mouseup", cancelDrag);
         dragState = null;
         renderEditScreen();
         renderSchedule();
@@ -1791,20 +2266,24 @@
       // ── Add Shift Modal ────────────────────────────────────
       function openAddShiftModal(di) {
         addShiftTarget = di;
-        const day  = scheduleData[di];
+        const day = scheduleData[di];
         const isSat = day.day === "Saturday";
         const slots = slotList(isSat);
         document.getElementById("add-shift-day-name").textContent = day.day;
-        const assigned  = new Set(day.assignments.map((a) => a.name));
+        const assigned = new Set(day.assignments.map((a) => a.name));
         const available = workers.filter((w) => !assigned.has(w.name));
         document.getElementById("add-shift-worker").innerHTML =
           available.length === 0
             ? `<option value="">No employees available</option>`
-            : available.map((w) => `<option value="${w.name}">${w.name}</option>`).join("");
-        const boundary  = isSat ? "2" : "8";
+            : available
+                .map((w) => `<option value="${w.name}">${w.name}</option>`)
+                .join("");
+        const boundary = isSat ? "2" : "8";
         const timePoints = [...slots, boundary];
         const toOpt = (s) => `<option value="${s}">${s}</option>`;
-        document.getElementById("add-shift-start").innerHTML = timePoints.map(toOpt).join("");
+        document.getElementById("add-shift-start").innerHTML = timePoints
+          .map(toOpt)
+          .join("");
         const endSel = document.getElementById("add-shift-end");
         endSel.innerHTML = timePoints.map(toOpt).join("");
         endSel.selectedIndex = Math.min(2, timePoints.length - 1);
@@ -1817,35 +2296,50 @@
       }
 
       function confirmAddShift() {
-        const name  = document.getElementById("add-shift-worker").value;
+        const name = document.getElementById("add-shift-worker").value;
         if (!name) return alert("No employee selected.");
         const start = document.getElementById("add-shift-start").value;
-        const end   = document.getElementById("add-shift-end").value;
-        const di    = addShiftTarget;
+        const end = document.getElementById("add-shift-end").value;
+        const di = addShiftTarget;
         const isSat = scheduleData[di].day === "Saturday";
         if (timeToIndex(start, isSat) >= timeToIndex(end, isSat))
           return alert("End time must be after start time.");
         const worker = workers.find((w) => w.name === name);
-        const av     = availability[name];
-        const avDay  = av ? av.find((x) => x.day === scheduleData[di].day.toLowerCase()) : null;
+        const av = availability[name];
+        const avDay = av
+          ? av.find((x) => x.day === scheduleData[di].day.toLowerCase())
+          : null;
         closeAddShiftModal();
         scheduleData[di].assignments.push({
-          name, start, end, priority: worker ? worker.priority : 0,
+          name,
+          start,
+          end,
+          priority: worker ? worker.priority : 0,
           availStart: avDay && avDay.selected ? avDay.start : null,
-          availEnd:   avDay && avDay.selected ? avDay.end   : null,
+          availEnd: avDay && avDay.selected ? avDay.end : null,
         });
-        setTimeout(() => { renderEditScreen(); renderSchedule(); }, 0);
+        setTimeout(() => {
+          renderEditScreen();
+          renderSchedule();
+        }, 0);
       }
 
-      document.getElementById("add-shift-modal").addEventListener("click", function (e) {
-        if (e.target === this) closeAddShiftModal();
-      });
+      document
+        .getElementById("add-shift-modal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeAddShiftModal();
+        });
 
       // ── Clipboard ──────────────────────────────────────────
       function copyToClipboard() {
         const warnings = getOutOfBoundsWorkers();
         if (warnings.length > 0) {
-          if (!confirm(`⚠️ The following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`)) return;
+          if (
+            !confirm(
+              `⚠️ The following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`,
+            )
+          )
+            return;
         }
         navigator.clipboard.writeText(buildClipboardText()).then(() => {
           document.querySelectorAll("#copy-btn").forEach((btn) => {
@@ -1874,15 +2368,24 @@
 
       window.addEventListener("message", async (e) => {
         if (e.data?.type !== "oauth_success") return;
-        if (_oauthWin) { try { _oauthWin.close(); } catch (_) {} _oauthWin = null; }
+        if (_oauthWin) {
+          try {
+            _oauthWin.close();
+          } catch (_) {}
+          _oauthWin = null;
+        }
         const r = await fetch("/cal-status");
         const d = await r.json();
-        if (d.connected) { setAuthState("success"); checkCalendarStatus(); }
-        else { setAuthState("error", "Token not saved — please try again."); }
+        if (d.connected) {
+          setAuthState("success");
+          checkCalendarStatus();
+        } else {
+          setAuthState("error", "Token not saved — please try again.");
+        }
       });
 
       function setAuthState(state, msg) {
-        ["idle","waiting","success","error"].forEach((s) => {
+        ["idle", "waiting", "success", "error"].forEach((s) => {
           const el = document.getElementById("auth-state-" + s);
           if (el) el.style.display = s === state ? "block" : "none";
         });
