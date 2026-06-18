@@ -1094,6 +1094,14 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .cal-reconnect-link:hover { color: var(--accent-hover); }
 
+/* ── Calendar picker (settings) ── */
+.cal-picker-select {
+  width: auto;
+  max-width: 220px;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
 /* ── Schedule panel calendar status (inline next to "Schedule" heading) ── */
 .schedule-cal-status {
   display: inline-flex;

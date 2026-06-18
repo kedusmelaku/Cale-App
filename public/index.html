@@ -378,6 +378,26 @@
               >
             </div>
           </div>
+          <div
+            class="settings-row"
+            id="cal-picker-row"
+            style="margin-top: 14px; display: none"
+          >
+            <div>
+              <div class="settings-label">Calendar to Read</div>
+              <div class="settings-sublabel">
+                Choose which Google Calendar Scheduler pulls student bookings
+                from
+              </div>
+            </div>
+            <select
+              id="cal-picker-select"
+              class="field-select cal-picker-select"
+              onchange="onCalendarPicked(this.value)"
+            >
+              <option value="">Loading…</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -1200,6 +1220,7 @@
         theme: "light",
         mode: "simplified",
         demo: false,
+        calendarId: "",
         ...JSON.parse(localStorage.getItem("scheduler-settings") || "{}"),
       };
 
@@ -1900,6 +1921,7 @@
         }
         updateScheduleCalStatus();
         updateCalWarningBanner();
+        updateCalendarPicker();
       }
 
       function updateScheduleCalStatus() {
@@ -1953,6 +1975,73 @@
         } catch (err) {
           alert("Error disconnecting: " + (err.message || err));
         }
+      }
+
+      // ── Calendar picker ──────────────────────────────────────
+      // Lets the user choose which Google Calendar Scheduler reads from,
+      // instead of always using the hardcoded default.
+      let _calendarListCache = null;
+
+      function updateCalendarPicker() {
+        const row = document.getElementById("cal-picker-row");
+        if (!row) return;
+        if (_calConnected === true) {
+          row.style.display = "flex";
+          loadCalendarList();
+        } else {
+          row.style.display = "none";
+        }
+      }
+
+      async function loadCalendarList() {
+        const select = document.getElementById("cal-picker-select");
+        if (!select) return;
+        try {
+          const res = await fetch("/calendars", {
+            signal: AbortSignal.timeout(6000),
+          });
+          if (res.status === 401) {
+            select.innerHTML = `<option value="">Reconnect to load calendars</option>`;
+            return;
+          }
+          if (!res.ok) throw new Error("Failed to load calendars");
+          const data = await res.json();
+          _calendarListCache = data.calendars || [];
+
+          if (_calendarListCache.length === 0) {
+            select.innerHTML = `<option value="">No calendars found</option>`;
+            return;
+          }
+
+          select.innerHTML = _calendarListCache
+            .map((c) => {
+              const label = c.primary ? `${c.name} (Primary)` : c.name;
+              return `<option value="${c.id}">${label}</option>`;
+            })
+            .join("");
+
+          // Preserve previously selected calendar if it's still present,
+          // otherwise fall back to the first one in the list.
+          const hasSaved =
+            settings.calendarId &&
+            _calendarListCache.some((c) => c.id === settings.calendarId);
+          if (hasSaved) {
+            select.value = settings.calendarId;
+          } else {
+            select.value = _calendarListCache[0].id;
+            settings.calendarId = select.value;
+            saveSettings();
+          }
+        } catch (err) {
+          console.warn("Failed to load calendar list:", err.message);
+          select.innerHTML = `<option value="">Unable to load calendars</option>`;
+        }
+      }
+
+      function onCalendarPicked(id) {
+        settings.calendarId = id;
+        saveSettings();
+        markStale();
       }
 
       // ── Slot tooltips ───────────────────────────────────────
@@ -2038,7 +2127,12 @@
 
         try {
           if (settings.demo) throw new Error("skipped");
-          const eventsRes = await fetch(`/events?monday=${mondayVal}`);
+          const calParam = settings.calendarId
+            ? `&calendarId=${encodeURIComponent(settings.calendarId)}`
+            : "";
+          const eventsRes = await fetch(
+            `/events?monday=${mondayVal}${calParam}`,
+          );
           if (eventsRes.status === 401) {
             goToAuth();
             return;
