@@ -115,6 +115,46 @@ app.post("/oauth/disconnect", (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CALENDARS — lists every calendar the authenticated account can see, so the
+// user can pick which one Scheduler reads student bookings from.
+// ─────────────────────────────────────────────────────────────────────────────
+app.get("/calendars", async (req, res) => {
+  try {
+    const { google } = require("googleapis");
+    const { getAuth } = require("./auth");
+    const auth = getAuth();
+    const calendar = google.calendar({ version: "v3", auth });
+
+    const response = await calendar.calendarList.list();
+    const items = response.data.items || [];
+
+    const calendars = items.map((c) => ({
+      id: c.id,
+      name: c.summaryOverride || c.summary || c.id,
+      primary: !!c.primary,
+      accessRole: c.accessRole,
+    }));
+
+    res.json({ calendars });
+  } catch (err) {
+    console.error("/calendars error:", err.message);
+    const isAuth =
+      [401, 403].includes(err.code) ||
+      [
+        "invalid_grant",
+        "unauthorized",
+        "No refresh token",
+        "Token has been expired",
+        "invalid_client",
+      ].some((s) => err.message?.includes(s));
+    res.status(isAuth ? 401 : 500).json({
+      error: isAuth ? "auth" : "calendar_error",
+      message: err.message,
+    });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // EVENTS
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/events/mock", (req, res) => {
