@@ -133,23 +133,62 @@
             <div class="empty-state" id="empty-state">
               Enter a date and click <strong>Generate Schedule</strong>.
             </div>
-            <div class="empty-state" id="empty-state-no-calendar" style="display:none">
+            <div
+              class="empty-state"
+              id="empty-state-no-calendar"
+              style="display: none"
+            >
               <div class="empty-state-icon">📅</div>
               <strong>Google Calendar isn't connected</strong>
-              <p>Scheduler needs your calendar to read student booking counts. Connect it to generate a schedule.</p>
-              <button class="btn-primary" style="margin-top:14px;" onclick="goToAuth()">Connect Google Calendar →</button>
+              <p>
+                Scheduler needs your calendar to read student booking counts.
+                Connect it to generate a schedule.
+              </p>
+              <button
+                class="btn-primary"
+                style="margin-top: 14px"
+                onclick="goToAuth()"
+              >
+                Connect Google Calendar →
+              </button>
             </div>
-            <div class="empty-state" id="empty-state-calendar-error" style="display:none">
+            <div
+              class="empty-state"
+              id="empty-state-calendar-error"
+              style="display: none"
+            >
               <div class="empty-state-icon">⚠️</div>
               <strong>Couldn't reach Google Calendar</strong>
-              <p>There was a problem fetching your calendar data. Check your connection or try reconnecting.</p>
-              <button class="btn-primary" style="margin-top:14px;" onclick="goToAuth()">Reconnect →</button>
+              <p>
+                There was a problem fetching your calendar data. Check your
+                connection or try reconnecting.
+              </p>
+              <button
+                class="btn-primary"
+                style="margin-top: 14px"
+                onclick="goToAuth()"
+              >
+                Reconnect →
+              </button>
             </div>
-            <div class="empty-state" id="empty-state-no-students" style="display:none">
+            <div
+              class="empty-state"
+              id="empty-state-no-students"
+              style="display: none"
+            >
               <div class="empty-state-icon">🗓️</div>
               <strong>No student bookings found this week</strong>
-              <p>Your calendar had no lesson events for the selected week. Make sure you've picked the right Monday date.</p>
-              <button class="btn-secondary" style="margin-top:14px;" onclick="generate()">Try again</button>
+              <p>
+                Your calendar had no lesson events for the selected week. Make
+                sure you've picked the right Monday date.
+              </p>
+              <button
+                class="btn-secondary"
+                style="margin-top: 14px"
+                onclick="generate()"
+              >
+                Try again
+              </button>
             </div>
             <div id="schedule-output" style="display: none"></div>
             <div id="hours-summary" style="display: none"></div>
@@ -416,6 +455,21 @@
               <option value="">Loading…</option>
             </select>
           </div>
+        </div>
+        <div
+          style="
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+          "
+        >
+          <a
+            id="privacy-link"
+            href="/privacy.html"
+            style="color: inherit; text-decoration: none"
+            >Privacy Policy</a
+          >
         </div>
       </div>
     </div>
@@ -1265,6 +1319,26 @@
             .classList.toggle("active", settings.mode === "ultra");
         checkCalendarStatus();
         document.getElementById("demo-toggle").checked = settings.demo;
+        // Decide whether the privacy link should open in a new tab.
+        // Default: open in new tab unless the settings panel contains a "back" affordance.
+        const pLink = document.getElementById("privacy-link");
+        if (pLink) {
+          const backBtn = document.querySelector("#settings-panel .btn-back");
+          let openInNew = true;
+          if (backBtn) {
+            const txt = (backBtn.textContent || "").trim();
+            if (txt.includes("←") || /back/i.test(txt)) openInNew = false;
+          }
+          if (openInNew) {
+            pLink.setAttribute("target", "_blank");
+            // Do NOT set rel="noopener" so the privacy page can access window.opener
+            // (privacy page will only show a back button if opener is present).
+            pLink.removeAttribute("rel");
+          } else {
+            pLink.removeAttribute("target");
+            pLink.removeAttribute("rel");
+          }
+        }
         document.getElementById("settings-panel").classList.add("open");
       }
 
@@ -1891,9 +1965,12 @@
         document.getElementById("edit-btn").disabled = true;
 
         // Hide all empty states
-        ["", "-no-calendar", "-calendar-error", "-no-students"].forEach(suffix => {
-          document.getElementById("empty-state" + suffix).style.display = "none";
-        });
+        ["", "-no-calendar", "-calendar-error", "-no-students"].forEach(
+          (suffix) => {
+            document.getElementById("empty-state" + suffix).style.display =
+              "none";
+          },
+        );
 
         // Show the right one
         const map = {
@@ -1902,7 +1979,8 @@
           "calendar-error": "empty-state-calendar-error",
           "no-students": "empty-state-no-students",
         };
-        document.getElementById(map[reason] || "empty-state").style.display = "block";
+        document.getElementById(map[reason] || "empty-state").style.display =
+          "block";
       }
 
       // ── Stale schedule tracking ────────────────────────────
@@ -2225,7 +2303,10 @@
         }));
 
         // Check if any assignments were actually made
-        const totalAssignments = data.schedule.reduce((sum, d) => sum + d.assignments.length, 0);
+        const totalAssignments = data.schedule.reduce(
+          (sum, d) => sum + d.assignments.length,
+          0,
+        );
         if (totalAssignments === 0 && !settings.demo && studentData) {
           showEmptyState("no-students");
           return;
@@ -2243,9 +2324,12 @@
       // ── Schedule View ──────────────────────────────────────
       function renderSchedule() {
         // Hide all empty states before showing output
-        ["", "-no-calendar", "-calendar-error", "-no-students"].forEach(suffix => {
-          document.getElementById("empty-state" + suffix).style.display = "none";
-        });
+        ["", "-no-calendar", "-calendar-error", "-no-students"].forEach(
+          (suffix) => {
+            document.getElementById("empty-state" + suffix).style.display =
+              "none";
+          },
+        );
         const output = document.getElementById("schedule-output");
         output.style.display = "block";
         output.innerHTML = buildTimelineHTML(scheduleData, false);
@@ -2491,7 +2575,7 @@
         const ei = Math.round((top + height) / SLOT_H);
 
         // Remove existing OOB overlays inside this block
-        block.querySelectorAll(".oob-overlay").forEach(el => el.remove());
+        block.querySelectorAll(".oob-overlay").forEach((el) => el.remove());
 
         if (a.availStart === null || a.availEnd === null) {
           const overlay = document.createElement("div");
@@ -2560,31 +2644,37 @@
         if (unassigned.length === 0) {
           workerSelect.innerHTML = `<option value="">No employees available</option>`;
         } else {
-          workerSelect.innerHTML = unassigned.map((w) => {
-            const av = availability[w.name];
-            const avDay = av ? av.find((x) => x.day === day.day.toLowerCase()) : null;
-            let avLabel = "";
-            if (!avDay || !avDay.selected) {
-              avLabel = " — unavailable";
-            } else if (avDay.allDay) {
-              avLabel = " — all day";
-            } else {
-              const fmt = (h, m) => {
-                const displayH = h > 12 ? h - 12 : h;
-                const suffix = isSat ? (h >= 12 ? " PM" : " AM") : " PM";
-                return m ? `${displayH}:30${suffix}` : `${displayH}${suffix}`;
-              };
-              avLabel = ` — ${fmt(avDay.start, avDay.startMinute || 0)}–${fmt(avDay.end, avDay.endMinute || 0)}`;
-            }
-            const isUnavailable = !avDay || !avDay.selected;
-            return `<option value="${w.name}" ${isUnavailable ? 'data-unavailable="true"' : ""}>${w.name}${avLabel}</option>`;
-          }).join("");
+          workerSelect.innerHTML = unassigned
+            .map((w) => {
+              const av = availability[w.name];
+              const avDay = av
+                ? av.find((x) => x.day === day.day.toLowerCase())
+                : null;
+              let avLabel = "";
+              if (!avDay || !avDay.selected) {
+                avLabel = " — unavailable";
+              } else if (avDay.allDay) {
+                avLabel = " — all day";
+              } else {
+                const fmt = (h, m) => {
+                  const displayH = h > 12 ? h - 12 : h;
+                  const suffix = isSat ? (h >= 12 ? " PM" : " AM") : " PM";
+                  return m ? `${displayH}:30${suffix}` : `${displayH}${suffix}`;
+                };
+                avLabel = ` — ${fmt(avDay.start, avDay.startMinute || 0)}–${fmt(avDay.end, avDay.endMinute || 0)}`;
+              }
+              const isUnavailable = !avDay || !avDay.selected;
+              return `<option value="${w.name}" ${isUnavailable ? 'data-unavailable="true"' : ""}>${w.name}${avLabel}</option>`;
+            })
+            .join("");
         }
 
         // Style unavailable options red via JS (CSS can't target option text color reliably cross-browser)
-        workerSelect.querySelectorAll("option[data-unavailable]").forEach(opt => {
-          opt.style.color = "#c0392b";
-        });
+        workerSelect
+          .querySelectorAll("option[data-unavailable]")
+          .forEach((opt) => {
+            opt.style.color = "#c0392b";
+          });
 
         const boundary = isSat ? "2" : "8";
         const timePoints = [...slots, boundary];
