@@ -1951,6 +1951,13 @@
         updateScheduleCalStatus();
         updateCalWarningBanner();
         updateCalendarPicker();
+        // If we just became connected, clear the no-calendar empty state
+        if (_calConnected === true) {
+          const noCalEl = document.getElementById("empty-state-no-calendar");
+          if (noCalEl && noCalEl.style.display !== "none") {
+            showEmptyState("default");
+          }
+        }
       }
 
       function updateScheduleCalStatus() {
