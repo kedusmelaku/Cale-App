@@ -27,10 +27,13 @@ app.get("/oauth/start", (req, res) => {
   try {
     const { getAuth } = require("./auth");
     const auth = getAuth();
+    const crypto = require("crypto");
+    const state = crypto.randomBytes(16).toString("hex");
     const url = auth.generateAuthUrl({
       access_type: "offline",
-      prompt: "consent", // ensures we always get a refresh_token
+      prompt: "consent",
       scope: "https://www.googleapis.com/auth/calendar.readonly",
+      state,
     });
     res.json({ url });
   } catch (err) {
@@ -40,8 +43,12 @@ app.get("/oauth/start", (req, res) => {
 });
 
 app.get("/oauth/callback", async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   if (!code) return res.status(400).send("Missing code parameter from Google.");
+  if (!state)
+    return res
+      .status(400)
+      .send("Missing state parameter — possible CSRF attack.");
 
   try {
     const { getAuth, applyTokens } = require("./auth");
