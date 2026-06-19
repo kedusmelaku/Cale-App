@@ -1501,3 +1501,17 @@ body.dark {
 }
 
 .btn-tutorial:hover { background: var(--accent-light); }
+
+.empty-state-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.empty-state p {
+  margin-top: 8px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  max-width: 320px;
+  line-height: 1.6;
+}

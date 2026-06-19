@@ -133,6 +133,24 @@
             <div class="empty-state" id="empty-state">
               Enter a date and click <strong>Generate Schedule</strong>.
             </div>
+            <div class="empty-state" id="empty-state-no-calendar" style="display:none">
+              <div class="empty-state-icon">📅</div>
+              <strong>Google Calendar isn't connected</strong>
+              <p>Scheduler needs your calendar to read student booking counts. Connect it to generate a schedule.</p>
+              <button class="btn-primary" style="margin-top:14px;" onclick="goToAuth()">Connect Google Calendar →</button>
+            </div>
+            <div class="empty-state" id="empty-state-calendar-error" style="display:none">
+              <div class="empty-state-icon">⚠️</div>
+              <strong>Couldn't reach Google Calendar</strong>
+              <p>There was a problem fetching your calendar data. Check your connection or try reconnecting.</p>
+              <button class="btn-primary" style="margin-top:14px;" onclick="goToAuth()">Reconnect →</button>
+            </div>
+            <div class="empty-state" id="empty-state-no-students" style="display:none">
+              <div class="empty-state-icon">🗓️</div>
+              <strong>No student bookings found this week</strong>
+              <p>Your calendar had no lesson events (HS, MS, or ES) for the selected week. Make sure you've picked the right Monday date.</p>
+              <button class="btn-secondary" style="margin-top:14px;" onclick="generate()">Try again</button>
+            </div>
             <div id="schedule-output" style="display: none"></div>
             <div id="hours-summary" style="display: none"></div>
           </div>
@@ -1325,12 +1343,8 @@
         scheduleData = [];
         renderWorkers();
         renderAvailability();
-        document.getElementById("empty-state").style.display = "block";
-        document.getElementById("schedule-output").style.display = "none";
-        document.getElementById("hours-summary").style.display = "none";
+        showEmptyState("default");
         document.getElementById("hours-summary-edit").style.display = "none";
-        document.getElementById("copy-btn").disabled = true;
-        document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
       }
 
@@ -1339,12 +1353,8 @@
         availability = {};
         scheduleData = [];
         renderWorkers();
-        document.getElementById("empty-state").style.display = "block";
-        document.getElementById("schedule-output").style.display = "none";
-        document.getElementById("hours-summary").style.display = "none";
+        showEmptyState("default");
         document.getElementById("hours-summary-edit").style.display = "none";
-        document.getElementById("copy-btn").disabled = true;
-        document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
       }
 
@@ -1563,12 +1573,8 @@
             : "";
         if (!confirm(`${warnText}Finish editing and return to start?`)) return;
         scheduleData = [];
-        document.getElementById("empty-state").style.display = "block";
-        document.getElementById("schedule-output").style.display = "none";
-        document.getElementById("hours-summary").style.display = "none";
+        showEmptyState("default");
         document.getElementById("hours-summary-edit").style.display = "none";
-        document.getElementById("copy-btn").disabled = true;
-        document.getElementById("edit-btn").disabled = true;
         showScreen("screen-workers");
       }
 
@@ -1876,6 +1882,29 @@
         markStale();
       }
 
+      // ── Empty state management ─────────────────────────────
+      function showEmptyState(reason) {
+        // Hide schedule output
+        document.getElementById("schedule-output").style.display = "none";
+        document.getElementById("hours-summary").style.display = "none";
+        document.getElementById("copy-btn").disabled = true;
+        document.getElementById("edit-btn").disabled = true;
+
+        // Hide all empty states
+        ["", "-no-calendar", "-calendar-error", "-no-students"].forEach(suffix => {
+          document.getElementById("empty-state" + suffix).style.display = "none";
+        });
+
+        // Show the right one
+        const map = {
+          default: "empty-state",
+          "no-calendar": "empty-state-no-calendar",
+          "calendar-error": "empty-state-calendar-error",
+          "no-students": "empty-state-no-students",
+        };
+        document.getElementById(map[reason] || "empty-state").style.display = "block";
+      }
+
       // ── Stale schedule tracking ────────────────────────────
       let scheduleIsStale = false;
 
@@ -2125,27 +2154,37 @@
         let studentData = null;
         let oneOnOneData = null;
 
-        try {
-          if (settings.demo) throw new Error("skipped");
-          const calParam = settings.calendarId
-            ? `&calendarId=${encodeURIComponent(settings.calendarId)}`
-            : "";
-          const eventsRes = await fetch(
-            `/events?monday=${mondayVal}${calParam}`,
-          );
-          if (eventsRes.status === 401) {
-            goToAuth();
+        if (!settings.demo) {
+          if (_calConnected !== true) {
+            showEmptyState("no-calendar");
             return;
           }
-          if (eventsRes.ok) {
-            const eventsData = await eventsRes.json();
-            studentData = eventsData.studentData;
-            oneOnOneData = eventsData.oneOnOneData;
-            lastStudentData = studentData;
-            lastOneOnOneData = oneOnOneData;
+          try {
+            const calParam = settings.calendarId
+              ? `&calendarId=${encodeURIComponent(settings.calendarId)}`
+              : "";
+            const eventsRes = await fetch(
+              `/events?monday=${mondayVal}${calParam}`,
+            );
+            if (eventsRes.status === 401) {
+              goToAuth();
+              return;
+            }
+            if (eventsRes.ok) {
+              const eventsData = await eventsRes.json();
+              studentData = eventsData.studentData;
+              oneOnOneData = eventsData.oneOnOneData;
+              lastStudentData = studentData;
+              lastOneOnOneData = oneOnOneData;
+            } else {
+              showEmptyState("calendar-error");
+              return;
+            }
+          } catch (err) {
+            console.warn("Calendar fetch failed:", err.message);
+            showEmptyState("calendar-error");
+            return;
           }
-        } catch (err) {
-          console.warn("Calendar fetch skipped or failed:", err.message);
         }
 
         const res = await fetch("/generate", {
@@ -2177,6 +2216,13 @@
             };
           }),
         }));
+
+        // Check if any assignments were actually made
+        const totalAssignments = data.schedule.reduce((sum, d) => sum + d.assignments.length, 0);
+        if (totalAssignments === 0 && !settings.demo && studentData) {
+          showEmptyState("no-students");
+          return;
+        }
 
         renderSchedule();
         document.getElementById("copy-btn").disabled = false;
@@ -2420,6 +2466,49 @@
           newH = Math.min(newH, totalSlots * SLOT_H - top);
           dragState.block.style.height = newH + "px";
         }
+        // Live OOB overlay update during drag
+        updateLiveOobOverlay();
+      }
+
+      function updateLiveOobOverlay() {
+        if (!dragState) return;
+        const { block, di, ai } = dragState;
+        const a = scheduleData[di].assignments[ai];
+        const isSat = scheduleData[di].day === "Saturday";
+        const top = parseInt(block.style.top);
+        const height = parseInt(block.style.height);
+        const si = Math.round(top / SLOT_H);
+        const ei = Math.round((top + height) / SLOT_H);
+
+        // Remove existing OOB overlays inside this block
+        block.querySelectorAll(".oob-overlay").forEach(el => el.remove());
+
+        if (a.availStart === null || a.availEnd === null) {
+          const overlay = document.createElement("div");
+          overlay.className = "oob-overlay";
+          overlay.style.top = "0";
+          overlay.style.height = (ei - si) * SLOT_H + "px";
+          block.appendChild(overlay);
+          return;
+        }
+
+        const avSi = timeToIndex(a.availStart.toString(), isSat);
+        const avEi = timeToIndex(a.availEnd.toString(), isSat);
+
+        if (si < avSi) {
+          const overlay = document.createElement("div");
+          overlay.className = "oob-overlay";
+          overlay.style.top = "0";
+          overlay.style.height = Math.min(avSi - si, ei - si) * SLOT_H + "px";
+          block.appendChild(overlay);
+        }
+        if (ei > avEi) {
+          const overlay = document.createElement("div");
+          overlay.className = "oob-overlay";
+          overlay.style.top = Math.max(avEi - si, 0) * SLOT_H + "px";
+          overlay.style.height = (ei - Math.max(avEi, si)) * SLOT_H + "px";
+          block.appendChild(overlay);
+        }
       }
 
       function cancelDrag() {
@@ -2455,13 +2544,38 @@
         const slots = slotList(isSat);
         document.getElementById("add-shift-day-name").textContent = day.day;
         const assigned = new Set(day.assignments.map((a) => a.name));
-        const available = workers.filter((w) => !assigned.has(w.name));
-        document.getElementById("add-shift-worker").innerHTML =
-          available.length === 0
-            ? `<option value="">No employees available</option>`
-            : available
-                .map((w) => `<option value="${w.name}">${w.name}</option>`)
-                .join("");
+        const unassigned = workers.filter((w) => !assigned.has(w.name));
+
+        const workerSelect = document.getElementById("add-shift-worker");
+        if (unassigned.length === 0) {
+          workerSelect.innerHTML = `<option value="">No employees available</option>`;
+        } else {
+          workerSelect.innerHTML = unassigned.map((w) => {
+            const av = availability[w.name];
+            const avDay = av ? av.find((x) => x.day === day.day.toLowerCase()) : null;
+            let avLabel = "";
+            if (!avDay || !avDay.selected) {
+              avLabel = " — unavailable";
+            } else if (avDay.allDay) {
+              avLabel = " — all day";
+            } else {
+              const fmt = (h, m) => {
+                const displayH = h > 12 ? h - 12 : h;
+                const suffix = isSat ? (h >= 12 ? " PM" : " AM") : " PM";
+                return m ? `${displayH}:30${suffix}` : `${displayH}${suffix}`;
+              };
+              avLabel = ` — ${fmt(avDay.start, avDay.startMinute || 0)}–${fmt(avDay.end, avDay.endMinute || 0)}`;
+            }
+            const isUnavailable = !avDay || !avDay.selected;
+            return `<option value="${w.name}" ${isUnavailable ? 'data-unavailable="true"' : ""}>${w.name}${avLabel}</option>`;
+          }).join("");
+        }
+
+        // Style unavailable options red via JS (CSS can't target option text color reliably cross-browser)
+        workerSelect.querySelectorAll("option[data-unavailable]").forEach(opt => {
+          opt.style.color = "#c0392b";
+        });
+
         const boundary = isSat ? "2" : "8";
         const timePoints = [...slots, boundary];
         const toOpt = (s) => `<option value="${s}">${s}</option>`;
