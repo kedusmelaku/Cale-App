@@ -2235,7 +2235,10 @@
 
       // ── Schedule View ──────────────────────────────────────
       function renderSchedule() {
-        document.getElementById("empty-state").style.display = "none";
+        // Hide all empty states before showing output
+        ["", "-no-calendar", "-calendar-error", "-no-students"].forEach(suffix => {
+          document.getElementById("empty-state" + suffix).style.display = "none";
+        });
         const output = document.getElementById("schedule-output");
         output.style.display = "block";
         output.innerHTML = buildTimelineHTML(scheduleData, false);
