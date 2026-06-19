@@ -2155,7 +2155,7 @@
         let oneOnOneData = null;
 
         if (!settings.demo) {
-          if (_calConnected !== true) {
+          if (_calConnected === false) {
             showEmptyState("no-calendar");
             return;
           }
