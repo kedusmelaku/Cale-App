@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Scheduler - Smart Employee Scheduling for Tutoring Centers</title>
-    <meta name="google-site-verification" content="uzaK7zMwyeu8dhhMth8YUM2HL6VfXjCt52LQLcNIbhU" />
+    <meta
+      name="google-site-verification"
+      content="uzaK7zMwyeu8dhhMth8YUM2HL6VfXjCt52LQLcNIbhU"
+    />
     <meta name="og:title" content="Scheduler" />
     <meta
       name="description"
@@ -468,14 +471,48 @@
           <a
             id="privacy-link"
             href="/privacy.html"
-            style="color: inherit; text-decoration: none"
+            style="color: inherit; text-decoration: none; margin-right: 8px"
             >Privacy Policy</a
+          >
+          <a
+            id="about-open-link"
+            href="#"
+            onclick="
+              openAbout();
+              return false;
+            "
+            style="color: inherit; text-decoration: none"
+            >About</a
           >
         </div>
       </div>
     </div>
 
     <!-- ── Add Employee Modal ── -->
+    <!-- ── About Modal (inline popup) ── -->
+    <div class="modal-overlay" id="about-modal">
+      <div class="modal">
+        <h3>About Scheduler</h3>
+        <div
+          style="
+            font-size: 0.95rem;
+            line-height: 1.4;
+            color: var(--text-default);
+          "
+        >
+          <p>
+            Scheduler is an internal operational management tool designed to
+            streamline workforce scheduling. This application connects with the
+            user's Google Calendar to read session bookings, allowing management
+            to analyze hourly scheduling data and generate optimized staff
+            schedules based on booking volume.
+          </p>
+        </div>
+        <div class="modal-actions" style="margin-top: 18px">
+          <button class="btn-cancel" onclick="closeAbout()">Close</button>
+        </div>
+      </div>
+    </div>
     <div class="modal-overlay" id="modal">
       <div class="modal">
         <h3>Add Employee</h3>
@@ -1347,6 +1384,26 @@
         document.getElementById("settings-panel").classList.remove("open");
         tutAdvance("settings-closed");
       }
+
+      // About modal helpers
+      function openAbout() {
+        const el = document.getElementById("about-modal");
+        if (!el) return;
+        el.classList.add("open");
+      }
+      function closeAbout() {
+        const el = document.getElementById("about-modal");
+        if (!el) return;
+        el.classList.remove("open");
+      }
+
+      // Close about modal when clicking the overlay
+      document.getElementById("about-modal") &&
+        document
+          .getElementById("about-modal")
+          .addEventListener("click", function (e) {
+            if (e.target === this) closeAbout();
+          });
 
       function setTheme(val) {
         settings.theme = val;
