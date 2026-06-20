@@ -751,8 +751,14 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 .timeline-line-label.tooltip-sensor {
   pointer-events: all;
   cursor: crosshair;
-  /* widen the hit area so it's easier to hover */
+  /* widen the hit area: vertically via padding, horizontally to span the
+     full slots column (not just the label's own text width) so "3" and
+     "3:30" get equally-sized targets. Does not extend into .timeline-workers
+     since that's a separate sibling column. */
   padding: 12px 6px 12px 0;
+  left: 0;
+  right: 0;
+  text-align: right;
 }
 
 .timeline-workers {
@@ -1379,8 +1385,36 @@ body.dark {
 
 .empty-state p {
   margin-top: 8px;
+  margin-left: auto;
+  margin-right: auto;
   font-size: 0.84rem;
   color: var(--text-muted);
   max-width: 320px;
   line-height: 1.6;
+}
+
+/* ── Tutorial: locked settings links (steps 23-26) ── */
+.tut-link-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto; /* keep clickable so we can intercept + show message */
+}
+
+.tut-link-blocked-msg {
+  display: none;
+  position: fixed;
+  z-index: 510;
+  background: var(--text);
+  color: white;
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.tut-link-blocked-msg.visible {
+  display: block;
 }

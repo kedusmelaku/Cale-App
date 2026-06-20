@@ -115,7 +115,7 @@
             <div class="output-controls">
               <div class="date-field">
                 <label class="date-label">Week of (Monday)</label>
-                <input type="date" id="week-date" />
+                <input type="date" id="week-date" onchange="onWeekDateChange(this.value)" />
               </div>
               <button
                 class="btn-edit"
@@ -471,6 +471,7 @@
           <a
             id="privacy-link"
             href="/privacy.html"
+            onclick="if (tutLinkGuard(event)) return false;"
             style="color: inherit; text-decoration: none; margin-right: 8px"
             >Privacy Policy</a
           >
@@ -478,6 +479,7 @@
             id="about-open-link"
             href="#"
             onclick="
+              if (tutLinkGuard(event)) return false;
               openAbout();
               return false;
             "
@@ -486,6 +488,11 @@
           >
         </div>
       </div>
+    </div>
+
+    <!-- Small inline message shown when a settings link is locked during the tutorial -->
+    <div id="tut-link-blocked-msg" class="tut-link-blocked-msg">
+      Finish or skip tutorial first
     </div>
 
     <!-- ── About Modal (inline popup) ── -->
@@ -558,7 +565,7 @@
       <div class="modal">
         <h3>Add Employee to <span id="add-shift-day-name"></span></h3>
         <label class="field-label">Employee</label>
-        <select id="add-shift-worker" class="field-select"></select>
+        <select id="add-shift-worker" class="field-select" onchange="updateAddShiftDefaultTimes()"></select>
         <label class="field-label" style="margin-top: 14px">Start</label>
         <select id="add-shift-start" class="field-select"></select>
         <label class="field-label" style="margin-top: 14px">End</label>
@@ -732,7 +739,12 @@
           target: "#btn-add-worker",
           title: "Adding Employees",
           body: "In real use, you'd add your actual team here. Each employee gets a name and a priority level when you create them.",
+          hint: "Add an employee, or click Next to continue",
+          waitForAction: false,
           position: "top",
+          onEnter: () => {
+            tutWaiting = "worker-added";
+          },
         },
         // ── 6: Go to schedule ────────────────────────────────────────────
         {
@@ -768,7 +780,7 @@
           screen: "screen-schedule",
           target: "#week-date",
           title: "Choose a Week",
-          body: "Pick the Monday date for the week you're scheduling. The app auto-fills next Monday when you first arrive.",
+          body: "Pick the Monday date for the week you're scheduling. The app auto-fills next Monday when you first arrive.<br><br>Default hours depend on priority: <strong>Normal</strong> and <strong>Priority</strong> employees default to 4–8, while <strong>High Priority</strong> employees default to 3–8.",
           position: "left",
         },
         // ── 10: Scheduling mode ──────────────────────────────────────────
@@ -851,7 +863,12 @@
           target: ".remove-btn",
           title: "Remove a Shift",
           body: "Click the <strong>✕</strong> in the top-right corner of any bar to remove that employee from that day entirely.",
+          hint: "Remove a shift, or click Next to continue",
+          waitForAction: false,
           position: "right",
+          onEnter: () => {
+            tutWaiting = "shift-removed";
+          },
         },
         // ── 19: Add to day ───────────────────────────────────────────────
         {
@@ -859,7 +876,12 @@
           target: ".add-shift-btn",
           title: "Add an Employee to a Day",
           body: "Use the <strong>+ Add Employee</strong> button under any day column to manually assign someone to that day with a custom start and end time.",
+          hint: "Add an employee to a day, or click Next to continue",
+          waitForAction: false,
           position: "top",
+          onEnter: () => {
+            tutWaiting = "shift-added";
+          },
         },
         // ── 20: OOB hatched overlay ──────────────────────────────────────
         {
@@ -920,6 +942,7 @@
               renderEditScreen();
             }
             openSettings();
+            lockSettingsLinks();
           },
         },
         // ── 23: Demo mode row ────────────────────────────────────────────
@@ -980,6 +1003,7 @@
         tutWaiting = null;
         document.getElementById("tut-overlay").classList.remove("active");
         hideTutHole();
+        unlockSettingsLinks();
         // close settings panel if open
         document.getElementById("settings-panel").classList.remove("open");
         // restore saved OOB change if needed
@@ -1111,13 +1135,32 @@
           vh = window.innerHeight;
         const r2 = 10;
 
+        // Cut a rounded-rect hole out of the full-viewport dim layer using a
+        // single polygon with a zero-width "slit": travel along the outer
+        // rectangle's top edge to a point directly above the hole, straight
+        // down into the hole, all the way around the hole's rounded
+        // boundary, then back up the *same* vertical line to the outer
+        // rectangle before continuing around it. Because the slit is
+        // retraced along an identical line (down then back up), it has zero
+        // width and is invisible — unlike connecting the hole's boundary
+        // straight back to the polygon's start point (0,0), which produced
+        // a visible diagonal sliver for any hole not near the top-left
+        // corner (most noticeable on top-right header buttons).
+        const slitX = hx + r2;
         dim.style.clipPath = `polygon(
-          0 0, ${vw}px 0, ${vw}px ${vh}px, 0 ${vh}px, 0 0,
-          ${hx + r2}px ${hy}px, ${hx}px ${hy + r2}px,
-          ${hx}px ${hy + hh - r2}px, ${hx + r2}px ${hy + hh}px,
-          ${hx + hw - r2}px ${hy + hh}px, ${hx + hw}px ${hy + hh - r2}px,
-          ${hx + hw}px ${hy + r2}px, ${hx + hw - r2}px ${hy}px,
-          ${hx + r2}px ${hy}px
+          0 0,
+          ${slitX}px 0,
+          ${slitX}px ${hy}px,
+          ${hx}px ${hy + r2}px,
+          ${hx}px ${hy + hh - r2}px,
+          ${hx + r2}px ${hy + hh}px,
+          ${hx + hw - r2}px ${hy + hh}px,
+          ${hx + hw}px ${hy + hh - r2}px,
+          ${hx + hw}px ${hy + r2}px,
+          ${hx + hw - r2}px ${hy}px,
+          ${slitX}px ${hy}px,
+          ${slitX}px 0,
+          ${vw}px 0, ${vw}px ${vh}px, 0 ${vh}px, 0 0
         )`;
 
         const cw = 364,
@@ -1180,6 +1223,63 @@
         setTimeout(() => showTutStep(tut.step + 1), 200);
       }
 
+      // Disables the Connect/Disconnect calendar links, Privacy Policy link,
+      // and About link inside the Settings panel while the tutorial is on the
+      // settings-related steps, so the user can't navigate away mid-tutorial
+      // and break tutorial state. Clicking a disabled link shows a small
+      // inline message instead of doing nothing silently.
+      function lockSettingsLinks() {
+        const ids = [
+          "cal-reconnect-link",
+          "cal-disconnect-link",
+          "privacy-link",
+          "about-open-link",
+        ];
+        ids.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add("tut-link-disabled");
+        });
+      }
+
+      function unlockSettingsLinks() {
+        const ids = [
+          "cal-reconnect-link",
+          "cal-disconnect-link",
+          "privacy-link",
+          "about-open-link",
+        ];
+        ids.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove("tut-link-disabled");
+        });
+      }
+
+      let _tutLinkMsgTimeout = null;
+      function showTutLinkBlockedMsg(e) {
+        const el = document.getElementById("tut-link-blocked-msg");
+        if (!el) return;
+        const r = e.currentTarget.getBoundingClientRect();
+        el.style.left = r.left + "px";
+        el.style.top = r.bottom + 6 + "px";
+        el.classList.add("visible");
+        clearTimeout(_tutLinkMsgTimeout);
+        _tutLinkMsgTimeout = setTimeout(
+          () => el.classList.remove("visible"),
+          2000,
+        );
+      }
+
+      // Intercepts clicks on settings-panel links while locked. Returns true
+      // (i.e. "was blocked") if the click should be swallowed.
+      function tutLinkGuard(e) {
+        if (!e.currentTarget.classList.contains("tut-link-disabled"))
+          return false;
+        e.preventDefault();
+        e.stopPropagation();
+        showTutLinkBlockedMsg(e);
+        return true;
+      }
+
       // Reposition on scroll/resize
       window.addEventListener("resize", () => {
         if (!tut.active) return;
@@ -1220,6 +1320,8 @@
       };
       const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
       const PRIORITY_CLASSES = ["", "p1", "p2"];
+      const PRIORITY_TOOLTIP_HTML =
+        '<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.';
       const WORKER_COLORS = [
         "#4f86c6",
         "#e05c5c",
@@ -1387,6 +1489,7 @@
 
       function closeSettings() {
         document.getElementById("settings-panel").classList.remove("open");
+        unlockSettingsLinks();
         tutAdvance("settings-closed");
       }
 
@@ -1552,6 +1655,43 @@
         return `${y}-${m}-${d}`;
       }
 
+      // Returns the Monday on/before the given YYYY-MM-DD date string,
+      // computed in local time to match how the <input type="date"> value
+      // is interpreted elsewhere in this file (new Date(str + "T00:00:00")).
+      function nearestMonday(dateStr) {
+        const d = new Date(dateStr + "T00:00:00");
+        const day = d.getDay(); // 0 = Sunday ... 6 = Saturday
+        // Distance back to Monday: Sunday(0)->6, Monday(1)->0, Tuesday(2)->1, ...
+        const diff = day === 0 ? 6 : day - 1;
+        d.setDate(d.getDate() - diff);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dd}`;
+      }
+
+      function isMonday(dateStr) {
+        if (!dateStr) return true;
+        const d = new Date(dateStr + "T00:00:00");
+        return d.getDay() === 1;
+      }
+
+      // Guards the Monday-only week-date field: if a non-Monday date is
+      // picked, snap it to the nearest preceding Monday and let the user know.
+      function onWeekDateChange(val) {
+        if (!val) return;
+        if (!isMonday(val)) {
+          const corrected = nearestMonday(val);
+          document.getElementById("week-date").value = corrected;
+          alert(
+            "Scheduler weeks must start on a Monday — date adjusted to " +
+              corrected +
+              ".",
+          );
+        }
+        markStale();
+      }
+
       function timeOptions(isSaturday) {
         const options = [];
         const start = isSaturday ? 10 : 3;
@@ -1701,6 +1841,8 @@
         if (!confirm(`${warnText}Finish editing and return to start?`)) return;
         scheduleData = [];
         availability = {};
+        document.getElementById("week-date").value = "";
+        document.getElementById("stale-banner").style.display = "none";
         showEmptyState("default");
         document.getElementById("hours-summary-edit").style.display = "none";
         showScreen("screen-workers");
@@ -1724,7 +1866,7 @@
               <div class="wcard-header">
                 <span class="wcard-name">${w.name}</span>
                 <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-                <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+                <span class="info-tag">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
               </div>
               <div style="display:flex; gap:8px; margin-top:4px;">
                 <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
@@ -1907,7 +2049,7 @@
               <div class="av-color" style="background:${getWorkerColor(w.name)}"></div>
               <span class="av-name">${w.name}</span>
               <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-              <span class="info-tag">i<span class="info-tooltip"><strong>Normal:</strong> High schoolers or people with limited availability.<br><strong>Priority:</strong> Adults with moderate availability.<br><strong>High Priority:</strong> Adults who are usually fully available.</span></span>
+              <span class="info-tag">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
               <label class="av-select-all">
                 <input type="checkbox" ${allSelected ? "checked" : ""} onchange="toggleAllDays('${w.name}', this.checked)">
                 <span>All days</span>
@@ -2109,6 +2251,7 @@
       }
 
       function reconnectCalendar(e) {
+        if (tutLinkGuard(e)) return;
         e.preventDefault();
         goToAuth();
         closeSettings();
@@ -2118,6 +2261,7 @@
       }
 
       async function disconnectCalendar(e) {
+        if (e && tutLinkGuard(e)) return;
         e && e.preventDefault();
         if (
           !confirm(
@@ -2653,9 +2797,67 @@
         scheduleData[di].assignments.splice(ai, 1);
         renderEditScreen();
         renderSchedule();
+        tutAdvance("shift-removed");
       }
 
       // ── Add Shift Modal ────────────────────────────────────
+      // Computes the default start/end time strings (matching slotList()
+      // values, e.g. "4", "4:30") for a worker being added to a given day:
+      //  - if they specified custom hours that day, use those hours
+      //  - if they're available all day, use their priority-based default hours
+      //  - if they're unavailable/unselected that day, fall back to their
+      //    priority-based default hours (same as "fully available")
+      function computeAddShiftDefaultTimes(worker, day) {
+        const isSat = day.day === "Saturday";
+        const dayKey = day.day.toLowerCase();
+        const av = worker ? availability[worker.name] : null;
+        const avDay = av ? av.find((x) => x.day === dayKey) : null;
+
+        const priorityDefaultStart = isSat ? 10 : worker && worker.priority === 2 ? 3 : 4;
+        const priorityDefaultEnd = isSat ? 14 : 8;
+
+        let startH, startM, endH, endM;
+        if (avDay && avDay.selected && !avDay.allDay) {
+          // Custom hours that day — use exactly what they specified
+          startH = avDay.start;
+          startM = avDay.startMinute || 0;
+          endH = avDay.end;
+          endM = avDay.endMinute || 0;
+        } else {
+          // Fully available, or unavailable/unselected — use priority defaults
+          startH = priorityDefaultStart;
+          startM = 0;
+          endH = priorityDefaultEnd;
+          endM = 0;
+        }
+
+        const fmt = (h, m) => {
+          const displayH = isSat && h > 12 ? h - 12 : h;
+          return m ? `${displayH}:30` : `${displayH}`;
+        };
+        return { start: fmt(startH, startM), end: fmt(endH, endM) };
+      }
+
+      // Sets the Start/End dropdowns in the Add Shift modal to the right
+      // default times for whichever worker is currently selected.
+      function updateAddShiftDefaultTimes() {
+        const di = addShiftTarget;
+        if (di === null || di === undefined) return;
+        const day = scheduleData[di];
+        const name = document.getElementById("add-shift-worker").value;
+        const worker = workers.find((w) => w.name === name);
+        const { start, end } = computeAddShiftDefaultTimes(worker, day);
+
+        const startSel = document.getElementById("add-shift-start");
+        const endSel = document.getElementById("add-shift-end");
+        const setIfPresent = (sel, val) => {
+          const opt = Array.from(sel.options).find((o) => o.value === val);
+          if (opt) sel.value = val;
+        };
+        setIfPresent(startSel, start);
+        setIfPresent(endSel, end);
+      }
+
       function openAddShiftModal(di) {
         addShiftTarget = di;
         const day = scheduleData[di];
@@ -2710,6 +2912,12 @@
         const endSel = document.getElementById("add-shift-end");
         endSel.innerHTML = timePoints.map(toOpt).join("");
         endSel.selectedIndex = Math.min(2, timePoints.length - 1);
+
+        // Default the start/end dropdowns based on the initially-selected
+        // worker's availability for this day (falls back to priority
+        // defaults if unassigned/unavailable that day).
+        updateAddShiftDefaultTimes();
+
         document.getElementById("add-shift-modal").classList.add("open");
       }
 
@@ -2744,6 +2952,7 @@
         setTimeout(() => {
           renderEditScreen();
           renderSchedule();
+          tutAdvance("shift-added");
         }, 0);
       }
 
