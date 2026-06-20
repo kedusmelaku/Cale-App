@@ -34,59 +34,14 @@ body {
   line-height: 1.5;
 }
 
-
-
-/* ── Demo Banner ── */
-#demo-banner {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff3cd;
-  border-bottom: 1px solid #ffc107;
-  color: #856404;
-  padding: 0 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  /* hidden by default — slides in when body.demo-active */
-  transform: translateY(-100%);
-  transition: transform 0.25s ease;
-  pointer-events: none;
-}
-
-body.demo-active #demo-banner {
-  transform: translateY(0);
-  pointer-events: all;
-}
-
-#demo-banner button {
-  background: none;
-  border: 1px solid #856404;
-  border-radius: 4px;
-  color: #856404;
-  font-size: 0.72rem;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
-}
-
-#demo-banner button:hover { 
-  background: #ffc107; 
-  color: #333; 
-}
-
-/* ── Cal Warning Banner ── */
+/* ── Top Banners (Demo + Calendar Warning) ── */
+/* Same look & behavior for both banners; only z-index differs (demo sits on top). */
+#demo-banner,
 #cal-warning-banner {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 199; /* just below demo banner */
   height: 34px;
   display: flex;
   align-items: center;
@@ -97,12 +52,16 @@ body.demo-active #demo-banner {
   padding: 0 20px;
   font-size: 0.78rem;
   font-weight: 600;
-  /* hidden by default */
+  /* hidden by default — slides in when active */
   transform: translateY(-100%);
   transition: transform 0.25s ease;
   pointer-events: none;
 }
 
+#demo-banner { z-index: 200; }
+#cal-warning-banner { z-index: 199; /* just below demo banner */ }
+
+body.demo-active #demo-banner,
 body.cal-warning-active #cal-warning-banner {
   transform: translateY(0);
   pointer-events: all;
@@ -113,6 +72,7 @@ body.demo-active.cal-warning-active #cal-warning-banner {
   transform: translateY(34px);
 }
 
+#demo-banner button,
 #cal-warning-banner button {
   background: none;
   border: 1px solid #856404;
@@ -124,17 +84,18 @@ body.demo-active.cal-warning-active #cal-warning-banner {
   font-family: "Noto Sans", sans-serif;
 }
 
+#demo-banner button:hover,
 #cal-warning-banner button:hover {
   background: #ffc107;
   color: #333;
 }
 
-/* push screen content down when cal warning banner is visible (without demo) */
+/* push screen content down when a banner is visible (34px for one banner, 68px for both) */
+body.demo-active .screen,
 body.cal-warning-active:not(.demo-active) .screen {
   padding-top: 34px;
 }
 
-/* push screen content down when BOTH banners are visible */
 body.cal-warning-active.demo-active .screen {
   padding-top: 68px;
 }
@@ -150,11 +111,6 @@ body.cal-warning-active.demo-active .screen {
 
   /* smooth push down */
   transition: padding-top 0.3s ease;
-}
-
-/* push screen content down when banner is visible */
-body.demo-active .screen {
-  padding-top: 34px;
 }
 
 .screen.active { 
@@ -658,17 +614,6 @@ header {
 
 .av-time-inputs select:focus { outline: none; border-color: var(--accent); }
 
-.av-time-inputs input[type="number"] {
-  width: 52px;
-  padding: 4px 7px;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 5px;
-  color: var(--text);
-  font-family: "Noto Sans", sans-serif;
-  font-size: 0.82rem;
-}
-
 .av-select-all {
   display: flex;
   align-items: center;
@@ -927,27 +872,6 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   z-index: 9;
 }
 
-/* ── Auth Card ── */
-.auth-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 24px;
-  margin-top: 20px;
-  font-size: 0.88rem;
-  line-height: 1.7;
-  color: var(--text-mid);
-}
-
-.auth-card code {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 0.82rem;
-  color: var(--text);
-}
-
 /* ── Settings ── */
 .settings-modal {
   background: var(--surface);
@@ -1016,17 +940,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .toggle-opt:last-child { border-right: none; }
 .toggle-opt.active { background: var(--accent); color: white; font-weight: 600; }
-.toggle-opt.disabled { opacity: 0.4; cursor: not-allowed; }
 .toggle-opt:not(.active):not(.disabled):hover { background: var(--surface2); color: var(--text); }
-
-.coming-soon {
-  font-size: 0.6rem;
-  background: var(--border);
-  padding: 1px 5px;
-  border-radius: 99px;
-  margin-left: 4px;
-  vertical-align: middle;
-}
 
 /* ── Toggle Switch ── */
 .switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
@@ -1055,7 +969,6 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .switch input:checked + .switch-slider { background: var(--accent); }
 .switch input:checked + .switch-slider::before { transform: translateX(18px); }
-
 
 /* ── Calendar status (settings) ── */
 .cal-status-wrap {
@@ -1199,52 +1112,8 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .tooltip-tag.ooo { background: rgba(255,255,255,0.2); }
 
-/* ── Tooltip hover zones — on time labels (left column) ── */
-
-
 /* ── Auth Screen ── */
 .auth-state { margin-top: 8px; }
-
-.auth-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  margin-top: 20px;
-  font-size: 0.88rem;
-  line-height: 1.7;
-  color: var(--text-mid);
-}
-
-.auth-card-success {
-  border-color: var(--green);
-  background: var(--green-bg);
-}
-
-.auth-card-error {
-  border-color: var(--danger);
-  background: #fdf0f0;
-}
-
-.auth-spinner-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.auth-spinner {
-  width: 20px;
-  height: 20px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  flex-shrink: 0;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Dark Mode ── */
 body.dark {
