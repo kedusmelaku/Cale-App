@@ -40,7 +40,7 @@
           <button class="btn-primary" onclick="goToSchedule()">
             Build Schedule →
           </button>
-          <button class="btn-gear" onclick="openSettings()" title="Settings">
+          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -88,7 +88,7 @@
           <button class="btn-primary" id="btn-generate" onclick="generate()">
             Generate Schedule
           </button>
-          <button class="btn-gear" onclick="openSettings()" title="Settings">
+          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -124,6 +124,14 @@
                 onclick="goToEdit()"
               >
                 Edit Schedule
+              </button>
+              <button
+                class="btn-secondary"
+                id="finish-btn"
+                style="display: none"
+                onclick="finishFromSchedule(event)"
+              >
+                Finish →
               </button>
             </div>
           </div>
@@ -237,7 +245,7 @@
         </button>
         <span class="header-title">Scheduler</span>
         <div class="header-actions">
-          <button class="btn-gear" onclick="openSettings()" title="Settings">
+          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -318,7 +326,7 @@
       <div class="settings-modal">
         <div class="settings-header">
           <span class="settings-title">Settings</span>
-          <button class="btn-back" onclick="closeSettings()">✕</button>
+          <button class="btn-back" onclick="closeSettings()" aria-label="Close settings">✕</button>
         </div>
         <div class="settings-section">
           <h3 class="settings-section-title">Appearance</h3>
@@ -356,7 +364,10 @@
                 style="display: flex; align-items: center; gap: 6px"
               >
                 Scheduling Mode
-                <span class="info-tag"
+                <span
+                  class="info-tag"
+                  tabindex="0"
+                  aria-label="Scheduling mode info: Normal assigns workers in shift blocks (4 to 8, 4 to 6, 6 to 8) — faster, clean regular shifts, best for most weeks. Ultra-efficient assigns workers slot by slot every 30 minutes based on exact student counts — more precise but may produce shorter or irregular shift times."
                   >i<span class="info-tooltip" style="width: 260px"
                     ><strong>Normal:</strong> Assigns workers in shift blocks
                     (4–8, 4–6, 6–8). Faster and produces clean, regular shifts —
@@ -527,7 +538,10 @@
         <input type="text" id="new-worker-name" placeholder="Full name" />
         <label class="field-label"
           >Priority
-          <span class="info-tag"
+          <span
+            class="info-tag"
+            tabindex="0"
+            aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
               ><strong>Normal:</strong> High schoolers or people with limited
               availability.<br /><strong>Priority:</strong> Adults with moderate
@@ -587,7 +601,10 @@
         <input type="text" id="edit-employee-name" placeholder="Full name" />
         <label class="field-label"
           >Priority
-          <span class="info-tag"
+          <span
+            class="info-tag"
+            tabindex="0"
+            aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
               ><strong>Normal:</strong> High schoolers or people with limited
               availability.<br /><strong>Priority:</strong> Adults with moderate
@@ -1322,6 +1339,8 @@
       const PRIORITY_CLASSES = ["", "p1", "p2"];
       const PRIORITY_TOOLTIP_HTML =
         '<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.';
+      const PRIORITY_TOOLTIP_ARIA_LABEL =
+        "Priority level info: Normal is for high schoolers or people with limited availability, default hours 4 to 8. Priority is for adults with moderate availability, default hours 4 to 8. High Priority is for adults who are usually fully available, default hours 3 to 8.";
       const WORKER_COLORS = [
         "#4f86c6",
         "#e05c5c",
@@ -1827,18 +1846,18 @@
         tutAdvance("went-to-edit");
       }
 
-      function finishEdit() {
-        // If tutorial is waiting for this action, let the tutorial handle teardown
-        if (tut.active && tutWaiting === "finish-clicked") {
-          tutAdvance("finish-clicked");
-          return;
-        }
+      // Shared by finishEdit() and finishFromSchedule(): warns about any
+      // out-of-bounds workers, confirms with the user, then clears the
+      // schedule/availability/date and returns to the Employees screen.
+      // Returns true if the finish actually happened (user confirmed),
+      // false if they cancelled.
+      function doFinish() {
         const warnings = getOutOfBoundsWorkers();
         const warnText =
           warnings.length > 0
             ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
             : "";
-        if (!confirm(`${warnText}Finish editing and return to start?`)) return;
+        if (!confirm(`${warnText}Finish editing and return to start?`)) return false;
         scheduleData = [];
         availability = {};
         document.getElementById("week-date").value = "";
@@ -1846,6 +1865,32 @@
         showEmptyState("default");
         document.getElementById("hours-summary-edit").style.display = "none";
         showScreen("screen-workers");
+        return true;
+      }
+
+      function finishEdit() {
+        // If tutorial is waiting for this action, let the tutorial handle teardown
+        if (tut.active && tutWaiting === "finish-clicked") {
+          tutAdvance("finish-clicked");
+          return;
+        }
+        doFinish();
+      }
+
+      // Lets the user finish directly from the Schedule screen, without
+      // having to open the drag-and-drop Edit screen first. Blocked while
+      // the tutorial is active (same pattern as the locked settings links)
+      // since finishing here would wipe schedule/availability state out
+      // from under the in-progress tutorial steps.
+      function finishFromSchedule(e) {
+        if (tut.active) {
+          if (e) {
+            e.preventDefault();
+            showTutLinkBlockedMsg(e);
+          }
+          return;
+        }
+        doFinish();
       }
 
       // ── Screen 1: Employees ────────────────────────────────
@@ -1866,7 +1911,7 @@
               <div class="wcard-header">
                 <span class="wcard-name">${w.name}</span>
                 <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-                <span class="info-tag">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
+                <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
               </div>
               <div style="display:flex; gap:8px; margin-top:4px;">
                 <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
@@ -1880,7 +1925,7 @@
       function removeWorker(wi) {
         if (!confirm(`Remove ${workers[wi].name}?`)) return;
         workers.splice(wi, 1);
-        saveWorkers();
+        if (!settings.demo) saveWorkers();
         renderWorkers();
       }
 
@@ -1914,7 +1959,10 @@
         if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
           return alert("An employee with that name already exists.");
         workers.push({ name, priority: newWorkerPriority });
-        saveWorkers();
+        // Demo-mode employees are in-memory only — never persist them over
+        // the user's real saved team (mirrors activateDemo/deactivateDemo,
+        // which already keep demo state out of localStorage).
+        if (!settings.demo) saveWorkers();
         renderWorkers();
         closeModal();
         tutAdvance("worker-added");
@@ -2011,7 +2059,7 @@
           return alert("Another employee with that name already exists.");
         workers[editEmployeeIndex].name = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
-        saveWorkers();
+        if (!settings.demo) saveWorkers();
         renderWorkers();
         closeEditEmployeeModal();
       }
@@ -2019,9 +2067,15 @@
       closeOnOverlayClick("edit-employee-modal", closeEditEmployeeModal);
 
       // ── Availability ───────────────────────────────────────
+      // Ensures every current worker has an availability entry, without
+      // touching any worker's existing entry. Previously this rebuilt the
+      // entire availability object from scratch on every call, which meant
+      // adding a single new employee (e.g. mid-demo, or just normally after
+      // already setting up availability) wiped out everyone else's already-
+      // configured selections/custom-hours the next time goToSchedule() ran.
       function buildAvailability() {
-        availability = {};
         workers.forEach((w) => {
+          if (availability[w.name]) return; // already configured — preserve it
           availability[w.name] = DAYS.map((d) => ({
             day: d,
             selected: false,
@@ -2049,7 +2103,7 @@
               <div class="av-color" style="background:${getWorkerColor(w.name)}"></div>
               <span class="av-name">${w.name}</span>
               <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-              <span class="info-tag">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
+              <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
               <label class="av-select-all">
                 <input type="checkbox" ${allSelected ? "checked" : ""} onchange="toggleAllDays('${w.name}', this.checked)">
                 <span>All days</span>
@@ -2161,6 +2215,7 @@
         document.getElementById("hours-summary").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
+        document.getElementById("finish-btn").style.display = "none";
 
         // Hide all empty states
         hideAllEmptyStates();
@@ -2507,6 +2562,7 @@
         renderSchedule();
         document.getElementById("copy-btn").disabled = false;
         document.getElementById("edit-btn").disabled = false;
+        document.getElementById("finish-btn").style.display = "inline-block";
         document.getElementById("stale-banner").style.display = "none";
 
         tutAdvance("schedule-generated");
@@ -2615,7 +2671,7 @@
                 ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
                 : "";
               const removable = isEdit
-                ? `<div class="remove-btn" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</div>`
+                ? `<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.day}" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</button>`
                 : "";
 
               const oobOverlay = isEdit

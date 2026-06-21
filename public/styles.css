@@ -10,16 +10,26 @@
   --accent: #2a5fad;
   --accent-hover: #1e4a8a;
   --accent-light: #edf2fc;
+  --accent-on-tint: var(--accent);
   --danger: #c0392b;
+  --danger-on-tint: var(--danger);
   --text: #1a1a1a;
   --text-mid: #4a4a4a;
   --text-muted: #888880;
   --green: #217a4a;
   --green-bg: #eaf4ef;
+  --green-on-tint: var(--green);
   --radius: 8px;
   --slot-h: 40px;
   --shadow: 0 1px 4px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  /* Always-dark popover background, intentionally NOT redefined in
+     body.dark — tooltips/popovers are meant to stay a consistent dark
+     surface regardless of page theme. Using var(--text) for this (the old
+     approach) broke in dark mode since --text flips to near-white there,
+     producing near-invisible white-on-white tooltips. */
+  --tooltip-bg: #1a1a1a;
+  --tooltip-text: #ffffff;
 }
 
 /* ── Reset ── */
@@ -196,7 +206,7 @@ header {
 .btn-secondary {
   padding: 9px 18px;
   background: transparent;
-  color: var(--green);
+  color: var(--green-on-tint);
   border: 1.5px solid var(--green);
   border-radius: var(--radius);
   cursor: pointer;
@@ -230,7 +240,7 @@ header {
   margin-top: 20px;
   padding: 11px 22px;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-on-tint);
   border: 1.5px dashed var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
@@ -253,12 +263,12 @@ header {
   transition: color 0.15s;
 }
 
-.btn-remove:hover { color: var(--danger); }
+.btn-remove:hover { color: var(--danger-on-tint); }
 
 .btn-edit-emp {
   background: none;
   border: none;
-  color: var(--accent);
+  color: var(--accent-on-tint);
   cursor: pointer;
   font-size: 0.78rem;
   font-family: "Noto Sans", sans-serif;
@@ -266,7 +276,7 @@ header {
   transition: color 0.15s;
 }
 
-.btn-edit-emp:hover { color: var(--accent-hover); }
+.btn-edit-emp:hover { color: var(--accent-on-tint-hover); }
 
 .btn-gear {
   background: none;
@@ -378,7 +388,14 @@ header {
   transition: border-color 0.15s;
 }
 
-.modal input[type="text"]:focus { outline: none; border-color: var(--accent); }
+.modal input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.modal input[type="text"]:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
 
 .priority-picker { display: flex; gap: 6px; margin-bottom: 24px; }
 
@@ -398,8 +415,8 @@ header {
   letter-spacing: 0;
 }
 
-.priority-opt:hover { border-color: var(--accent); color: var(--accent); }
-.priority-opt.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.priority-opt:hover { border-color: var(--accent); color: var(--accent-on-tint); }
+.priority-opt.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent-on-tint); font-weight: 600; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
@@ -446,7 +463,14 @@ header {
   margin-bottom: 2px;
 }
 
-.field-select:focus { outline: none; border-color: var(--accent); }
+.field-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.field-select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
 
 /* ── Priority badges ── */
 .av-priority {
@@ -459,8 +483,8 @@ header {
   font-weight: 500;
 }
 
-.av-priority.p1 { background: var(--green-bg); border-color: var(--green); color: var(--green); }
-.av-priority.p2 { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.av-priority.p1 { background: var(--green-bg); border-color: var(--green); color: var(--green-on-tint); }
+.av-priority.p2 { background: var(--accent-light); border-color: var(--accent); color: var(--accent-on-tint); }
 
 /* ── Info Tag ── */
 .info-tag {
@@ -483,7 +507,14 @@ header {
   z-index: 20;
 }
 
-.info-tag:hover .info-tooltip { display: block; }
+.info-tag:hover .info-tooltip,
+.info-tag:focus .info-tooltip,
+.info-tag:focus-visible .info-tooltip { display: block; }
+
+.info-tag:focus-visible {
+  outline: 2px solid var(--accent-on-tint);
+  outline-offset: 2px;
+}
 
 .info-tooltip {
   display: none;
@@ -491,8 +522,8 @@ header {
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--text);
-  color: white;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
   font-size: 0.75rem;
   font-weight: 400;
   padding: 7px 10px;
@@ -513,7 +544,7 @@ header {
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: var(--text);
+  border-top-color: var(--tooltip-bg);
 }
 
 /* ── Availability Panel ── */
@@ -612,7 +643,14 @@ header {
   transition: border-color 0.15s;
 }
 
-.av-time-inputs select:focus { outline: none; border-color: var(--accent); }
+.av-time-inputs select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.av-time-inputs select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
 
 .av-select-all {
   display: flex;
@@ -668,12 +706,19 @@ input[type="date"] {
   transition: border-color 0.15s;
 }
 
-input[type="date"]:focus { outline: none; border-color: var(--accent); }
+input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+input[type="date"]:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
 
 .btn-edit {
   padding: 9px 18px;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-on-tint);
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
@@ -829,6 +874,10 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
   opacity: 0.7;
   line-height: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
   writing-mode: horizontal-tb;
 }
 
@@ -848,7 +897,7 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
   transition: all 0.15s;
 }
 
-.add-shift-btn:hover { border-color: var(--accent); color: var(--accent); }
+.add-shift-btn:hover { border-color: var(--accent); color: var(--accent-on-tint); }
 
 /* ── OOB ── */
 .oob-overlay {
@@ -1005,13 +1054,13 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 
 .cal-reconnect-link {
   font-size: 0.78rem;
-  color: var(--accent);
+  color: var(--accent-on-tint);
   text-decoration: underline;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.cal-reconnect-link:hover { color: var(--accent-hover); }
+.cal-reconnect-link:hover { color: var(--accent-on-tint-hover); }
 
 /* ── Calendar picker (settings) ── */
 .cal-picker-select {
@@ -1078,8 +1127,8 @@ input[type="date"]:focus { outline: none; border-color: var(--accent); }
 .slot-tooltip {
   position: fixed;
   z-index: 300;
-  background: var(--text);
-  color: white;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
   border-radius: 7px;
   padding: 10px 13px;
   font-size: 0.78rem;
@@ -1133,6 +1182,15 @@ body.dark {
   --text-muted: #6b6b80;
   --accent-light: #1a1a35;
   --green-bg: #0a1f12;
+  /* Lightened text-on-tint colors for the priority badges/picker — the base
+     --accent/--green are too dark to read against their own tinted
+     backgrounds once those backgrounds darken in this theme (was ~2.7:1,
+     fails WCAG AA's 4.5:1 minimum). These pass at 5.10:1 / 6.31:1 while
+     staying recognizably blue/green. */
+  --accent-on-tint: #649ae0;
+  --accent-on-tint-hover: #8ab8f0;
+  --danger-on-tint: #e8786b;
+  --green-on-tint: #4fae7c;
 }
 
 /* ── Hours Summary ── */
@@ -1251,7 +1309,7 @@ body.dark {
 .tut-step-badge {
   font-size: 0.68rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-on-tint);
   background: var(--accent-light);
   border-radius: 99px;
   padding: 2px 9px;
@@ -1299,7 +1357,7 @@ body.dark {
   align-items: center;
   gap: 7px;
   font-size: 0.78rem;
-  color: var(--accent);
+  color: var(--accent-on-tint);
   font-weight: 600;
   margin-bottom: 14px;
 }
@@ -1362,7 +1420,7 @@ body.dark {
   margin-top: 10px;
   padding: 9px 20px;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-on-tint);
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
@@ -1404,8 +1462,8 @@ body.dark {
   display: none;
   position: fixed;
   z-index: 510;
-  background: var(--text);
-  color: white;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
   font-size: 0.74rem;
   font-weight: 500;
   padding: 6px 10px;
