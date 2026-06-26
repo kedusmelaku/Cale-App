@@ -6,6 +6,12 @@ const Week = require("./Week");
 const Day = require("./Day");
 const SimplifiedWeek = require("./SimplifiedWeek");
 const SimplifiedDay = require("./SimplifiedDay");
+const mongoose = require("mongoose");
+
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection failed:", err.message));
 
 const app = express();
 app.use(express.json());
