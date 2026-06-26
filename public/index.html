@@ -114,8 +114,8 @@
             </h2>
             <div class="output-controls">
               <div class="date-field">
-                <label class="date-label">Week of (Monday)</label>
-                <input type="date" id="week-date" onchange="onWeekDateChange(this.value)" />
+                <label class="date-label" for="week-date">Week of (Monday)</label>
+                <input type="date" id="week-date" aria-label="Week of (Monday)" onchange="onWeekDateChange(this.value)" />
               </div>
               <button
                 class="btn-edit"
@@ -415,6 +415,7 @@
               <input
                 type="checkbox"
                 id="demo-toggle"
+                aria-label="Demo Mode"
                 onchange="setDemo(this.checked)"
               />
               <span class="switch-slider"></span>
@@ -465,6 +466,7 @@
             <select
               id="cal-picker-select"
               class="field-select cal-picker-select"
+              aria-label="Calendar to Read"
               onchange="onCalendarPicked(this.value)"
             >
               <option value="">Loading…</option>
@@ -534,7 +536,7 @@
     <div class="modal-overlay" id="modal">
       <div class="modal">
         <h3>Add Employee</h3>
-        <label class="field-label">Name</label>
+        <label class="field-label" for="new-worker-name">Name</label>
         <input type="text" id="new-worker-name" placeholder="Full name" />
         <label class="field-label"
           >Priority
@@ -578,11 +580,11 @@
     <div class="modal-overlay" id="add-shift-modal">
       <div class="modal">
         <h3>Add Employee to <span id="add-shift-day-name"></span></h3>
-        <label class="field-label">Employee</label>
+        <label class="field-label" for="add-shift-worker">Employee</label>
         <select id="add-shift-worker" class="field-select" onchange="updateAddShiftDefaultTimes()"></select>
-        <label class="field-label" style="margin-top: 14px">Start</label>
+        <label class="field-label" for="add-shift-start" style="margin-top: 14px">Start</label>
         <select id="add-shift-start" class="field-select"></select>
-        <label class="field-label" style="margin-top: 14px">End</label>
+        <label class="field-label" for="add-shift-end" style="margin-top: 14px">End</label>
         <select id="add-shift-end" class="field-select"></select>
         <div class="modal-actions" style="margin-top: 20px">
           <button class="btn-cancel" onclick="closeAddShiftModal()">
@@ -597,7 +599,7 @@
     <div class="modal-overlay" id="edit-employee-modal">
       <div class="modal">
         <h3>Edit Employee</h3>
-        <label class="field-label">Name</label>
+        <label class="field-label" for="edit-employee-name">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
         <label class="field-label"
           >Priority
@@ -2130,7 +2132,7 @@
                         !d.allDay
                           ? `
                         <div class="av-time-inputs">
-                          <select onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
+                          <select aria-label="${w.name} ${DAY_FULL[d.day]} start time" onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
                             ${timeOptions(d.day === "saturday")
                               .map(
                                 (o) =>
@@ -2139,7 +2141,7 @@
                               .join("")}
                           </select>
                           <span>–</span>
-                          <select onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
+                          <select aria-label="${w.name} ${DAY_FULL[d.day]} end time" onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
                             ${timeOptions(d.day === "saturday")
                               .map(
                                 (o) =>
