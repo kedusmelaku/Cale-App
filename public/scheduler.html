@@ -908,18 +908,9 @@
             ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
             : "";
         if (!confirm(`${warnText}Finish editing and return to start?`)) return false;
-        scheduleData = [];
-        availability = {};
-        document.getElementById("week-date").value = "";
-        document.getElementById("stale-banner").style.display = "none";
-        showEmptyState("default");
-        document.getElementById("hours-summary-edit").style.display = "none";
-        // Rebuild availability from employee days after clearing
-        workers.forEach((w) => {
-          if (w.days && w.days.length) availability[w.name] = w.days;
-        });
-        renderAvailability();
-        showScreen("screen-schedule");
+        // Navigate back to the dashboard. The dashboard re-fetches employees
+        // from MongoDB on load so availability resets naturally.
+        window.location.href = "/";
         return true;
       }
 
