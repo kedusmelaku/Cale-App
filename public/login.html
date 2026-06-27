@@ -75,7 +75,7 @@
       min-height: 18px;
     }
 
-    button[type="submit"] {
+    #submit-btn {
       margin-top: 20px;
       width: 100%;
       padding: 11px;
@@ -89,11 +89,11 @@
       transition: background 0.15s, opacity 0.15s;
     }
 
-    button[type="submit"]:hover:not(:disabled) {
+    #submit-btn:hover:not(:disabled) {
       background: #333;
     }
 
-    button[type="submit"]:disabled {
+    #submit-btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
     }
@@ -114,7 +114,7 @@
     />
     <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
 
-    <button type="submit" id="submit-btn">Sign in</button>
+    <button type="button" id="submit-btn">Sign in</button>
   </div>
 
   <script>
