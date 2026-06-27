@@ -27,8 +27,11 @@
   "homepage": "https://github.com/kedusmelaku/Schedule#readme",
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
+    "bcryptjs": "^3.0.3",
+    "connect-mongo": "^6.0.0",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
     "googleapis": "^171.4.0",
     "mongoose": "^9.7.2"
   }
