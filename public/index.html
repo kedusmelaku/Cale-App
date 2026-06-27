@@ -1871,7 +1871,7 @@
           for (const w of workers) {
             w.days = availability[w.name] || [];
             const saved = await updateEmployee(w._id, w);
-            if (!saved) return alert("Failed to save availability. Please try again.");
+            if (!saved) return alert("Something went wrong while saving. Please try again.");
           }
         }
         const dateInput = document.getElementById("week-date");
@@ -2004,7 +2004,7 @@ if (!settings.demo) await removeEmployee(removed._id);
   // which already keep demo state out of localStorage).
   if (!settings.demo) {
     const saved = await addEmployee(newWorker);
-    if (!saved) return alert("Failed to save employee. Check that the server is running and MongoDB is connected.");
+    if (!saved) return alert("Something went wrong while saving. Please try again.");
     workers.push(saved);
   } else {
     workers.push(newWorker);
