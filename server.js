@@ -7,6 +7,8 @@ const Day = require("./Day");
 const SimplifiedWeek = require("./SimplifiedWeek");
 const SimplifiedDay = require("./SimplifiedDay");
 const Employee = require("./Employee");
+const CenterSettings = require("./CenterSettings");
+const Submission = require("./Submission");
 const mongoose = require("mongoose");
 
 // On Vercel, each request may hit a fresh function instance with no persistent
@@ -330,8 +332,126 @@ app.put("/employees/:id", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GENERATE SCHEDULE
+// CENTER SETTINGS
 // ─────────────────────────────────────────────────────────────────────────────
+
+app.get("/center-settings", async (req, res) => {
+  try {
+    await connectDB();
+    const centerId = process.env.CENTER_ID;
+    let doc = await CenterSettings.findOne({ centerId });
+    if (!doc) doc = { centerId, windowOpen: null, windowClose: null };
+    res.json({ data: doc });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/center-settings", async (req, res) => {
+  try {
+    await connectDB();
+    const centerId = process.env.CENTER_ID;
+    const doc = await CenterSettings.findOneAndUpdate(
+      { centerId },
+      { ...req.body, centerId },
+      { new: true, upsert: true }
+    );
+    res.json({ data: doc });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBMISSIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Get all submissions for the current center, optionally filtered by weekOf
+app.get("/submissions", async (req, res) => {
+  try {
+    await connectDB();
+    const centerId = process.env.CENTER_ID;
+    const query = { centerId };
+    if (req.query.weekOf) query.weekOf = req.query.weekOf;
+    const submissions = await Submission.find(query).sort({ submittedAt: 1 });
+    res.json({ data: submissions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Employee submits availability via the public form
+app.post("/submissions", async (req, res) => {
+  try {
+    await connectDB();
+    const centerId = process.env.CENTER_ID;
+    const { employeeId, employeeName, weekOf, days } = req.body;
+
+    if (!employeeId || !weekOf || !days) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    // Check submission window is currently open
+    const settings = await CenterSettings.findOne({ centerId });
+    const now = new Date();
+    if (settings && settings.windowOpen && settings.windowClose) {
+      if (now < new Date(settings.windowOpen) || now > new Date(settings.windowClose)) {
+        return res.status(403).json({ error: "The availability window is not currently open." });
+      }
+    }
+
+    // Upsert — replace any existing submission for this employee+week
+    const submission = await Submission.findOneAndUpdate(
+      { centerId, employeeId, weekOf },
+      { centerId, employeeId, employeeName, weekOf, days, submittedAt: new Date() },
+      { new: true, upsert: true }
+    );
+    res.json({ data: submission });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a submission (manager override)
+app.delete("/submissions/:id", async (req, res) => {
+  try {
+    await connectDB();
+    await Submission.findByIdAndDelete(req.params.id);
+    res.json({ deleted: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC AVAILABILITY FORM
+// Served at /availability — employees enter their PIN and submit availability.
+// This is intentionally public (no auth) — the PIN is the only gate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get("/availability", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "availability.html"));
+});
+
+// PIN lookup — given a PIN, returns the matching employee (name + id only)
+// so the form can show "Hi [name]" before submission.
+app.post("/availability/lookup", async (req, res) => {
+  try {
+    await connectDB();
+    const centerId = process.env.CENTER_ID;
+    const { pin } = req.body;
+    if (!pin) return res.status(400).json({ error: "PIN required." });
+
+    const employee = await Employee.findOne({ centerId, pin: pin.toString() });
+    if (!employee) return res.status(404).json({ error: "No employee found with that PIN." });
+
+    res.json({ data: { _id: employee._id, name: employee.name, priority: employee.priority } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.post("/generate", (req, res) => {
   const { workers, studentData, oneOnOneData, mode } = req.body;
 
@@ -349,7 +469,7 @@ app.post("/generate", (req, res) => {
       const end = d.end + ((d.endMinute || 0) === 30 ? 0.5 : 0);
       return [d.day, start, end];
     });
-    const user = new User(w.name, hoursAv);
+    const user = new User(w.name, hoursAv, w.submittedAt || null);
     if (w.priority) user.setPriority(w.priority);
     return user;
   });

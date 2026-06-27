@@ -121,8 +121,16 @@ class SimplifiedDay extends Day {
           }
         }
 
-        // sort by points so highest priority workers are first
-        availableWorkers.sort((a, b) => a.points - b.points);
+        // Sort by points first (highest priority = lowest points value).
+        // Within the same points value, earlier submittedAt wins (first-come-
+        // first-served). Workers with no submittedAt go last within their level.
+        availableWorkers.sort((a, b) => {
+          if (a.points !== b.points) return a.points - b.points;
+          if (a.submittedAt && b.submittedAt) return new Date(a.submittedAt) - new Date(b.submittedAt);
+          if (a.submittedAt) return -1;
+          if (b.submittedAt) return 1;
+          return 0;
+        });
 
         // assign workers up to stillNeeded
         let assigned = 0;

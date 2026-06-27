@@ -17,6 +17,10 @@ const employeeSchema = new mongoose.Schema({
   ],
   defaultStart: { type: Number },
   defaultEnd: { type: Number },
+  // 4-digit PIN set by the manager, used by the employee to access the
+  // public availability submission form. Stored as a string to preserve
+  // leading zeros (e.g. "0042").
+  pin: { type: String, default: "" },
 });
 
 const Employee = mongoose.model("Employee", employeeSchema);

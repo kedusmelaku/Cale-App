@@ -182,8 +182,12 @@ class Day {
             }
 
             day.slots[i].workers.sort(function (a, b) {
-              return a.points - b.points;
-            }); //sort from least to greatest based on points
+              if (a.points !== b.points) return a.points - b.points;
+              if (a.submittedAt && b.submittedAt) return new Date(a.submittedAt) - new Date(b.submittedAt);
+              if (a.submittedAt) return -1;
+              if (b.submittedAt) return 1;
+              return 0;
+            }); //sort from least to greatest based on points, then by submission time
           }
         }
       }

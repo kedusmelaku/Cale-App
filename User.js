@@ -1,10 +1,15 @@
 class User {
-  constructor(name, hoursAv) {
+  constructor(name, hoursAv, submittedAt = null) {
     this.name = name;
     this.days = [];
     this.points = 0;
     this.priority = 0;
     this.hours = [];
+    // When the employee submitted their availability (Date or null).
+    // Used as a first-come-first-served tiebreaker within the same
+    // priority level. null means submitted outside the window / manually
+    // entered — treated as lowest priority within their level.
+    this.submittedAt = submittedAt;
 
     for (let i = 0; i < hoursAv.length; i++) { //creates the available hours
       this.hours.push([]);
