@@ -276,7 +276,8 @@ app.get("/events", async (req, res) => {
 app.get("/employees", async (req,res) => {
   try{  
     await connectDB();
-    const result = await Employee.find({});
+    const centerId = process.env.CENTER_ID;
+    const result = await Employee.find({ centerId });
     res.json({data: result})
   } catch (err) {
     res.status(500).json({error: err.message});
@@ -287,7 +288,8 @@ app.get("/employees", async (req,res) => {
 app.post("/employees", async (req, res) => {
   try {
     await connectDB();
-    const employee = new Employee(req.body);
+    const centerId = process.env.CENTER_ID;
+    const employee = new Employee({ ...req.body, centerId });
     await employee.save();
     res.json({ data: employee });
   } catch (err) {
@@ -308,7 +310,7 @@ app.delete("/employees/:id", async (req, res) => {
 app.put("/employees/:id", async (req, res) => {
   try {
     await connectDB();
-    const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, {new: true});
+    const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json({ data: employee });
   } catch (err) {
     res.status(500).json({ error: err.message });
