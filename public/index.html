@@ -1577,6 +1577,9 @@
       // Load employees from MongoDB on startup
       loadEmployees().then(() => {
         renderWorkers();
+      }).catch((err) => {
+        console.error("Failed to load employees on startup:", err);
+        renderWorkers();
       });
       let newWorkerPriority = 0;
       let scheduleData = [];
@@ -1612,7 +1615,7 @@
       async function loadEmployees() {
         const res = await fetch("/employees");
         const data = await res.json();
-        workers = data.data;
+        workers = data.data || [];
       }
 
       // ── Demo ───────────────────────────────────────────────
