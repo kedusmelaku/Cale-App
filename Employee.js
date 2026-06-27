@@ -6,6 +6,7 @@ const employeeSchema = new mongoose.Schema({
   days: [
     {
       day: { type: String, required: true },
+      selected: { type: Boolean, default: false },
       start: { type: Number },
       end: { type: Number },
       startMinute: { type: Number, default: 0 },

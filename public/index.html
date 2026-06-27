@@ -1855,7 +1855,7 @@ async function loadEmployees() {
         showScreen("screen-workers");
       }
 
-      function goToSchedule() {
+      async function goToSchedule() {
         if (workers.length === 0)
           return alert("Add at least one employee first.");
         if (
@@ -1863,6 +1863,13 @@ async function loadEmployees() {
           !workers.every((w) => availability[w.name])
         ) {
           buildAvailability();
+        }
+        if (!settings.demo) {
+          for (const w of workers) {
+            w.days = availability[w.name] || [];
+            const saved = await updateEmployee(w._id, w);
+            if (!saved) return alert("Failed to save availability. Please try again.");
+          }
         }
         const dateInput = document.getElementById("week-date");
         if (!dateInput.value) dateInput.value = getNextMonday();
