@@ -2004,6 +2004,7 @@ if (!settings.demo) await removeEmployee(removed._id);
   // which already keep demo state out of localStorage).
   if (!settings.demo) {
     const saved = await addEmployee(newWorker);
+    if (!saved) return alert("Failed to save employee. Check that the server is running and MongoDB is connected.");
     workers.push(saved);
   } else {
     workers.push(newWorker);
