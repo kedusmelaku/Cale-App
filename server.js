@@ -109,7 +109,13 @@ app.post("/api/login", async (req, res) => {
     const match = await bcrypt.compare(password, PASSWORD_HASH);
     if (!match) return res.status(401).json({ error: "Incorrect password." });
     req.session.authenticated = true;
-    res.json({ ok: true });
+    req.session.save((err) => {
+      if (err)
+        return res
+          .status(500)
+          .json({ error: "Session error. Please try again." });
+      res.json({ ok: true });
+    });
   } catch (err) {
     console.error("/api/login:", err.message);
     res.status(500).json({ error: "Something went wrong. Please try again." });
