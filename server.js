@@ -1,6 +1,9 @@
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
+const session = require("express-session");
+const MongoStore = require("connect-mongo");
+const bcrypt = require("bcryptjs");
 const User = require("./User");
 const Week = require("./Week");
 const Day = require("./Day");
@@ -10,6 +13,19 @@ const Employee = require("./Employee");
 const CenterSettings = require("./CenterSettings");
 const Submission = require("./Submission");
 const mongoose = require("mongoose");
+
+// Hash the manager password once at startup so we never keep the plaintext
+// in memory beyond this point. Crashes loudly if the env var is missing so
+// a misconfigured deployment fails immediately rather than silently.
+if (!process.env.MANAGER_PASSWORD) {
+  console.error("FATAL: MANAGER_PASSWORD env var is not set");
+  process.exit(1);
+}
+if (!process.env.SESSION_SECRET) {
+  console.error("FATAL: SESSION_SECRET env var is not set");
+  process.exit(1);
+}
+const PASSWORD_HASH = bcrypt.hashSync(process.env.MANAGER_PASSWORD, 10);
 
 // On Vercel, each request may hit a fresh function instance with no persistent
 // connection. connectDB() reuses an existing connection when possible and
@@ -27,15 +43,84 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SESSION
+// Sessions are stored in MongoDB so they survive Vercel cold starts.
+// connect-mongo accepts a clientPromise — we give it a promise that resolves
+// once Mongoose has connected, then returns the underlying native client.
+// ─────────────────────────────────────────────────────────────────────────────
+const mongoClientPromise = connectDB().then(() => mongoose.connection.getClient());
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      clientPromise: mongoClientPromise,
+      dbName: "scheduler",
+      collectionName: "sessions",
+      ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+    }),
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // HTTPS only on Vercel
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+    },
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH MIDDLEWARE
+// Page routes redirect to /login. API routes (called via fetch) return 401.
+// ─────────────────────────────────────────────────────────────────────────────
+function requireAuth(req, res, next) {
+  if (req.session && req.session.authenticated) return next();
+  if (req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"))) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+  res.redirect("/login");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PAGE ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.get("/", (req, res) => {
+app.get("/login", (req, res) => {
+  if (req.session && req.session.authenticated) return res.redirect("/");
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.get("/", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-app.get("/scheduler", (req, res) => {
+app.get("/scheduler", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "scheduler.html"));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH API ROUTES
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.post("/api/login", async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: "Password required." });
+    const match = await bcrypt.compare(password, PASSWORD_HASH);
+    if (!match) return res.status(401).json({ error: "Incorrect password." });
+    req.session.authenticated = true;
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("/api/login:", err.message);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+});
+
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.json({ ok: true });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,7 +135,7 @@ app.get("/scheduler", (req, res) => {
 //   6. App shows success, prompts user to save token to Vercel env var
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.get("/oauth/start", (req, res) => {
+app.get("/oauth/start", requireAuth, (req, res) => {
   try {
     const { getAuth } = require("./auth");
     const auth = getAuth();
@@ -69,7 +154,7 @@ app.get("/oauth/start", (req, res) => {
   }
 });
 
-app.get("/oauth/callback", async (req, res) => {
+app.get("/oauth/callback", requireAuth, async (req, res) => {
   const { code, state } = req.query;
   if (!code) return res.status(400).send("Missing code parameter from Google.");
   if (!state)
@@ -124,7 +209,7 @@ app.get("/oauth/callback", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // CAL STATUS — used by the frontend to show connected/disconnected dot
 // ─────────────────────────────────────────────────────────────────────────────
-app.get("/cal-status", (req, res) => {
+app.get("/cal-status", requireAuth, (req, res) => {
   try {
     const { getAuth } = require("./auth");
     const auth = getAuth();
@@ -137,7 +222,7 @@ app.get("/cal-status", (req, res) => {
 });
 
 // Disconnect: clear in-memory OAuth tokens so the app is no longer connected
-app.post("/oauth/disconnect", (req, res) => {
+app.post("/oauth/disconnect", requireAuth, (req, res) => {
   try {
     const { clearTokens } = require("./auth");
     clearTokens();
@@ -152,7 +237,7 @@ app.post("/oauth/disconnect", (req, res) => {
 // CALENDARS — lists every calendar the authenticated account can see, so the
 // user can pick which one Scheduler reads student bookings from.
 // ─────────────────────────────────────────────────────────────────────────────
-app.get("/calendars", async (req, res) => {
+app.get("/calendars", requireAuth, async (req, res) => {
   try {
     const { google } = require("googleapis");
     const { getAuth } = require("./auth");
@@ -191,7 +276,7 @@ app.get("/calendars", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // EVENTS
 // ─────────────────────────────────────────────────────────────────────────────
-app.get("/events/mock", (req, res) => {
+app.get("/events/mock", requireAuth, (req, res) => {
   res.json({
     studentData: {
       monday: {
@@ -256,7 +341,7 @@ app.get("/events/mock", (req, res) => {
   });
 });
 
-app.get("/events", async (req, res) => {
+app.get("/events", requireAuth, async (req, res) => {
   const { monday, calendarId } = req.query;
   if (!monday) return res.status(400).json({ error: "monday date required" });
   try {
@@ -287,7 +372,7 @@ app.get("/events", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMPLOYEES
 // ─────────────────────────────────────────────────────────────────────────────
-app.get("/employees", async (req,res) => {
+app.get("/employees", requireAuth, async (req,res) => {
   try{  
     await connectDB();
     const centerId = process.env.CENTER_ID;
@@ -299,7 +384,7 @@ app.get("/employees", async (req,res) => {
 
 });
 
-app.post("/employees", async (req, res) => {
+app.post("/employees", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const centerId = process.env.CENTER_ID;
@@ -311,7 +396,7 @@ app.post("/employees", async (req, res) => {
   }
 });
 
-app.delete("/employees/:id", async (req, res) => {
+app.delete("/employees/:id", requireAuth, async (req, res) => {
   try {
     await connectDB();
     await Employee.findByIdAndDelete(req.params.id);
@@ -321,7 +406,7 @@ app.delete("/employees/:id", async (req, res) => {
   }
 });
 
-app.put("/employees/:id", async (req, res) => {
+app.put("/employees/:id", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -335,7 +420,7 @@ app.put("/employees/:id", async (req, res) => {
 // CENTER SETTINGS
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.get("/center-settings", async (req, res) => {
+app.get("/center-settings", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const centerId = process.env.CENTER_ID;
@@ -347,7 +432,7 @@ app.get("/center-settings", async (req, res) => {
   }
 });
 
-app.put("/center-settings", async (req, res) => {
+app.put("/center-settings", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const centerId = process.env.CENTER_ID;
@@ -367,7 +452,7 @@ app.put("/center-settings", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Get all submissions for the current center, optionally filtered by weekOf
-app.get("/submissions", async (req, res) => {
+app.get("/submissions", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const centerId = process.env.CENTER_ID;
@@ -413,7 +498,7 @@ app.post("/submissions", async (req, res) => {
 });
 
 // Delete a submission (manager override)
-app.delete("/submissions/:id", async (req, res) => {
+app.delete("/submissions/:id", requireAuth, async (req, res) => {
   try {
     await connectDB();
     await Submission.findByIdAndDelete(req.params.id);
@@ -452,7 +537,7 @@ app.post("/availability/lookup", async (req, res) => {
 });
 
 
-app.post("/generate", (req, res) => {
+app.post("/generate", requireAuth, (req, res) => {
   const { workers, studentData, oneOnOneData, mode } = req.body;
 
   const users = workers.map((w) => {
