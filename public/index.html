@@ -1572,10 +1572,12 @@
       closeOnOverlayClick("settings-panel", closeSettings);
 
       // ── State ──────────────────────────────────────────────
-      let workers = JSON.parse(
-        localStorage.getItem("scheduler-workers") || "[]",
-      );
+      let workers = [];
       let availability = {};
+      // Load employees from MongoDB on startup
+      loadEmployees().then(() => {
+        renderWorkers();
+      });
       let newWorkerPriority = 0;
       let scheduleData = [];
       let addShiftTarget = null;
@@ -1583,9 +1585,35 @@
       let editEmployeePriority = 0;
       let dragState = null;
 
-      function saveWorkers() {
-        localStorage.setItem("scheduler-workers", JSON.stringify(workers));
-      }
+      async function addEmployee(worker) {
+  const res = await fetch("/employees", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(worker),
+  });
+  const data = await res.json();
+  return data.data;
+}
+
+async function updateEmployee(id, worker) {
+  const res = await fetch(`/employees/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(worker),
+  });
+  const data = await res.json();
+  return data.data;
+}
+
+async function removeEmployee(id) {
+  await fetch(`/employees/${id}`, { method: "DELETE" });
+}
+
+async function loadEmployees() {
+  const res = await fetch("/employees");
+  const data = await res.json();
+  workers = data.data;
+}
 
       // ── Demo ───────────────────────────────────────────────
       function activateDemo() {
@@ -1599,8 +1627,8 @@
         showScreen("screen-workers");
       }
 
-      function deactivateDemo() {
-        workers = JSON.parse(localStorage.getItem("scheduler-workers") || "[]");
+      async function deactivateDemo() {
+        await loadEmployees();
         availability = {};
         scheduleData = [];
         renderWorkers();
@@ -1924,10 +1952,10 @@
         });
       }
 
-      function removeWorker(wi) {
+      async function removeWorker(wi) {
         if (!confirm(`Remove ${workers[wi].name}?`)) return;
-        workers.splice(wi, 1);
-        if (!settings.demo) saveWorkers();
+        const removed = workers.splice(wi, 1)[0];
+if (!settings.demo) await removeEmployee(removed._id);
         renderWorkers();
       }
 
@@ -1955,20 +1983,25 @@
           );
       }
 
-      function addWorker() {
-        const name = document.getElementById("new-worker-name").value.trim();
-        if (!name) return alert("Enter a name.");
-        if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
-          return alert("An employee with that name already exists.");
-        workers.push({ name, priority: newWorkerPriority });
-        // Demo-mode employees are in-memory only — never persist them over
-        // the user's real saved team (mirrors activateDemo/deactivateDemo,
-        // which already keep demo state out of localStorage).
-        if (!settings.demo) saveWorkers();
-        renderWorkers();
-        closeModal();
-        tutAdvance("worker-added");
-      }
+      async function addWorker() {
+  const name = document.getElementById("new-worker-name").value.trim();
+  if (!name) return alert("Enter a name.");
+  if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
+    return alert("An employee with that name already exists.");
+  const newWorker = { name, priority: newWorkerPriority };
+  // Demo-mode employees are in-memory only — never persist them over
+  // the user's real saved team (mirrors activateDemo/deactivateDemo,
+  // which already keep demo state out of localStorage).
+  if (!settings.demo) {
+    const saved = await addEmployee(newWorker);
+    workers.push(saved);
+  } else {
+    workers.push(newWorker);
+  }
+  renderWorkers();
+  closeModal();
+  tutAdvance("worker-added");
+}
 
       // Submit Add Employee on Enter when modal is open
       document
@@ -2049,7 +2082,7 @@
           );
       }
 
-      function confirmEditEmployee() {
+      async function confirmEditEmployee() {
         const name = document.getElementById("edit-employee-name").value.trim();
         if (!name) return alert("Enter a name.");
         const existing = workers.find(
@@ -2059,9 +2092,12 @@
         );
         if (existing)
           return alert("Another employee with that name already exists.");
-        workers[editEmployeeIndex].name = name;
-        workers[editEmployeeIndex].priority = editEmployeePriority;
-        if (!settings.demo) saveWorkers();
+       workers[editEmployeeIndex].name = name;
+workers[editEmployeeIndex].priority = editEmployeePriority;
+if (!settings.demo) {
+  const saved = await updateEmployee(workers[editEmployeeIndex]._id, workers[editEmployeeIndex]);
+  workers[editEmployeeIndex] = saved;
+}
         renderWorkers();
         closeEditEmployeeModal();
       }
