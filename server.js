@@ -9,10 +9,16 @@ const SimplifiedDay = require("./SimplifiedDay");
 const Employee = require("./Employee");
 const mongoose = require("mongoose");
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection failed:", err.message));
+// On Vercel, each request may hit a fresh function instance with no persistent
+// connection. connectDB() reuses an existing connection when possible and
+// establishes a new one when needed — safe to await at the top of every route.
+let _mongoConnected = false;
+async function connectDB() {
+  if (_mongoConnected && mongoose.connection.readyState === 1) return;
+  await mongoose.connect(process.env.MONGODB_URI);
+  _mongoConnected = true;
+  console.log("MongoDB connected");
+}
 
 const app = express();
 app.use(express.json());
@@ -269,6 +275,7 @@ app.get("/events", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/employees", async (req,res) => {
   try{  
+    await connectDB();
     const result = await Employee.find({});
     res.json({data: result})
   } catch (err) {
@@ -279,6 +286,7 @@ app.get("/employees", async (req,res) => {
 
 app.post("/employees", async (req, res) => {
   try {
+    await connectDB();
     const employee = new Employee(req.body);
     await employee.save();
     res.json({ data: employee });
@@ -289,6 +297,7 @@ app.post("/employees", async (req, res) => {
 
 app.delete("/employees/:id", async (req, res) => {
   try {
+    await connectDB();
     await Employee.findByIdAndDelete(req.params.id);
     res.json({ deleted: req.params.id });
   } catch (err) {
@@ -298,6 +307,7 @@ app.delete("/employees/:id", async (req, res) => {
 
 app.put("/employees/:id", async (req, res) => {
   try {
+    await connectDB();
     const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, {new: true});
     res.json({ data: employee });
   } catch (err) {
