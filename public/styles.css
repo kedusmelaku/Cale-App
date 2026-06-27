@@ -178,6 +178,21 @@ header {
 
 .page-intro p { color: var(--text-muted); font-size: 0.88rem; }
 
+/* ── Dashboard App Description ── */
+.dashboard-about {
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  color: var(--text-mid);
+  line-height: 1.6;
+  max-width: 640px;
+}
+
+.dashboard-about strong { color: var(--text); }
+
 /* ── Schedule Layout ── */
 .schedule-layout {
   display: grid;
