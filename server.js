@@ -25,6 +25,18 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PAGE ROUTES
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
+app.get("/scheduler", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "scheduler.html"));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GOOGLE OAUTH
 //
 // Flow:

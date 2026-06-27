@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scheduler - Smart Employee Scheduling for Tutoring Centers</title>
+    <title>Scheduler — Dashboard</title>
     <meta
       name="google-site-verification"
       content="uzaK7zMwyeu8dhhMth8YUM2HL6VfXjCt52LQLcNIbhU"
@@ -18,6 +18,7 @@
     <!-- Vercel Web Analytics -->
     <script src="/analytics.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
+    <script src="/utils.js"></script>
   </head>
   <body>
     <!-- Demo banner -->
@@ -50,6 +51,13 @@
           <h1>Employees</h1>
           <p>
             Add your team here. They'll be saved automatically for next time.
+          </p>
+        </div>
+        <!-- App description — satisfies Google OAuth homepage requirement and
+             gives new users context about what Scheduler does. -->
+        <div class="dashboard-about" id="dashboard-about">
+          <p>
+            <strong>Scheduler</strong> is a scheduling tool for tutoring centers — it reads student bookings from Google Calendar and generates optimized weekly staff schedules based on employee availability and student-to-instructor ratios.
           </p>
         </div>
         <div class="worker-grid" id="worker-grid"></div>
@@ -1855,7 +1863,13 @@
       }
 
       function goToWorkers() {
-        showScreen("screen-workers");
+        // During tutorial, stay on this page (all screens are here).
+        // In normal use from screen-schedule, go back to the dashboard page.
+        if (tut.active) {
+          showScreen("screen-workers");
+        } else {
+          window.location.href = "/";
+        }
       }
 
       async function goToSchedule() {
@@ -1874,10 +1888,17 @@
             if (!saved) return alert("Something went wrong while saving. Please try again.");
           }
         }
-        const dateInput = document.getElementById("week-date");
-        if (!dateInput.value) dateInput.value = getNextMonday();
-        showScreen("screen-schedule");
-        tutAdvance("went-to-schedule");
+        // During the tutorial, stay on this page so the tutorial can
+        // navigate to screen-schedule internally. In normal use, go to the
+        // scheduler page.
+        if (tut.active) {
+          const dateInput = document.getElementById("week-date");
+          if (!dateInput.value) dateInput.value = getNextMonday();
+          showScreen("screen-schedule");
+          tutAdvance("went-to-schedule");
+        } else {
+          window.location.href = "/scheduler";
+        }
       }
 
       function goToEdit() {
