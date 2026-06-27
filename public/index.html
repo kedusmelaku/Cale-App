@@ -1586,34 +1586,34 @@
       let dragState = null;
 
       async function addEmployee(worker) {
-  const res = await fetch("/employees", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(worker),
-  });
-  const data = await res.json();
-  return data.data;
-}
+        const res = await fetch("/employees", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(worker),
+        });
+        const data = await res.json();
+        return data.data;
+      }
 
-async function updateEmployee(id, worker) {
-  const res = await fetch(`/employees/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(worker),
-  });
-  const data = await res.json();
-  return data.data;
-}
+      async function updateEmployee(id, worker) {
+        const res = await fetch(`/employees/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(worker),
+        });
+        const data = await res.json();
+        return data.data;
+      }
 
-async function removeEmployee(id) {
-  await fetch(`/employees/${id}`, { method: "DELETE" });
-}
+      async function removeEmployee(id) {
+        await fetch(`/employees/${id}`, { method: "DELETE" });
+      }
 
-async function loadEmployees() {
-  const res = await fetch("/employees");
-  const data = await res.json();
-  workers = data.data;
-}
+      async function loadEmployees() {
+        const res = await fetch("/employees");
+        const data = await res.json();
+        workers = data.data;
+      }
 
       // ── Demo ───────────────────────────────────────────────
       function activateDemo() {
