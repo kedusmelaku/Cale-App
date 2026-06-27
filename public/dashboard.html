@@ -60,6 +60,39 @@
         >
           + Add Employee
         </button>
+
+        <!-- ── Availability Window ── -->
+        <div class="av-window-section" id="av-window-section">
+          <div class="av-window-header">
+            <h2 class="av-window-title">Availability Window</h2>
+            <span id="av-window-badge" class="av-window-badge"></span>
+          </div>
+          <p class="av-window-sub">
+            Set when employees can submit their availability via the
+            <a href="/availability" target="_blank" class="av-form-link">shared form</a>.
+          </p>
+          <div class="av-window-controls">
+            <div class="av-window-field">
+              <label class="field-label" for="av-window-open">Opens</label>
+              <input type="datetime-local" id="av-window-open" class="av-datetime-input" onchange="markWindowDirty()" />
+            </div>
+            <div class="av-window-field">
+              <label class="field-label" for="av-window-close">Closes</label>
+              <input type="datetime-local" id="av-window-close" class="av-datetime-input" onchange="markWindowDirty()" />
+            </div>
+            <button class="btn-secondary" id="av-window-save-btn" onclick="saveWindow()" style="align-self:flex-end;">Save</button>
+          </div>
+        </div>
+
+        <!-- ── Submission Status ── -->
+        <div class="av-submissions-section" id="av-submissions-section" style="display:none;">
+          <div class="av-submissions-header">
+            <h2 class="av-window-title">Submissions</h2>
+            <span id="av-submissions-count" class="av-submissions-count"></span>
+          </div>
+          <div id="av-submissions-list" class="av-submissions-list"></div>
+        </div>
+
         <br />
         <button
           class="btn-tutorial"
@@ -538,6 +571,10 @@
         <h3>Add Employee</h3>
         <label class="field-label" for="new-worker-name">Name</label>
         <input type="text" id="new-worker-name" placeholder="Full name" />
+        <label class="field-label" style="margin-top:14px;" for="new-worker-pin">PIN
+          <span class="info-tag" tabindex="0" aria-label="A 4-digit PIN the employee uses to submit their availability. You set it — tell them their PIN after adding them.">i<span class="info-tooltip">A 4-digit PIN the employee uses to submit their availability via the shared link. You set it and share it with them.</span></span>
+        </label>
+        <input type="text" id="new-worker-pin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
         <label class="field-label"
           >Priority
           <span
@@ -601,6 +638,8 @@
         <h3>Edit Employee</h3>
         <label class="field-label" for="edit-employee-name">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
+        <label class="field-label" style="margin-top:14px;" for="edit-employee-pin">PIN</label>
+        <input type="text" id="edit-employee-pin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
         <label class="field-label"
           >Priority
           <span
@@ -1958,6 +1997,9 @@
           const wi = workers.indexOf(w);
           const card = document.createElement("div");
           card.className = "wcard";
+          const pinDisplay = w.pin
+            ? `<span class="wcard-pin">PIN: ${w.pin}</span>`
+            : `<span class="wcard-pin wcard-pin-unset">No PIN set</span>`;
           card.innerHTML = `
             <div class="wcard-color" style="background:${getWorkerColor(w.name)}"></div>
             <div class="wcard-body">
@@ -1966,7 +2008,8 @@
                 <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
                 <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
               </div>
-              <div style="display:flex; gap:8px; margin-top:4px;">
+              ${pinDisplay}
+              <div style="display:flex; gap:8px; margin-top:8px;">
                 <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
                 <button class="btn-remove"   onclick="removeWorker(${wi})">Remove</button>
               </div>
@@ -1985,6 +2028,7 @@ if (!settings.demo) await removeEmployee(removed._id);
       // ── Add Employee Modal ─────────────────────────────────
       function openModal() {
         document.getElementById("new-worker-name").value = "";
+        document.getElementById("new-worker-pin").value = "";
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
         setTimeout(
@@ -2011,10 +2055,9 @@ if (!settings.demo) await removeEmployee(removed._id);
   if (!name) return alert("Enter a name.");
   if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
     return alert("An employee with that name already exists.");
-  const newWorker = { name, priority: newWorkerPriority };
-  // Demo-mode employees are in-memory only — never persist them over
-  // the user's real saved team (mirrors activateDemo/deactivateDemo,
-  // which already keep demo state out of localStorage).
+  const pinRaw = document.getElementById("new-worker-pin").value.trim();
+  const pin = pinRaw.padStart(4, "0").slice(0, 4);
+  const newWorker = { name, priority: newWorkerPriority, pin };
   if (!settings.demo) {
     const saved = await addEmployee(newWorker);
     if (!saved) return alert("Something went wrong while saving. Please try again.");
@@ -2086,6 +2129,7 @@ if (!settings.demo) await removeEmployee(removed._id);
         const w = workers[wi];
         editEmployeePriority = w.priority;
         document.getElementById("edit-employee-name").value = w.name;
+        document.getElementById("edit-employee-pin").value = w.pin || "";
         selectEditPriority(w.priority);
         document.getElementById("edit-employee-modal").classList.add("open");
         tutAdvance("edit-employee-opened");
@@ -2116,12 +2160,15 @@ if (!settings.demo) await removeEmployee(removed._id);
         );
         if (existing)
           return alert("Another employee with that name already exists.");
-       workers[editEmployeeIndex].name = name;
-workers[editEmployeeIndex].priority = editEmployeePriority;
-if (!settings.demo) {
-  const saved = await updateEmployee(workers[editEmployeeIndex]._id, workers[editEmployeeIndex]);
-  workers[editEmployeeIndex] = saved;
-}
+        const pinRaw = document.getElementById("edit-employee-pin").value.trim();
+        const pin = pinRaw ? pinRaw.padStart(4, "0").slice(0, 4) : (workers[editEmployeeIndex].pin || "");
+        workers[editEmployeeIndex].name = name;
+        workers[editEmployeeIndex].priority = editEmployeePriority;
+        workers[editEmployeeIndex].pin = pin;
+        if (!settings.demo) {
+          const saved = await updateEmployee(workers[editEmployeeIndex]._id, workers[editEmployeeIndex]);
+          workers[editEmployeeIndex] = saved;
+        }
         renderWorkers();
         closeEditEmployeeModal();
       }
@@ -3147,6 +3194,207 @@ if (!settings.demo) {
         showScreen("screen-auth");
       }
 
+      // ── Availability Window ────────────────────────────────
+      let _windowDirty = false;
+      let _centerSettings = null;
+
+      function toLocalDatetimeValue(date) {
+        if (!date) return "";
+        const d = new Date(date);
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+
+      function toSameTimeNextWeek(datetimeLocalValue) {
+        if (!datetimeLocalValue) return "";
+        const d = new Date(datetimeLocalValue);
+        d.setDate(d.getDate() + 7);
+        return toLocalDatetimeValue(d);
+      }
+
+      async function loadCenterSettings() {
+        if (settings.demo) return;
+        try {
+          const res = await fetch("/center-settings");
+          const data = await res.json();
+          _centerSettings = data.data;
+          applyWindowToUI(_centerSettings);
+          updateWindowBadge();
+          loadSubmissions();
+        } catch (e) {
+          console.warn("Could not load center settings:", e.message);
+        }
+      }
+
+      function applyWindowToUI(s) {
+        if (!s) return;
+        const openEl = document.getElementById("av-window-open");
+        const closeEl = document.getElementById("av-window-close");
+        if (!openEl || !closeEl) return;
+        openEl.value = s.windowOpen ? toLocalDatetimeValue(new Date(s.windowOpen)) : "";
+        closeEl.value = s.windowClose ? toLocalDatetimeValue(new Date(s.windowClose)) : "";
+        _windowDirty = false;
+        const saveBtn = document.getElementById("av-window-save-btn");
+        if (saveBtn) saveBtn.classList.remove("dirty");
+      }
+
+      function markWindowDirty() {
+        _windowDirty = true;
+        const saveBtn = document.getElementById("av-window-save-btn");
+        if (saveBtn) saveBtn.classList.add("dirty");
+      }
+
+      function updateWindowBadge() {
+        const badge = document.getElementById("av-window-badge");
+        if (!badge || !_centerSettings) return;
+        const now = new Date();
+        const open = _centerSettings.windowOpen ? new Date(_centerSettings.windowOpen) : null;
+        const close = _centerSettings.windowClose ? new Date(_centerSettings.windowClose) : null;
+        if (open && close && now >= open && now <= close) {
+          badge.textContent = "Open";
+          badge.className = "av-window-badge badge-open";
+        } else if (open && now < open) {
+          badge.textContent = "Scheduled";
+          badge.className = "av-window-badge badge-scheduled";
+        } else if (close && now > close) {
+          badge.textContent = "Closed";
+          badge.className = "av-window-badge badge-closed";
+        } else {
+          badge.textContent = "Not set";
+          badge.className = "av-window-badge badge-unset";
+        }
+      }
+
+      async function saveWindow() {
+        const openVal = document.getElementById("av-window-open").value;
+        const closeVal = document.getElementById("av-window-close").value;
+        if (openVal && closeVal && new Date(openVal) >= new Date(closeVal)) {
+          return alert("Close time must be after open time.");
+        }
+        try {
+          const res = await fetch("/center-settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              windowOpen: openVal ? new Date(openVal).toISOString() : null,
+              windowClose: closeVal ? new Date(closeVal).toISOString() : null,
+            }),
+          });
+          const data = await res.json();
+          _centerSettings = data.data;
+          _windowDirty = false;
+          const saveBtn = document.getElementById("av-window-save-btn");
+          if (saveBtn) {
+            saveBtn.classList.remove("dirty");
+            saveBtn.textContent = "Saved ✓";
+            setTimeout(() => { saveBtn.textContent = "Save"; }, 2000);
+          }
+          updateWindowBadge();
+        } catch (e) {
+          alert("Something went wrong saving the window. Please try again.");
+        }
+      }
+
+      // ── Submissions ────────────────────────────────────────
+      let _submissions = [];
+
+      async function loadSubmissions() {
+        if (settings.demo) return;
+        try {
+          // Load submissions for the upcoming week (based on window open date)
+          const weekOf = _centerSettings?.windowOpen
+            ? getMondayOfWeek(new Date(_centerSettings.windowOpen))
+            : getNextMondayStr();
+          const res = await fetch(`/submissions?weekOf=${weekOf}`);
+          const data = await res.json();
+          _submissions = data.data || [];
+          renderSubmissions();
+        } catch (e) {
+          console.warn("Could not load submissions:", e.message);
+        }
+      }
+
+      function getMondayOfWeek(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = day === 0 ? 6 : day - 1;
+        d.setDate(d.getDate() - diff);
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dd}`;
+      }
+
+      function getNextMondayStr() {
+        const today = new Date();
+        const day = today.getDay();
+        const daysUntil = day === 1 ? 0 : (8 - day) % 7;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + daysUntil);
+        const y = monday.getFullYear();
+        const m = String(monday.getMonth()+1).padStart(2, "0");
+        const d = String(monday.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function renderSubmissions() {
+        const section = document.getElementById("av-submissions-section");
+        const list = document.getElementById("av-submissions-list");
+        const countEl = document.getElementById("av-submissions-count");
+        if (!section || !list) return;
+
+        const submittedIds = new Set(_submissions.map(s => s.employeeId));
+        const submitted = _submissions.length;
+        const total = workers.length;
+
+        if (total === 0) { section.style.display = "none"; return; }
+        section.style.display = "block";
+        countEl.textContent = `${submitted} / ${total}`;
+
+        list.innerHTML = "";
+        // Show submitted first (in submission order), then pending
+        const submittedWorkers = _submissions
+          .map((s, i) => ({ ...s, order: i + 1 }));
+        const pendingWorkers = workers.filter(
+          w => !submittedIds.has(w._id?.toString())
+        );
+
+        submittedWorkers.forEach((s) => {
+          const row = document.createElement("div");
+          row.className = "sub-row sub-row-done";
+          const time = new Date(s.submittedAt).toLocaleString("en-US", {
+            weekday: "short", month: "short", day: "numeric",
+            hour: "numeric", minute: "2-digit",
+          });
+          row.innerHTML = `
+            <span class="sub-order">#${s.order}</span>
+            <span class="sub-name">${s.employeeName}</span>
+            <span class="sub-time">${time}</span>
+            <button class="sub-remove-btn" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`;
+          list.appendChild(row);
+        });
+
+        pendingWorkers.forEach((w) => {
+          const row = document.createElement("div");
+          row.className = "sub-row sub-row-pending";
+          row.innerHTML = `
+            <span class="sub-order">—</span>
+            <span class="sub-name">${w.name}</span>
+            <span class="sub-time sub-pending-label">Not submitted</span>`;
+          list.appendChild(row);
+        });
+      }
+
+      async function removeSubmission(id) {
+        if (!confirm("Remove this submission?")) return;
+        try {
+          await fetch(`/submissions/${id}`, { method: "DELETE" });
+          await loadSubmissions();
+        } catch (e) {
+          alert("Something went wrong. Please try again.");
+        }
+      }
+
       // ── Init ───────────────────────────────────────────────
       applyTheme();
       checkCalendarStatus();
@@ -3155,6 +3403,7 @@ if (!settings.demo) {
         activateDemo();
       }
       renderWorkers();
+      loadCenterSettings();
     </script>
   </body>
 </html>

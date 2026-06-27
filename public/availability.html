@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Submit Availability — Scheduler</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* ── Availability form page styles ── */
+      .av-form-shell {
+        max-width: 480px;
+        margin: 40px auto;
+        padding: 0 20px 60px;
+      }
+
+      .av-form-header {
+        margin-bottom: 28px;
+      }
+
+      .av-form-header h1 {
+        font-family: "Noto Serif", serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+
+      .av-form-header p {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+
+      .av-form-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .av-form-card + .av-form-card {
+        margin-top: 16px;
+      }
+
+      .pin-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+      }
+
+      .pin-field {
+        flex: 1;
+      }
+
+      .pin-input {
+        width: 100%;
+        padding: 10px 14px;
+        background: var(--surface2);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "Noto Sans", sans-serif;
+        font-size: 1.1rem;
+        letter-spacing: 0.2em;
+        text-align: center;
+      }
+
+      .pin-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .window-status {
+        font-size: 0.85rem;
+        padding: 10px 14px;
+        border-radius: var(--radius);
+        margin-bottom: 20px;
+      }
+
+      .window-status.open {
+        background: var(--green-bg);
+        color: var(--green-on-tint);
+        border: 1px solid var(--green);
+      }
+
+      .window-status.closed {
+        background: var(--surface2);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+      }
+
+      .greeting {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 18px;
+      }
+
+      .week-label {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+      }
+
+      /* Day rows */
+      .av-day-block {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        background: var(--surface2);
+      }
+
+      .av-day-block.selected {
+        border-color: var(--accent);
+        background: var(--accent-light);
+      }
+
+      .av-day-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .av-day-name {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--text);
+        flex: 1;
+      }
+
+      .av-day-hours {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .av-hours-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-mid);
+        cursor: pointer;
+      }
+
+      .av-time-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-mid);
+      }
+
+      .av-time-row select {
+        padding: 6px 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "Noto Sans", sans-serif;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .submit-btn {
+        width: 100%;
+        padding: 13px;
+        margin-top: 20px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: var(--radius);
+        font-family: "Noto Sans", sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .submit-btn:hover { background: var(--accent-hover); }
+      .submit-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
+
+      .error-msg {
+        font-size: 0.85rem;
+        color: #c0392b;
+        margin-top: 10px;
+      }
+
+      .success-card {
+        text-align: center;
+        padding: 40px 24px;
+      }
+
+      .success-icon { font-size: 2.5rem; margin-bottom: 14px; }
+
+      .success-title {
+        font-family: "Noto Serif", serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+
+      .success-sub {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+
+      #step-pin, #step-form, #step-success { display: none; }
+      #step-pin.active, #step-form.active, #step-success.active { display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="av-form-shell">
+      <div class="av-form-header">
+        <h1>Submit Availability</h1>
+        <p>Enter your PIN to submit your availability for the upcoming week.</p>
+      </div>
+
+      <!-- Step 1: PIN entry -->
+      <div id="step-pin" class="active">
+        <div class="av-form-card">
+          <div id="window-status-msg" class="window-status" style="display:none;"></div>
+          <label class="field-label" for="pin-input">Your PIN</label>
+          <div class="pin-row">
+            <div class="pin-field">
+              <input
+                type="number"
+                id="pin-input"
+                class="pin-input"
+                placeholder="0000"
+                maxlength="4"
+                min="0"
+                max="9999"
+                autocomplete="off"
+              />
+            </div>
+            <button class="btn-primary" onclick="lookupPin()">Continue →</button>
+          </div>
+          <div id="pin-error" class="error-msg" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Step 2: Availability form -->
+      <div id="step-form">
+        <div class="av-form-card">
+          <div id="greeting" class="greeting"></div>
+          <div id="week-label" class="week-label"></div>
+          <div id="day-list"></div>
+          <button class="submit-btn" id="submit-btn" onclick="submitAvailability()">
+            Submit Availability
+          </button>
+          <div id="submit-error" class="error-msg" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div id="step-success">
+        <div class="av-form-card success-card">
+          <div class="success-icon">✅</div>
+          <div class="success-title">Availability submitted!</div>
+          <div class="success-sub" id="success-sub">Your availability has been saved.</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
+      const DAY_FULL = {
+        monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
+        thursday: "Thursday", saturday: "Saturday",
+      };
+
+      let _employee = null;
+      let _weekOf = null;
+      let _windowOpen = null;
+      let _windowClose = null;
+
+      // ── Init ───────────────────────────────────────────────
+      (async function init() {
+        // Apply saved theme
+        const saved = JSON.parse(localStorage.getItem("scheduler-settings") || "{}");
+        if (saved.theme === "dark") document.body.classList.add("dark");
+
+        // Load center settings to check window and get week
+        try {
+          const res = await fetch("/center-settings");
+          const data = await res.json();
+          const s = data.data;
+          if (s && s.windowOpen) _windowOpen = new Date(s.windowOpen);
+          if (s && s.windowClose) _windowClose = new Date(s.windowClose);
+        } catch (e) {
+          console.warn("Could not load center settings:", e.message);
+        }
+
+        // Determine weekOf from window open date, or default to next Monday
+        _weekOf = _windowOpen
+          ? getMondayOfWeek(_windowOpen)
+          : getNextMonday();
+
+        updateWindowStatus();
+      })();
+
+      function getMondayOfWeek(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = day === 0 ? 6 : day - 1;
+        d.setDate(d.getDate() - diff);
+        return d.toISOString().split("T")[0];
+      }
+
+      function getNextMonday() {
+        const today = new Date();
+        const day = today.getDay();
+        const daysUntil = day === 1 ? 0 : (8 - day) % 7;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + daysUntil);
+        return monday.toISOString().split("T")[0];
+      }
+
+      function formatDate(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr + "T00:00:00");
+        return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+      }
+
+      function formatDateTime(date) {
+        if (!date) return "";
+        return date.toLocaleString("en-US", {
+          weekday: "short", month: "short", day: "numeric",
+          hour: "numeric", minute: "2-digit",
+        });
+      }
+
+      function isWindowOpen() {
+        if (!_windowOpen || !_windowClose) return true; // no window set = always open
+        const now = new Date();
+        return now >= _windowOpen && now <= _windowClose;
+      }
+
+      function updateWindowStatus() {
+        const el = document.getElementById("window-status-msg");
+        if (!_windowOpen || !_windowClose) {
+          el.style.display = "none";
+          return;
+        }
+        el.style.display = "block";
+        if (isWindowOpen()) {
+          el.className = "window-status open";
+          el.textContent = `Submissions open until ${formatDateTime(_windowClose)}`;
+        } else {
+          const now = new Date();
+          if (now < _windowOpen) {
+            el.className = "window-status closed";
+            el.textContent = `Submissions open ${formatDateTime(_windowOpen)}`;
+          } else {
+            el.className = "window-status closed";
+            el.textContent = `Submissions closed as of ${formatDateTime(_windowClose)}`;
+          }
+        }
+      }
+
+      // ── PIN lookup ─────────────────────────────────────────
+      async function lookupPin() {
+        const pin = document.getElementById("pin-input").value.trim().padStart(4, "0");
+        const errEl = document.getElementById("pin-error");
+        errEl.style.display = "none";
+
+        if (!pin || pin.length > 4) {
+          errEl.textContent = "Please enter your 4-digit PIN.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        try {
+          const res = await fetch("/availability/lookup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            errEl.textContent = data.error || "PIN not found. Please try again.";
+            errEl.style.display = "block";
+            return;
+          }
+          _employee = data.data;
+          showForm();
+        } catch (e) {
+          errEl.textContent = "Something went wrong. Please try again.";
+          errEl.style.display = "block";
+        }
+      }
+
+      // Allow Enter key on PIN input
+      document.getElementById("pin-input").addEventListener("keydown", function(e) {
+        if (e.key === "Enter") lookupPin();
+      });
+
+      // ── Form ────────────────────────────────────────────────
+      function showForm() {
+        document.getElementById("step-pin").classList.remove("active");
+        document.getElementById("step-form").classList.add("active");
+
+        document.getElementById("greeting").textContent =
+          `Hi ${_employee.name.charAt(0).toUpperCase() + _employee.name.slice(1)} 👋`;
+        document.getElementById("week-label").textContent =
+          `Week of ${formatDate(_weekOf)}`;
+
+        renderDays();
+      }
+
+      function timeOptions(isSaturday) {
+        const options = [];
+        const start = isSaturday ? 10 : 3;
+        const end = isSaturday ? 14 : 8;
+        for (let h = start; h <= end; h++) {
+          for (let m of [0, 30]) {
+            if (h === end && m === 30) break;
+            const totalMins = h * 60 + m;
+            const displayH = h > 12 ? h - 12 : h;
+            const displayM = m === 0 ? "00" : "30";
+            const ampm = isSaturday ? (h >= 12 ? "PM" : "AM") : "PM";
+            options.push({ value: totalMins, label: `${displayH}:${displayM} ${ampm}` });
+          }
+        }
+        return options;
+      }
+
+      function minsToHour(m) { return Math.floor(m / 60); }
+      function minsToMinute(m) { return m % 60; }
+      function hourMinToMins(h, m) { return h * 60 + (m || 0); }
+
+      // State for the form
+      const dayState = {};
+
+      function renderDays() {
+        const list = document.getElementById("day-list");
+        list.innerHTML = "";
+
+        DAYS.forEach((d) => {
+          const isSat = d === "saturday";
+          const defaultStart = isSat ? 10 : (_employee.priority === 2 ? 3 : 4);
+          const defaultEnd = isSat ? 14 : 8;
+
+          if (!dayState[d]) {
+            dayState[d] = {
+              selected: false,
+              allDay: true,
+              start: defaultStart,
+              startMinute: 0,
+              end: defaultEnd,
+              endMinute: 0,
+            };
+          }
+
+          const s = dayState[d];
+          const opts = timeOptions(isSat);
+          const startMins = hourMinToMins(s.start, s.startMinute);
+          const endMins = hourMinToMins(s.end, s.endMinute);
+
+          const block = document.createElement("div");
+          block.className = `av-day-block${s.selected ? " selected" : ""}`;
+          block.innerHTML = `
+            <div class="av-day-top">
+              <input type="checkbox" id="day-${d}" ${s.selected ? "checked" : ""}
+                onchange="toggleDay('${d}', this.checked)" aria-label="${DAY_FULL[d]}">
+              <label class="av-day-name" for="day-${d}">${DAY_FULL[d]}</label>
+            </div>
+            ${s.selected ? `
+            <div class="av-day-hours">
+              <label class="av-hours-check">
+                <input type="checkbox" ${s.allDay ? "checked" : ""}
+                  onchange="toggleAllDay('${d}', this.checked)">
+                Default hours
+              </label>
+              ${!s.allDay ? `
+              <div class="av-time-row">
+                <select aria-label="Start time" onchange="updateTime('${d}', 'start', this.value)">
+                  ${opts.map(o => `<option value="${o.value}" ${o.value === startMins ? "selected" : ""}>${o.label}</option>`).join("")}
+                </select>
+                <span>–</span>
+                <select aria-label="End time" onchange="updateTime('${d}', 'end', this.value)">
+                  ${opts.map(o => `<option value="${o.value}" ${o.value === endMins ? "selected" : ""}>${o.label}</option>`).join("")}
+                </select>
+              </div>` : ""}
+            </div>` : ""}`;
+          list.appendChild(block);
+        });
+      }
+
+      function toggleDay(d, checked) {
+        dayState[d].selected = checked;
+        renderDays();
+      }
+
+      function toggleAllDay(d, checked) {
+        dayState[d].allDay = checked;
+        renderDays();
+      }
+
+      function updateTime(d, field, val) {
+        const totalMins = parseInt(val);
+        const s = dayState[d];
+        if (field === "start") {
+          const endMins = hourMinToMins(s.end, s.endMinute);
+          if (totalMins >= endMins) { renderDays(); return; }
+          s.start = minsToHour(totalMins);
+          s.startMinute = minsToMinute(totalMins);
+        } else {
+          const startMins = hourMinToMins(s.start, s.startMinute);
+          if (totalMins <= startMins) { renderDays(); return; }
+          s.end = minsToHour(totalMins);
+          s.endMinute = minsToMinute(totalMins);
+        }
+        renderDays();
+      }
+
+      // ── Submit ─────────────────────────────────────────────
+      async function submitAvailability() {
+        const btn = document.getElementById("submit-btn");
+        const errEl = document.getElementById("submit-error");
+        errEl.style.display = "none";
+
+        const days = DAYS.map((d) => ({
+          day: d,
+          selected: dayState[d] ? dayState[d].selected : false,
+          allDay: dayState[d] ? dayState[d].allDay : true,
+          start: dayState[d] ? dayState[d].start : 4,
+          end: dayState[d] ? dayState[d].end : 8,
+          startMinute: dayState[d] ? dayState[d].startMinute : 0,
+          endMinute: dayState[d] ? dayState[d].endMinute : 0,
+        }));
+
+        const anySelected = days.some(d => d.selected);
+        if (!anySelected) {
+          errEl.textContent = "Please select at least one day.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Submitting…";
+
+        try {
+          const res = await fetch("/submissions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              employeeId: _employee._id,
+              employeeName: _employee.name,
+              weekOf: _weekOf,
+              days,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            errEl.textContent = data.error || "Something went wrong. Please try again.";
+            errEl.style.display = "block";
+            btn.disabled = false;
+            btn.textContent = "Submit Availability";
+            return;
+          }
+          showSuccess();
+        } catch (e) {
+          errEl.textContent = "Something went wrong. Please try again.";
+          errEl.style.display = "block";
+          btn.disabled = false;
+          btn.textContent = "Submit Availability";
+        }
+      }
+
+      function showSuccess() {
+        document.getElementById("step-form").classList.remove("active");
+        document.getElementById("step-success").classList.add("active");
+        document.getElementById("success-sub").textContent =
+          `${_employee.name.charAt(0).toUpperCase() + _employee.name.slice(1)}'s availability for the week of ${formatDate(_weekOf)} has been saved.`;
+      }
+    </script>
+  </body>
+</html>

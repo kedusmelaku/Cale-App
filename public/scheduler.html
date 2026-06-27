@@ -1305,7 +1305,7 @@
                 startMinute: d.startMinute || 0,
                 endMinute: d.endMinute || 0,
               }));
-            return { name: w.name, priority: w.priority, days };
+            return { name: w.name, priority: w.priority, days, submittedAt: w.submittedAt || null };
           })
           .filter((w) => w.days.length > 0);
 
@@ -1889,7 +1889,7 @@
       checkCalendarStatus();
 
       // Load employees and reconstruct availability from saved days
-      loadEmployees().then(() => {
+      loadEmployees().then(async () => {
         if (settings.demo) {
           document.body.classList.add("demo-active");
           activateDemo();
@@ -1903,6 +1903,19 @@
             buildAvailability();
           } else {
             renderAvailability();
+          }
+          // Load submissions and attach submittedAt to workers for tiebreaking
+          try {
+            const mondayStr = document.getElementById("week-date").value || getNextMonday();
+            const res = await fetch(`/submissions?weekOf=${mondayStr}`);
+            const data = await res.json();
+            const submissions = data.data || [];
+            submissions.forEach((s) => {
+              const w = workers.find(w => w._id?.toString() === s.employeeId?.toString());
+              if (w) w.submittedAt = s.submittedAt;
+            });
+          } catch (e) {
+            console.warn("Could not load submissions:", e.message);
           }
         }
         // Auto-fill the week date
