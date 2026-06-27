@@ -1,9 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
-const session = require("express-session");
-const MongoStore = require("connect-mongo").default;
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("./User");
 const Week = require("./Week");
 const Day = require("./Day");
@@ -14,15 +13,12 @@ const CenterSettings = require("./CenterSettings");
 const Submission = require("./Submission");
 const mongoose = require("mongoose");
 
-// Hash the manager password once at startup so we never keep the plaintext
-// in memory beyond this point. Crashes loudly if the env var is missing so
-// a misconfigured deployment fails immediately rather than silently.
 if (!process.env.MANAGER_PASSWORD) {
   console.error("FATAL: MANAGER_PASSWORD env var is not set");
   process.exit(1);
 }
-if (!process.env.SESSION_SECRET) {
-  console.error("FATAL: SESSION_SECRET env var is not set");
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET env var is not set");
   process.exit(1);
 }
 const PASSWORD_HASH = bcrypt.hashSync(process.env.MANAGER_PASSWORD, 10);
@@ -43,38 +39,25 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SESSION
-// Sessions are stored in MongoDB so they survive Vercel cold starts.
-// connect-mongo accepts a clientPromise — we give it a promise that resolves
-// once Mongoose has connected, then returns the underlying native client.
-// ─────────────────────────────────────────────────────────────────────────────
-const mongoClientPromise = connectDB().then(() => mongoose.connection.getClient());
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: new MongoStore({
-      clientPromise: mongoClientPromise,
-      dbName: "scheduler",
-      collectionName: "sessions",
-      ttl: 7 * 24 * 60 * 60, // 7 days in seconds
-    }),
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS only on Vercel
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
-    },
-  })
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
 // AUTH MIDDLEWARE
-// Page routes redirect to /login. API routes (called via fetch) return 401.
+// Reads a signed JWT from the "token" cookie. Each serverless function
+// instance verifies it independently — no shared session store needed.
+// Page routes redirect to /login. API routes return 401 JSON.
 // ─────────────────────────────────────────────────────────────────────────────
+function getTokenFromRequest(req) {
+  const cookieHeader = req.headers.cookie || "";
+  const match = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+  return match ? match[1] : null;
+}
+
 function requireAuth(req, res, next) {
-  if (req.session && req.session.authenticated) return next();
+  const token = getTokenFromRequest(req);
+  if (token) {
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+      return next();
+    } catch { /* invalid or expired — fall through */ }
+  }
   if (req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"))) {
     return res.status(401).json({ error: "Not authenticated." });
   }
@@ -86,7 +69,10 @@ function requireAuth(req, res, next) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.get("/login", (req, res) => {
-  if (req.session && req.session.authenticated) return res.redirect("/");
+  const token = getTokenFromRequest(req);
+  if (token) {
+    try { jwt.verify(token, process.env.JWT_SECRET); return res.redirect("/"); } catch {}
+  }
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
@@ -108,14 +94,9 @@ app.post("/api/login", async (req, res) => {
     if (!password) return res.status(400).json({ error: "Password required." });
     const match = await bcrypt.compare(password, PASSWORD_HASH);
     if (!match) return res.status(401).json({ error: "Incorrect password." });
-    req.session.authenticated = true;
-    req.session.save((err) => {
-      if (err)
-        return res
-          .status(500)
-          .json({ error: "Session error. Please try again." });
-      res.json({ ok: true });
-    });
+    const token = jwt.sign({ auth: true }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    res.setHeader("Set-Cookie", `token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+    res.json({ ok: true });
   } catch (err) {
     console.error("/api/login:", err.message);
     res.status(500).json({ error: "Something went wrong. Please try again." });
@@ -123,10 +104,8 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.json({ ok: true });
-  });
+  res.setHeader("Set-Cookie", "token=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0");
+  res.json({ ok: true });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
