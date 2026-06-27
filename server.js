@@ -6,6 +6,7 @@ const Week = require("./Week");
 const Day = require("./Day");
 const SimplifiedWeek = require("./SimplifiedWeek");
 const SimplifiedDay = require("./SimplifiedDay");
+const Employee = require("./Employee");
 const mongoose = require("mongoose");
 
 mongoose
@@ -260,6 +261,47 @@ app.get("/events", async (req, res) => {
       error: isAuth ? "auth" : "calendar_error",
       message: err.message,
     });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMPLOYEES
+// ─────────────────────────────────────────────────────────────────────────────
+app.get("/employees", async (req,res) => {
+  try{  
+    const result = await Employee.find({});
+    res.json({data: result})
+  } catch (err) {
+    res.status(500).json({error: err.message});
+  }
+
+});
+
+app.post("/employees", async (req, res) => {
+  try {
+    const employee = new Employee(req.body);
+    await employee.save();
+    res.json({ data: employee });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/employees/:id", async (req, res) => {
+  try {
+    await Employee.findByIdAndDelete(req.params.id);
+    res.json({ deleted: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/employees/:id", async (req, res) => {
+  try {
+    const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, {new: true});
+    res.json({ data: employee });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
