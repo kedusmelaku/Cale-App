@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const employeeSchema = new mongoose.Schema({
+  centerId: { type: String, required: true },
   name: { type: String, required: true },
   priority: { type: Number, default: 1 },
   days: [
