@@ -34,73 +34,135 @@
 
     <!-- ── Screen 1: Employees ── -->
     <div id="screen-workers" class="screen active">
-      <header>
-        <span class="header-title">Scheduler</span>
-        <div class="header-actions">
-          <button class="btn-primary" onclick="goToSchedule()">
-            Build Schedule →
-          </button>
-          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
-            ⚙
-          </button>
+      <!-- ── Top bar ── -->
+      <div class="db-topbar">
+        <span class="db-topbar-title">Scheduler</span>
+        <div class="db-topbar-actions">
+          <button class="btn-primary" onclick="goToSchedule()">Build Schedule →</button>
+          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
         </div>
-      </header>
-      <div class="page-body">
-        <div class="page-intro">
-          <h1>Employees</h1>
-          <p>
-            Add your team here. They'll be saved automatically for next time.
-          </p>
-        </div>
-        <div class="worker-grid" id="worker-grid"></div>
-        <button
-          class="btn-add-worker"
-          id="btn-add-worker"
-          onclick="openModal()"
-        >
-          + Add Employee
-        </button>
+      </div>
 
-        <!-- ── Availability Window ── -->
-        <div class="av-window-section" id="av-window-section">
-          <div class="av-window-header">
-            <h2 class="av-window-title">Availability Window</h2>
-            <span id="av-window-badge" class="av-window-badge"></span>
+      <!-- ── Two-panel body ── -->
+      <div class="db-body">
+
+        <!-- ── Left rail: Team roster ── -->
+        <aside class="db-rail">
+          <div class="db-rail-header">
+            <span class="db-rail-title">Team</span>
+            <button class="db-add-btn" onclick="openModal()" title="Add employee">+</button>
           </div>
-          <p class="av-window-sub">
-            Set when employees can submit their availability via the
-            <a href="/availability" target="_blank" class="av-form-link">shared form</a>.
-          </p>
-          <div class="av-window-controls">
-            <div class="av-window-field">
-              <label class="field-label" for="av-window-open">Opens</label>
-              <input type="datetime-local" id="av-window-open" class="av-datetime-input" onchange="markWindowDirty()" />
+          <div class="db-roster" id="worker-grid"></div>
+        </aside>
+
+        <!-- ── Right panel: Weekly workflow ── -->
+        <main class="db-main">
+
+          <!-- Status pills row -->
+          <div class="db-status-row">
+            <div class="db-status-pill" id="status-cal">
+              <span class="db-status-dot" id="status-cal-dot"></span>
+              <span class="db-status-label">Calendar</span>
+              <span class="db-status-val" id="status-cal-val">Checking…</span>
             </div>
-            <div class="av-window-field">
-              <label class="field-label" for="av-window-close">Closes</label>
-              <input type="datetime-local" id="av-window-close" class="av-datetime-input" onchange="markWindowDirty()" />
+            <div class="db-status-pill" id="status-window">
+              <span class="db-status-dot" id="status-window-dot"></span>
+              <span class="db-status-label">Window</span>
+              <span class="db-status-val" id="status-window-val">—</span>
             </div>
-            <button class="btn-secondary" id="av-window-save-btn" onclick="saveWindow()" style="align-self:flex-end;">Save</button>
+            <div class="db-status-pill" id="status-subs">
+              <span class="db-status-dot" id="status-subs-dot"></span>
+              <span class="db-status-label">Submissions</span>
+              <span class="db-status-val" id="status-subs-val">—</span>
+            </div>
+            <div class="db-status-pill" id="status-readiness">
+              <span class="db-status-dot" id="status-readiness-dot"></span>
+              <span class="db-status-label">Schedule</span>
+              <span class="db-status-val" id="status-readiness-val">—</span>
+            </div>
           </div>
+
+          <!-- Availability window card -->
+          <div class="db-card" id="db-window-card">
+            <div class="db-card-header">
+              <div>
+                <div class="db-card-title">Availability Window</div>
+                <div class="db-card-sub" id="db-window-summary">Not configured</div>
+              </div>
+              <div class="db-card-actions">
+                <button class="db-chip-btn" onclick="copyAvLink()" title="Copy form link">Copy Link</button>
+                <button class="db-chip-btn db-chip-btn-danger" id="db-close-now-btn" style="display:none;" onclick="closeWindowNow()">Close Now</button>
+                <button class="db-chip-btn db-chip-btn-primary" onclick="openWindowModal()">Configure</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submissions card -->
+          <div class="db-card" id="db-submissions-card">
+            <div class="db-card-header">
+              <div>
+                <div class="db-card-title">Submissions</div>
+                <div class="db-card-sub" id="db-subs-summary">No submissions yet</div>
+              </div>
+            </div>
+            <div class="db-submissions-list" id="av-submissions-list"></div>
+          </div>
+
+          <!-- Build schedule button -->
+          <button class="db-build-btn" onclick="goToSchedule()">Build Schedule →</button>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- ── Availability Window Config Modal ── -->
+    <div class="modal-overlay" id="window-modal">
+      <div class="modal modal-window">
+        <div class="modal-titlebar">
+          <h3>Configure Availability Window</h3>
+          <button class="btn-cancel modal-close-x" onclick="closeWindowModal()">✕</button>
         </div>
 
-        <!-- ── Submission Status ── -->
-        <div class="av-submissions-section" id="av-submissions-section" style="display:none;">
-          <div class="av-submissions-header">
-            <h2 class="av-window-title">Submissions</h2>
-            <span id="av-submissions-count" class="av-submissions-count"></span>
-          </div>
-          <div id="av-submissions-list" class="av-submissions-list"></div>
+        <div class="wm-row">
+          <label class="field-label">Week of</label>
+          <div class="wm-readonly-date" id="wm-week-of"></div>
         </div>
 
-        <br />
-        <button
-          class="btn-tutorial"
-          id="btn-start-tutorial"
-          onclick="startTutorial()"
-        >
-          ▶ Take the Tutorial
-        </button>
+        <div class="wm-row">
+          <label class="field-label" for="wm-open">Opens</label>
+          <input type="datetime-local" id="wm-open" class="av-datetime-input" />
+        </div>
+
+        <div class="wm-row">
+          <label class="field-label">Closes</label>
+          <div class="toggle-group wm-close-toggle">
+            <button class="toggle-opt active" id="wm-close-manual-btn" onclick="setCloseMode('manual')">Manually</button>
+            <button class="toggle-opt" id="wm-close-auto-btn" onclick="setCloseMode('auto')">At a time</button>
+          </div>
+        </div>
+        <div class="wm-row" id="wm-close-row" style="display:none;">
+          <label class="field-label" for="wm-close">Close at</label>
+          <input type="datetime-local" id="wm-close" class="av-datetime-input" />
+        </div>
+
+        <div class="wm-activate-wrap">
+          <button class="btn-primary wm-activate-btn" onclick="activateWindow()">Activate &amp; Copy Link</button>
+          <div class="wm-copied-msg" id="wm-copied-msg" style="display:none;">✓ Link copied to clipboard</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Build Schedule Warning Modal (form still open) ── -->
+    <div class="modal-overlay" id="build-warning-modal">
+      <div class="modal">
+        <div class="build-warning-icon">⚠️</div>
+        <h3>Availability form is still open</h3>
+        <p class="build-warning-sub">The following employees haven't submitted yet:</p>
+        <ul class="build-warning-list" id="build-warning-list"></ul>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeBuildWarning()">Go back</button>
+          <button class="btn-confirm" onclick="closeFormAndContinue()">Close form &amp; continue</button>
+        </div>
       </div>
     </div>
 
@@ -536,10 +598,6 @@
       </div>
     </div>
 
-    <!-- Small inline message shown when a settings link is locked during the tutorial -->
-    <div id="tut-link-blocked-msg" class="tut-link-blocked-msg">
-      Finish or skip tutorial first
-    </div>
 
     <!-- ── About Modal (inline popup) ── -->
     <div class="modal-overlay" id="about-modal">
@@ -688,804 +746,16 @@
       </div>
     </div>
 
-    <!-- ── Tutorial Overlay ── -->
-    <div id="tut-overlay">
-      <div id="tut-dim"></div>
-      <div id="tut-card">
-        <div class="tut-card-header">
-          <span class="tut-step-badge" id="tut-badge">Step 1</span>
-          <button class="tut-skip-btn" onclick="endTutorial()">
-            Skip tutorial
-          </button>
-        </div>
-        <div class="tut-title" id="tut-title"></div>
-        <div class="tut-body" id="tut-body"></div>
-        <div class="tut-action-hint" id="tut-hint"></div>
-        <div class="tut-footer">
-          <div class="tut-dots" id="tut-dots"></div>
-          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">
-            Next →
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tutorial done modal removed — Finish → button ends the tutorial -->
-
     <script>
-      // ══════════════════════════════════════════════════════════════════
-      // TUTORIAL SYSTEM
-      // ══════════════════════════════════════════════════════════════════
 
-      /*
-        Each step shape:
-        {
-          screen:    string   — which screen to be on before showing
-          target:    string   — CSS selector for the highlighted element (null = center card, no highlight)
-          title:     string
-          body:      string   — HTML allowed
-          hint:      string   — shown instead of Next when waitForAction is true
-          waitForAction: bool — if true, Next btn hidden; advance() must be called by app code
-          onEnter:   fn       — optional, called when step is shown
-          position:  'auto'|'top'|'bottom'|'left'|'right'  — card placement preference
-        }
-      */
-
-      const TUTORIAL_STEPS = [
-        // ── 0: Welcome ──────────────────────────────────────────────────
-        {
-          screen: "screen-workers",
-          target: null,
-          title: "Welcome to Scheduler",
-          body: "This short tutorial will walk you through every feature — <strong>by actually using them</strong>. We'll load some demo employees so you're not starting from scratch.",
-          position: "center",
-        },
-        // ── 1: Employee card ────────────────────────────────────────────
-        {
-          screen: "screen-workers",
-          target: "#worker-grid",
-          title: "Your Employees",
-          body: "Each card represents one employee. The colored stripe on the left is their unique color — it appears on the schedule timeline too. Notice the <strong>priority badge</strong> on each card.",
-          position: "bottom",
-          onEnter: () => {
-            // activate demo so cards are visible
-            if (!settings.demo) {
-              settings.demo = true;
-              saveSettings();
-              document.body.classList.add("demo-active");
-              activateDemo();
-            }
-          },
-        },
-        // ── 2: Priority explained ────────────────────────────────────────
-        {
-          screen: "screen-workers",
-          target: ".wcard:first-child",
-          title: "Priority Levels",
-          body: "<strong>Normal</strong> — high schoolers or people with limited hours.<br><strong>Priority</strong> — adults with moderate availability.<br><strong>High Priority</strong> — adults who are usually fully available.<br><br>Higher priority employees are assigned shifts first.",
-          position: "right",
-        },
-        // ── 3: Edit employee ────────────────────────────────────────────
-        {
-          screen: "screen-workers",
-          target: ".wcard:first-child .btn-edit-emp",
-          title: "Edit an Employee",
-          body: "Click <strong>Edit</strong> on any card to change their name or priority level.",
-          hint: "Click the Edit button on the first employee card",
-          waitForAction: true,
-          position: "right",
-          onEnter: () => {
-            tutWaiting = "edit-employee-opened";
-          },
-        },
-        // ── 4: Close edit modal (info step) ─────────────────────────────
-        {
-          screen: "screen-workers",
-          target: "#edit-employee-modal .modal",
-          title: "Edit Employee Modal",
-          body: "You can update the name or switch the priority here. Click <strong>Cancel</strong> for now — we don't need to change anything.",
-          hint: "Close the modal to continue",
-          waitForAction: true,
-          position: "right",
-          onEnter: () => {
-            tutWaiting = "edit-employee-closed";
-          },
-        },
-        // ── 5: Add employee ──────────────────────────────────────────────
-        {
-          screen: "screen-workers",
-          target: "#btn-add-worker",
-          title: "Adding Employees",
-          body: "In real use, you'd add your actual team here. Each employee gets a name and a priority level when you create them.",
-          hint: "Add an employee, or click Next to continue",
-          waitForAction: false,
-          position: "top",
-          onEnter: () => {
-            tutWaiting = "worker-added";
-          },
-        },
-        // ── 6: Go to schedule ────────────────────────────────────────────
-        {
-          screen: "screen-workers",
-          target: "header .btn-primary",
-          title: "Building a Schedule",
-          body: "When your team is set up, click <strong>Build Schedule →</strong> to move to the scheduling screen.",
-          hint: "Click Build Schedule → to continue",
-          waitForAction: true,
-          position: "bottom",
-          onEnter: () => {
-            tutWaiting = "went-to-schedule";
-          },
-        },
-        // ── 7: Availability panel ────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: ".availability-panel",
-          title: "Setting Availability",
-          body: "This panel shows which days each employee is available this week. Check or uncheck days to mark them as available.",
-          position: "right",
-        },
-        // ── 8: Custom hours ──────────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: ".av-section:first-child",
-          title: "Custom Hours",
-          body: "When a day is checked, the day is set to full availability when <strong>Default hours</strong> is checked. Uncheck <strong>Default hours</strong> on any day to set exact start and end times using the dropdowns.",
-          position: "right",
-        },
-        // ── 9: Week date ─────────────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: "#week-date",
-          title: "Choose a Week",
-          body: "Pick the Monday date for the week you're scheduling. The app auto-fills next Monday when you first arrive.<br><br>Default hours depend on priority: <strong>Normal</strong> and <strong>Priority</strong> employees default to 4–8, while <strong>High Priority</strong> employees default to 3–8.",
-          position: "left",
-        },
-        // ── 10: Scheduling mode ──────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: "#btn-generate",
-          title: "Generate the Schedule",
-          body: "Once availability is set and a date is chosen, click <strong>Generate Schedule</strong>. The algorithm assigns shifts based on student counts and employee priority.<br><br>You can change the scheduling mode (Normal vs Ultra-efficient) in <strong>Settings ⚙</strong>.",
-          hint: "Click Generate Schedule to continue",
-          waitForAction: true,
-          position: "bottom",
-          onEnter: () => {
-            tutWaiting = "schedule-generated";
-          },
-        },
-        // ── 11: Timeline view ────────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: "#schedule-output",
-          title: "The Timeline",
-          body: "Each column is a day. Colored bars are employee shifts — their height represents how long the shift is. Colors match the employee cards from the home screen.",
-          position: "top",
-        },
-        // ── 12: Slot tooltips ────────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: "#schedule-output .timeline-line-label.tooltip-sensor",
-          title: "Slot Tooltips",
-          body: "Hover over any time label on the left side of a day column to see a tooltip with <strong>student count</strong>, <strong>workers needed</strong>, and <strong>who's assigned</strong> for that half-hour.",
-          position: "right",
-        },
-        // ── 13: Hours summary ────────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: "#hours-summary",
-          title: "Hours This Week",
-          body: "Below the timeline, a summary shows total scheduled hours per employee for the week — helpful for keeping shifts fair.",
-          position: "top",
-        },
-        // ── 14: Copy to clipboard ────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: "#copy-btn",
-          title: "Copy to Clipboard",
-          body: "Click <strong>Copy to Clipboard</strong> to get a plain-text version of the schedule — ready to paste into a message or email.",
-          position: "bottom",
-        },
-        // ── 15: Go to edit ───────────────────────────────────────────────
-        {
-          screen: "screen-schedule",
-          target: "#edit-btn",
-          title: "Edit Mode",
-          body: "Need to adjust a shift manually? Click <strong>Edit Schedule</strong> to enter the drag-and-drop editor.",
-          hint: "Click Edit Schedule to continue",
-          waitForAction: true,
-          position: "bottom",
-          onEnter: () => {
-            tutWaiting = "went-to-edit";
-          },
-        },
-        // ── 16: Drag to move ─────────────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: ".worker-block.draggable",
-          title: "Drag Shifts",
-          body: "Click and drag any colored bar <strong>up or down</strong> to move a shift to a different time.",
-          position: "right",
-        },
-        // ── 17: Resize ───────────────────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: ".worker-block.draggable",
-          title: "Resize Shifts",
-          body: "Grab the <strong>dark handle at the bottom</strong> of a bar and drag it down or up to make the shift longer or shorter.",
-          position: "right",
-        },
-        // ── 18: Remove shift ─────────────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: ".remove-btn",
-          title: "Remove a Shift",
-          body: "Click the <strong>✕</strong> in the top-right corner of any bar to remove that employee from that day entirely.",
-          hint: "Remove a shift, or click Next to continue",
-          waitForAction: false,
-          position: "right",
-          onEnter: () => {
-            tutWaiting = "shift-removed";
-          },
-        },
-        // ── 19: Add to day ───────────────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: ".add-shift-btn",
-          title: "Add an Employee to a Day",
-          body: "Use the <strong>+ Add Employee</strong> button under any day column to manually assign someone to that day with a custom start and end time.",
-          hint: "Add an employee to a day, or click Next to continue",
-          waitForAction: false,
-          position: "top",
-          onEnter: () => {
-            tutWaiting = "shift-added";
-          },
-        },
-        // ── 20: OOB hatched overlay ──────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: ".oob-overlay",
-          title: "Out-of-Bounds Indicator",
-          body: "When a shift extends outside an employee's stated availability, a <strong>hatched pattern</strong> appears over the out-of-bounds portion of the bar — so you can see the problem at a glance.",
-          position: "right",
-          onEnter: () => {
-            // Force an OOB situation so the overlay is visible
-            if (scheduleData.length > 0) {
-              const day = scheduleData[0];
-              const isSat = day.day === "Saturday";
-              if (day.assignments.length > 0) {
-                const a = day.assignments[0];
-                tut._savedAssignment = {
-                  di: 0,
-                  ai: 0,
-                  start: a.start,
-                  end: a.end,
-                  availStart: a.availStart,
-                  availEnd: a.availEnd,
-                };
-                a.start = isSat ? "10" : "3";
-                a.availStart = isSat ? 11 : 4;
-                renderEditScreen();
-              }
-            }
-          },
-        },
-        // ── 21: OOB banner ───────────────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: "#oob-banner",
-          title: "Out-of-Bounds Warning Banner",
-          body: "A warning banner also appears at the top of the screen listing every employee who is currently scheduled outside their availability — so you always know before copying or finishing.",
-          position: "bottom",
-        },
-        // ── 22: Settings — open panel ────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: ".settings-modal",
-          title: "Settings",
-          body: "The <strong>⚙ gear icon</strong> in the header opens Settings from almost any screen. You can switch between <strong>light and dark</strong> theme here, and choose between <strong>Normal</strong> and <strong>Ultra-efficient</strong> scheduling modes.",
-          position: "left",
-          onEnter: () => {
-            // Restore saved OOB before opening settings
-            if (tut._savedAssignment) {
-              const { di, ai, start, end, availStart, availEnd } =
-                tut._savedAssignment;
-              if (scheduleData[di] && scheduleData[di].assignments[ai]) {
-                scheduleData[di].assignments[ai].start = start;
-                scheduleData[di].assignments[ai].end = end;
-                scheduleData[di].assignments[ai].availStart = availStart;
-                scheduleData[di].assignments[ai].availEnd = availEnd;
-              }
-              tut._savedAssignment = null;
-              renderEditScreen();
-            }
-            openSettings();
-            lockSettingsLinks();
-          },
-        },
-        // ── 23: Demo mode row ────────────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: "#demo-toggle",
-          title: "Demo Mode",
-          body: "The <strong>Demo Mode</strong> toggle loads a premade team with fake data so anyone can try the app without touching real schedules — just like what we did for this tutorial.",
-          position: "left",
-        },
-        // ── 24: Google Calendar row ──────────────────────────────────────
-        {
-          screen: "screen-edit",
-          target: "#cal-status-wrap",
-          title: "Google Calendar Integration",
-          body: "This shows whether the app is connected to Google Calendar. When connected, student booking counts are read directly from your calendar — no manual entry needed.",
-          hint: "Close Settings to continue",
-          waitForAction: true,
-          position: "left",
-          onEnter: () => {
-            tutWaiting = "settings-closed";
-          },
-        },
-        // ── 25: Finish — click the real button ───────────────────────────
-        {
-          screen: "screen-edit",
-          target: "#screen-edit header .btn-primary",
-          title: "That's Everything!",
-          body: "You've seen every feature. Click <strong>Finish →</strong> to wrap up and head back to the Employees screen — where you can build your real schedule.",
-          hint: "Click Finish → to complete the tutorial",
-          waitForAction: true,
-          position: "bottom",
-          onEnter: () => {
-            tutWaiting = "finish-clicked";
-          },
-        },
-      ];
-
-      // ── Tutorial State ──────────────────────────────────────────────────
-      const tut = {
-        active: false,
-        step: 0,
-        _savedAssignment: null,
-      };
-      let tutWaiting = null; // string key of what action we're waiting for
-
-      function startTutorial() {
-        tut.active = true;
-        tut.step = 0;
-        tut._savedAssignment = null;
-        document.getElementById("tut-overlay").classList.add("active");
-        buildDots();
-        showTutStep(0);
-      }
-
-      function endTutorial() {
-        tut.active = false;
-        tutWaiting = null;
-        document.getElementById("tut-overlay").classList.remove("active");
-        hideTutHole();
-        unlockSettingsLinks();
-        // close settings panel if open
-        document.getElementById("settings-panel").classList.remove("open");
-        // restore saved OOB change if needed
-        if (tut._savedAssignment) {
-          const { di, ai, start, end, availStart, availEnd } =
-            tut._savedAssignment;
-          if (scheduleData[di] && scheduleData[di].assignments[ai]) {
-            scheduleData[di].assignments[ai].start = start;
-            scheduleData[di].assignments[ai].end = end;
-            scheduleData[di].assignments[ai].availStart = availStart;
-            scheduleData[di].assignments[ai].availEnd = availEnd;
-          }
-          tut._savedAssignment = null;
-        }
-        // exit demo
-        if (settings.demo) {
-          settings.demo = false;
-          saveSettings();
-          document.body.classList.remove("demo-active");
-          deactivateDemo();
-        }
-      }
-
-      // Called when the user clicks Finish → on the last tutorial step
-      function completeTutorial() {
-        endTutorial();
-      }
-
-      function buildDots() {
-        const el = document.getElementById("tut-dots");
-        el.innerHTML = TUTORIAL_STEPS.map(
-          (_, i) => `<div class="tut-dot" id="tut-dot-${i}"></div>`,
-        ).join("");
-      }
-
-      function updateDots(step) {
-        TUTORIAL_STEPS.forEach((_, i) => {
-          const d = document.getElementById(`tut-dot-${i}`);
-          if (!d) return;
-          d.className =
-            "tut-dot" + (i < step ? " done" : i === step ? " active" : "");
-        });
-      }
-
-      function showTutStep(idx) {
-        if (idx >= TUTORIAL_STEPS.length) {
-          // All steps done — Finish button was the trigger, clean up
-          completeTutorial();
-          return;
-        }
-        tut.step = idx;
-        tutWaiting = null;
-        const step = TUTORIAL_STEPS[idx];
-
-        // Navigate to correct screen
-        const currentScreen = document.querySelector(".screen.active");
-        if (currentScreen && currentScreen.id !== step.screen) {
-          // need to switch screens first, then position
-          const target = document.getElementById(step.screen);
-          if (target) {
-            // instant switch for tutorial (no animation jank)
-            document.querySelectorAll(".screen").forEach((s) => {
-              s.classList.remove("active");
-              s.style.cssText = "";
-            });
-            target.classList.add("active");
-          }
-        }
-
-        // Call onEnter
-        if (step.onEnter) step.onEnter();
-
-        // Small delay so DOM settles after screen switch / demo activation
-        setTimeout(() => {
-          positionTutCard(step);
-          updateDots(idx);
-          updateTutCard(step, idx);
-        }, 120);
-      }
-
-      function updateTutCard(step, idx) {
-        document.getElementById("tut-badge").textContent =
-          `Step ${idx + 1} of ${TUTORIAL_STEPS.length}`;
-        document.getElementById("tut-title").textContent = step.title;
-        document.getElementById("tut-body").innerHTML = step.body;
-        document.getElementById("tut-hint").textContent = step.hint || "";
-
-        const card = document.getElementById("tut-card");
-        if (step.waitForAction) {
-          card.classList.add("waiting");
-          tutWaiting = step.onEnter ? tutWaiting : null; // onEnter sets it
-        } else {
-          card.classList.remove("waiting");
-        }
-
-        const nextBtn = document.getElementById("tut-next");
-        const isLast = idx === TUTORIAL_STEPS.length - 1;
-        nextBtn.textContent = isLast ? "Finish ✓" : "Next →";
-      }
-
-      function positionTutCard(step) {
-        const card = document.getElementById("tut-card");
-        const dim = document.getElementById("tut-dim");
-
-        if (!step.target || step.position === "center") {
-          dim.style.clipPath = "";
-          card.classList.add("tut-card-centered");
-          card.style.top = card.style.left = card.style.transform = "";
-          return;
-        }
-
-        card.classList.remove("tut-card-centered");
-
-        const el = document.querySelector(step.target);
-        if (!el) {
-          dim.style.clipPath = "";
-          card.classList.add("tut-card-centered");
-          card.style.top = card.style.left = card.style.transform = "";
-          return;
-        }
-
-        const r = el.getBoundingClientRect();
-        const pad = 8;
-        const hx = r.left - pad,
-          hy = r.top - pad;
-        const hw = r.width + pad * 2,
-          hh = r.height + pad * 2;
-        const vw = window.innerWidth,
-          vh = window.innerHeight;
-        const r2 = 10;
-
-        // Cut a rounded-rect hole out of the full-viewport dim layer using a
-        // single polygon with a zero-width "slit": travel along the outer
-        // rectangle's top edge to a point directly above the hole, straight
-        // down into the hole, all the way around the hole's rounded
-        // boundary, then back up the *same* vertical line to the outer
-        // rectangle before continuing around it. Because the slit is
-        // retraced along an identical line (down then back up), it has zero
-        // width and is invisible — unlike connecting the hole's boundary
-        // straight back to the polygon's start point (0,0), which produced
-        // a visible diagonal sliver for any hole not near the top-left
-        // corner (most noticeable on top-right header buttons).
-        const slitX = hx + r2;
-        dim.style.clipPath = `polygon(
-          0 0,
-          ${slitX}px 0,
-          ${slitX}px ${hy}px,
-          ${hx}px ${hy + r2}px,
-          ${hx}px ${hy + hh - r2}px,
-          ${hx + r2}px ${hy + hh}px,
-          ${hx + hw - r2}px ${hy + hh}px,
-          ${hx + hw}px ${hy + hh - r2}px,
-          ${hx + hw}px ${hy + r2}px,
-          ${hx + hw - r2}px ${hy}px,
-          ${slitX}px ${hy}px,
-          ${slitX}px 0,
-          ${vw}px 0, ${vw}px ${vh}px, 0 ${vh}px, 0 0
-        )`;
-
-        const cw = 364,
-          ch = 220,
-          margin = 16;
-        card.style.transform = "";
-        const pref = step.position || "auto";
-        const fits = {
-          right: r.right + margin + cw < vw,
-          left: r.left - margin - cw > 0,
-          bottom: r.bottom + margin + ch < vh,
-          top: r.top - margin - ch > 0,
-        };
-        const pos =
-          pref === "auto" || !fits[pref]
-            ? fits.right
-              ? "right"
-              : fits.left
-                ? "left"
-                : fits.bottom
-                  ? "bottom"
-                  : "top"
-            : pref;
-
-        let top, left;
-        if (pos === "right") {
-          left = r.right + margin;
-          top = Math.max(8, Math.min(r.top, vh - ch - 8));
-        } else if (pos === "left") {
-          left = r.left - margin - cw;
-          top = Math.max(8, Math.min(r.top, vh - ch - 8));
-        } else if (pos === "bottom") {
-          top = r.bottom + margin;
-          left = Math.max(8, Math.min(r.left, vw - cw - 8));
-        } else {
-          top = r.top - margin - ch;
-          left = Math.max(8, Math.min(r.left, vw - cw - 8));
-        }
-
-        card.style.top = top + "px";
-        card.style.left = left + "px";
-      }
-
-      function hideTutHole() {
-        document.getElementById("tut-dim").style.clipPath = "";
-        document
-          .getElementById("tut-card")
-          .classList.remove("tut-card-centered");
-      }
-
-      function tutNext() {
-        showTutStep(tut.step + 1);
-      }
-
-      // Called by app code when a tutorial-relevant action happens
-      function tutAdvance(key) {
-        if (!tut.active || tutWaiting !== key) return;
-        tutWaiting = null;
-        // small delay so the UI change settles first
-        setTimeout(() => showTutStep(tut.step + 1), 200);
-      }
-
-      // Disables the Connect/Disconnect calendar links, Privacy Policy link,
-      // and About link inside the Settings panel while the tutorial is on the
-      // settings-related steps, so the user can't navigate away mid-tutorial
-      // and break tutorial state. Clicking a disabled link shows a small
-      // inline message instead of doing nothing silently.
-      function lockSettingsLinks() {
-        const ids = [
-          "cal-reconnect-link",
-          "cal-disconnect-link",
-          "privacy-link",
-          "about-open-link",
-        ];
-        ids.forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) el.classList.add("tut-link-disabled");
-        });
-      }
-
-      function unlockSettingsLinks() {
-        const ids = [
-          "cal-reconnect-link",
-          "cal-disconnect-link",
-          "privacy-link",
-          "about-open-link",
-        ];
-        ids.forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) el.classList.remove("tut-link-disabled");
-        });
-      }
-
-      let _tutLinkMsgTimeout = null;
-      function showTutLinkBlockedMsg(e) {
-        const el = document.getElementById("tut-link-blocked-msg");
-        if (!el) return;
-        const r = e.currentTarget.getBoundingClientRect();
-        el.style.left = r.left + "px";
-        el.style.top = r.bottom + 6 + "px";
-        el.classList.add("visible");
-        clearTimeout(_tutLinkMsgTimeout);
-        _tutLinkMsgTimeout = setTimeout(
-          () => el.classList.remove("visible"),
-          2000,
-        );
-      }
-
-      // Intercepts clicks on settings-panel links while locked. Returns true
-      // (i.e. "was blocked") if the click should be swallowed.
-      function tutLinkGuard(e) {
-        if (!e.currentTarget.classList.contains("tut-link-disabled"))
-          return false;
-        e.preventDefault();
-        e.stopPropagation();
-        showTutLinkBlockedMsg(e);
-        return true;
-      }
-
-      // Reposition on scroll/resize
-      window.addEventListener("resize", () => {
-        if (!tut.active) return;
-        positionTutCard(TUTORIAL_STEPS[tut.step]);
-      });
-
-      // Reposition when any scrollable container scrolls during tutorial
-      window.addEventListener(
-        "scroll",
-        () => {
-          if (!tut.active) return;
-          positionTutCard(TUTORIAL_STEPS[tut.step]);
-        },
-        { passive: true },
-      );
-
-      // Also catch scroll inside the page-body / panel containers
-      document.addEventListener(
-        "scroll",
-        (e) => {
-          if (!tut.active) return;
-          positionTutCard(TUTORIAL_STEPS[tut.step]);
-        },
-        { passive: true, capture: true },
-      );
-
-      // ══════════════════════════════════════════════════════════════════
-      // ORIGINAL APP CODE (unchanged except for tutAdvance hooks)
-      // ══════════════════════════════════════════════════════════════════
-
-      const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
-      const DAY_FULL = {
-        monday: "Monday",
-        tuesday: "Tuesday",
-        wednesday: "Wednesday",
-        thursday: "Thursday",
-        saturday: "Saturday",
-      };
-      const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
-      const PRIORITY_CLASSES = ["", "p1", "p2"];
-      const PRIORITY_TOOLTIP_HTML =
-        '<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.';
-      const PRIORITY_TOOLTIP_ARIA_LABEL =
-        "Priority level info: Normal is for high schoolers or people with limited availability, default hours 4 to 8. Priority is for adults with moderate availability, default hours 4 to 8. High Priority is for adults who are usually fully available, default hours 3 to 8.";
-      const WORKER_COLORS = [
-        "#4f86c6",
-        "#e05c5c",
-        "#3aaa72",
-        "#e08c2a",
-        "#8a6bbf",
-        "#2aaab4",
-        "#c47a2a",
-        "#5a8a5a",
-        "#c45a8a",
-        "#2a7ac4",
-        "#7aaa3a",
-      ];
-      const WEEKDAY_SLOTS = [
-        "3",
-        "3:30",
-        "4",
-        "4:30",
-        "5",
-        "5:30",
-        "6",
-        "6:30",
-        "7",
-        "7:30",
-      ];
-      const SAT_SLOTS = [
-        "10",
-        "10:30",
-        "11",
-        "11:30",
-        "12",
-        "12:30",
-        "1",
-        "1:30",
-      ];
-      const SLOT_H = 40;
-
-      const DEMO_WORKERS = [
-        { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
-        { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
-        { name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
-      ];
-
-      function buildDemoAvailability() {
-        return {
-          Alex: DAYS.map((d) => ({
-            day: d,
-            selected: true,
-            allDay: false,
-            start: d === "saturday" ? 10 : 3,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Jordan: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "wednesday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Taylor: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "thursday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Morgan: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "wednesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Casey: DAYS.map((d) => ({
-            day: d,
-            selected: ["tuesday", "thursday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Riley: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "tuesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-        };
-      }
+      // ── Tutorial stubs (tutorial removed, kept for call-site safety) ──
+      const tut = { active: false };
+      let tutWaiting = null;
+      function tutAdvance() {}
+      function tutLinkGuard() { return false; }
+      function unlockSettingsLinks() {}
+      function lockSettingsLinks() {}
+      function showTutLinkBlockedMsg() {}
 
       // ── Settings ───────────────────────────────────────────
       let settings = {
@@ -1906,6 +1176,15 @@
       async function goToSchedule() {
         if (workers.length === 0)
           return alert("Add at least one employee first.");
+        // If form is still open, show custom warning instead of proceeding
+        if (_centerSettings && isWindowOpen(_centerSettings)) {
+          showBuildWarning();
+          return;
+        }
+        await _doGoToSchedule();
+      }
+
+      async function _doGoToSchedule() {
         if (
           Object.keys(availability).length === 0 ||
           !workers.every((w) => availability[w.name])
@@ -1919,17 +1198,7 @@
             if (!saved) return alert("Something went wrong while saving. Please try again.");
           }
         }
-        // During the tutorial, stay on this page so the tutorial can
-        // navigate to screen-schedule internally. In normal use, go to the
-        // scheduler page.
-        if (tut.active) {
-          const dateInput = document.getElementById("week-date");
-          if (!dateInput.value) dateInput.value = getNextMonday();
-          showScreen("screen-schedule");
-          tutAdvance("went-to-schedule");
-        } else {
-          window.location.href = "/scheduler";
-        }
+        window.location.href = "/scheduler";
       }
 
       function goToEdit() {
@@ -1988,31 +1257,29 @@
       // ── Screen 1: Employees ────────────────────────────────
       function renderWorkers() {
         const grid = document.getElementById("worker-grid");
+        if (!grid) return;
         grid.innerHTML = "";
         if (workers.length === 0) {
-          grid.innerHTML = `<p class="empty-workers">No employees yet. Add one below.</p>`;
+          grid.innerHTML = `<p class="db-roster-empty">No employees yet.<br>Click + to add one.</p>`;
           return;
         }
         sortedWorkers().forEach((w) => {
           const wi = workers.indexOf(w);
+          const color = getWorkerColor(w.name);
+          const pinText = w.pin ? `PIN ${w.pin}` : "No PIN";
+          const priLabel = PRIORITY_LABELS[w.priority];
+          const priClass = PRIORITY_CLASSES[w.priority];
           const card = document.createElement("div");
-          card.className = "wcard";
-          const pinDisplay = w.pin
-            ? `<span class="wcard-pin">PIN: ${w.pin}</span>`
-            : `<span class="wcard-pin wcard-pin-unset">No PIN set</span>`;
+          card.className = "db-emp-card";
           card.innerHTML = `
-            <div class="wcard-color" style="background:${getWorkerColor(w.name)}"></div>
-            <div class="wcard-body">
-              <div class="wcard-header">
-                <span class="wcard-name">${w.name}</span>
-                <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-                <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
-              </div>
-              ${pinDisplay}
-              <div style="display:flex; gap:8px; margin-top:8px;">
-                <button class="btn-edit-emp" onclick="openEditEmployeeModal(${wi})">Edit</button>
-                <button class="btn-remove"   onclick="removeWorker(${wi})">Remove</button>
-              </div>
+            <div class="db-emp-stripe" style="background:${color}"></div>
+            <div class="db-emp-info">
+              <span class="db-emp-name">${w.name}</span>
+              <span class="db-emp-meta">${pinText} · <span class="av-priority ${priClass}">${priLabel}</span></span>
+            </div>
+            <div class="db-emp-actions">
+              <button class="db-emp-btn" onclick="openEditEmployeeModal(${wi})">Edit</button>
+              <button class="db-emp-btn db-emp-btn-remove" onclick="removeWorker(${wi})">✕</button>
             </div>`;
           grid.appendChild(card);
         });
@@ -2380,11 +1647,27 @@ if (!settings.demo) await removeEmployee(removed._id);
           disconnectLink && (disconnectLink.style.display = "none");
           _calConnected = null;
         }
+        // Update new dashboard calendar status pill
+        const calDot = document.getElementById("status-cal-dot");
+        const calVal = document.getElementById("status-cal-val");
+        if (calDot && calVal) {
+          if (_calConnected === true) {
+            calDot.className = "db-status-dot dot-green";
+            calVal.textContent = "Connected";
+          } else if (_calConnected === false) {
+            calDot.className = "db-status-dot dot-red";
+            calVal.textContent = "Not connected";
+          } else {
+            calDot.className = "db-status-dot dot-neutral";
+            calVal.textContent = "Unknown";
+          }
+        }
         updateScheduleCalStatus();
         updateCalWarningBanner();
         updateCalendarPicker();
-        // If we just became connected, clear the no-calendar empty state
+        updateReadinessPill();
         if (_calConnected === true) {
+          checkScheduleReadiness();
           const noCalEl = document.getElementById("empty-state-no-calendar");
           if (noCalEl && noCalEl.style.display !== "none") {
             showEmptyState("default");
@@ -3218,57 +2501,161 @@ if (!settings.demo) await removeEmployee(removed._id);
           const res = await fetch("/center-settings");
           const data = await res.json();
           _centerSettings = data.data;
-          applyWindowToUI(_centerSettings);
-          updateWindowBadge();
+          updateWindowCard();
+          updateStatusPills();
           loadSubmissions();
         } catch (e) {
           console.warn("Could not load center settings:", e.message);
         }
       }
 
-      function applyWindowToUI(s) {
-        if (!s) return;
-        const openEl = document.getElementById("av-window-open");
-        const closeEl = document.getElementById("av-window-close");
-        if (!openEl || !closeEl) return;
-        openEl.value = s.windowOpen ? toLocalDatetimeValue(new Date(s.windowOpen)) : "";
-        closeEl.value = s.windowClose ? toLocalDatetimeValue(new Date(s.windowClose)) : "";
-        _windowDirty = false;
-        const saveBtn = document.getElementById("av-window-save-btn");
-        if (saveBtn) saveBtn.classList.remove("dirty");
-      }
-
-      function markWindowDirty() {
-        _windowDirty = true;
-        const saveBtn = document.getElementById("av-window-save-btn");
-        if (saveBtn) saveBtn.classList.add("dirty");
-      }
-
-      function updateWindowBadge() {
-        const badge = document.getElementById("av-window-badge");
-        if (!badge || !_centerSettings) return;
+      // ── Window state helpers ───────────────────────────────
+      function isWindowOpen(s) {
+        if (!s) return false;
         const now = new Date();
-        const open = _centerSettings.windowOpen ? new Date(_centerSettings.windowOpen) : null;
-        const close = _centerSettings.windowClose ? new Date(_centerSettings.windowClose) : null;
-        if (open && close && now >= open && now <= close) {
-          badge.textContent = "Open";
-          badge.className = "av-window-badge badge-open";
-        } else if (open && now < open) {
-          badge.textContent = "Scheduled";
-          badge.className = "av-window-badge badge-scheduled";
-        } else if (close && now > close) {
-          badge.textContent = "Closed";
-          badge.className = "av-window-badge badge-closed";
-        } else {
-          badge.textContent = "Not set";
-          badge.className = "av-window-badge badge-unset";
+        const open = s.windowOpen ? new Date(s.windowOpen) : null;
+        const close = s.windowClose ? new Date(s.windowClose) : null;
+        if (!open) return false;
+        if (now < open) return false;
+        if (close && now > close) return false;
+        return true; // open with no close time = manually open
+      }
+
+      function getWindowState(s) {
+        if (!s || !s.windowOpen) return "unset";
+        const now = new Date();
+        const open = new Date(s.windowOpen);
+        const close = s.windowClose ? new Date(s.windowClose) : null;
+        if (now < open) return "scheduled";
+        if (!close || now <= close) return "open";
+        return "closed";
+      }
+
+      function formatWindowSummary(s) {
+        if (!s || !s.windowOpen) return "Not configured";
+        const state = getWindowState(s);
+        const fmt = (d) => new Date(d).toLocaleString("en-US", {
+          weekday: "short", month: "short", day: "numeric",
+          hour: "numeric", minute: "2-digit"
+        });
+        if (state === "scheduled") return `Opens ${fmt(s.windowOpen)}`;
+        if (state === "open") return s.windowClose ? `Open · closes ${fmt(s.windowClose)}` : "Open · closes manually";
+        if (state === "closed") return `Closed ${fmt(s.windowClose)}`;
+        return "Not configured";
+      }
+
+      function updateWindowCard() {
+        const summary = document.getElementById("db-window-summary");
+        const closeBtn = document.getElementById("db-close-now-btn");
+        if (summary) summary.textContent = formatWindowSummary(_centerSettings);
+        const isOpen = _centerSettings && isWindowOpen(_centerSettings);
+        if (closeBtn) closeBtn.style.display = isOpen ? "inline-flex" : "none";
+      }
+
+      function updateStatusPills() {
+        // Window pill
+        const wDot = document.getElementById("status-window-dot");
+        const wVal = document.getElementById("status-window-val");
+        if (wDot && wVal && _centerSettings) {
+          const state = getWindowState(_centerSettings);
+          const labels = { unset: "Not set", scheduled: "Scheduled", open: "Open", closed: "Closed" };
+          const dotClass = { unset: "dot-neutral", scheduled: "dot-warn", open: "dot-green", closed: "dot-neutral" };
+          wVal.textContent = labels[state];
+          wDot.className = "db-status-dot " + (dotClass[state] || "dot-neutral");
+        }
+        // Submissions pill
+        const sDot = document.getElementById("status-subs-dot");
+        const sVal = document.getElementById("status-subs-val");
+        if (sDot && sVal) {
+          const submitted = _submissions.length;
+          const total = workers.length;
+          if (total === 0) {
+            sVal.textContent = "—";
+            sDot.className = "db-status-dot dot-neutral";
+          } else {
+            sVal.textContent = `${submitted} / ${total}`;
+            sDot.className = "db-status-dot " + (submitted === total ? "dot-green" : submitted > 0 ? "dot-warn" : "dot-neutral");
+          }
+        }
+        // Submissions card summary
+        const subSummary = document.getElementById("db-subs-summary");
+        if (subSummary) {
+          const submitted = _submissions.length;
+          const total = workers.length;
+          subSummary.textContent = total === 0 ? "No employees added" :
+            submitted === 0 ? "No submissions yet" :
+            `${submitted} of ${total} submitted`;
         }
       }
 
-      async function saveWindow() {
-        const openVal = document.getElementById("av-window-open").value;
-        const closeVal = document.getElementById("av-window-close").value;
-        if (openVal && closeVal && new Date(openVal) >= new Date(closeVal)) {
+      async function closeWindowNow() {
+        try {
+          const now = new Date().toISOString();
+          const res = await fetch("/center-settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ windowClose: now }),
+          });
+          const data = await res.json();
+          _centerSettings = data.data;
+          updateWindowCard();
+          updateStatusPills();
+        } catch (e) {
+          alert("Something went wrong. Please try again.");
+        }
+      }
+
+      // ── Window modal ───────────────────────────────────────
+      let _wmCloseMode = "manual";
+
+      function openWindowModal() {
+        _wmCloseMode = "manual";
+        document.getElementById("wm-close-manual-btn").classList.add("active");
+        document.getElementById("wm-close-auto-btn").classList.remove("active");
+        document.getElementById("wm-close-row").style.display = "none";
+        document.getElementById("wm-copied-msg").style.display = "none";
+        // Set week-of readonly display
+        document.getElementById("wm-week-of").textContent = (() => {
+          const d = new Date();
+          const day = d.getDay();
+          const diff = day === 1 ? 0 : (8 - day) % 7;
+          const mon = new Date(d);
+          mon.setDate(d.getDate() + diff);
+          return mon.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+        })();
+        // Pre-fill open time if existing setting
+        const openEl = document.getElementById("wm-open");
+        if (_centerSettings && _centerSettings.windowOpen) {
+          openEl.value = toLocalDatetimeValue(new Date(_centerSettings.windowOpen));
+        } else {
+          openEl.value = "";
+        }
+        const closeEl = document.getElementById("wm-close");
+        if (_centerSettings && _centerSettings.windowClose) {
+          closeEl.value = toLocalDatetimeValue(new Date(_centerSettings.windowClose));
+          setCloseMode("auto");
+        } else {
+          closeEl.value = "";
+        }
+        document.getElementById("window-modal").classList.add("open");
+      }
+
+      function closeWindowModal() {
+        document.getElementById("window-modal").classList.remove("open");
+      }
+
+      function setCloseMode(mode) {
+        _wmCloseMode = mode;
+        document.getElementById("wm-close-manual-btn").classList.toggle("active", mode === "manual");
+        document.getElementById("wm-close-auto-btn").classList.toggle("active", mode === "auto");
+        document.getElementById("wm-close-row").style.display = mode === "auto" ? "flex" : "none";
+      }
+
+      async function activateWindow() {
+        const openVal = document.getElementById("wm-open").value;
+        if (!openVal) return alert("Please set an open time.");
+        const closeVal = _wmCloseMode === "auto" ? document.getElementById("wm-close").value : null;
+        if (closeVal && new Date(openVal) >= new Date(closeVal)) {
           return alert("Close time must be after open time.");
         }
         try {
@@ -3276,23 +2663,47 @@ if (!settings.demo) await removeEmployee(removed._id);
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              windowOpen: openVal ? new Date(openVal).toISOString() : null,
+              windowOpen: new Date(openVal).toISOString(),
               windowClose: closeVal ? new Date(closeVal).toISOString() : null,
             }),
           });
           const data = await res.json();
           _centerSettings = data.data;
-          _windowDirty = false;
-          const saveBtn = document.getElementById("av-window-save-btn");
-          if (saveBtn) {
-            saveBtn.classList.remove("dirty");
-            saveBtn.textContent = "Saved ✓";
-            setTimeout(() => { saveBtn.textContent = "Save"; }, 2000);
-          }
-          updateWindowBadge();
+          updateWindowCard();
+          updateStatusPills();
+          // Copy link to clipboard
+          const link = window.location.origin + "/availability";
+          navigator.clipboard.writeText(link).catch(() => {});
+          document.getElementById("wm-copied-msg").style.display = "block";
         } catch (e) {
-          alert("Something went wrong saving the window. Please try again.");
+          alert("Something went wrong. Please try again.");
         }
+      }
+
+      function copyAvLink() {
+        const link = window.location.origin + "/availability";
+        navigator.clipboard.writeText(link).catch(() => {});
+      }
+
+      // ── Build warning modal ────────────────────────────────
+      function showBuildWarning() {
+        const submittedIds = new Set(_submissions.map(s => s.employeeId));
+        const pending = workers.filter(w => !submittedIds.has(w._id?.toString()));
+        const list = document.getElementById("build-warning-list");
+        list.innerHTML = pending.length > 0
+          ? pending.map(w => `<li>${w.name}</li>`).join("")
+          : "<li><em>Everyone has submitted</em></li>";
+        document.getElementById("build-warning-modal").classList.add("open");
+      }
+
+      function closeBuildWarning() {
+        document.getElementById("build-warning-modal").classList.remove("open");
+      }
+
+      async function closeFormAndContinue() {
+        closeBuildWarning();
+        await closeWindowNow();
+        await _doGoToSchedule();
       }
 
       // ── Submissions ────────────────────────────────────────
@@ -3301,7 +2712,6 @@ if (!settings.demo) await removeEmployee(removed._id);
       async function loadSubmissions() {
         if (settings.demo) return;
         try {
-          // Load submissions for the upcoming week (based on window open date)
           const weekOf = _centerSettings?.windowOpen
             ? getMondayOfWeek(new Date(_centerSettings.windowOpen))
             : getNextMondayStr();
@@ -3309,6 +2719,7 @@ if (!settings.demo) await removeEmployee(removed._id);
           const data = await res.json();
           _submissions = data.data || [];
           renderSubmissions();
+          if (_calConnected === true) checkScheduleReadiness();
         } catch (e) {
           console.warn("Could not load submissions:", e.message);
         }
@@ -3338,51 +2749,45 @@ if (!settings.demo) await removeEmployee(removed._id);
       }
 
       function renderSubmissions() {
-        const section = document.getElementById("av-submissions-section");
         const list = document.getElementById("av-submissions-list");
-        const countEl = document.getElementById("av-submissions-count");
-        if (!section || !list) return;
+        if (!list) return;
+        list.innerHTML = "";
 
         const submittedIds = new Set(_submissions.map(s => s.employeeId));
-        const submitted = _submissions.length;
-        const total = workers.length;
-
-        if (total === 0) { section.style.display = "none"; return; }
-        section.style.display = "block";
-        countEl.textContent = `${submitted} / ${total}`;
-
-        list.innerHTML = "";
-        // Show submitted first (in submission order), then pending
-        const submittedWorkers = _submissions
-          .map((s, i) => ({ ...s, order: i + 1 }));
-        const pendingWorkers = workers.filter(
-          w => !submittedIds.has(w._id?.toString())
-        );
+        const submittedWorkers = _submissions.map((s, i) => ({ ...s, order: i + 1 }));
+        const pendingWorkers = workers.filter(w => !submittedIds.has(w._id?.toString()));
 
         submittedWorkers.forEach((s) => {
-          const row = document.createElement("div");
-          row.className = "sub-row sub-row-done";
+          const color = getWorkerColor(s.employeeName);
           const time = new Date(s.submittedAt).toLocaleString("en-US", {
             weekday: "short", month: "short", day: "numeric",
             hour: "numeric", minute: "2-digit",
           });
+          const row = document.createElement("div");
+          row.className = "db-sub-row db-sub-row-done";
           row.innerHTML = `
-            <span class="sub-order">#${s.order}</span>
-            <span class="sub-name">${s.employeeName}</span>
-            <span class="sub-time">${time}</span>
-            <button class="sub-remove-btn" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`;
+            <span class="db-sub-order">#${s.order}</span>
+            <span class="db-sub-stripe" style="background:${color}"></span>
+            <span class="db-sub-name">${s.employeeName}</span>
+            <span class="db-sub-time">${time}</span>
+            <button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`;
           list.appendChild(row);
         });
 
         pendingWorkers.forEach((w) => {
+          const color = getWorkerColor(w.name);
           const row = document.createElement("div");
-          row.className = "sub-row sub-row-pending";
+          row.className = "db-sub-row db-sub-row-pending";
           row.innerHTML = `
-            <span class="sub-order">—</span>
-            <span class="sub-name">${w.name}</span>
-            <span class="sub-time sub-pending-label">Not submitted</span>`;
+            <span class="db-sub-order">—</span>
+            <span class="db-sub-stripe" style="background:${color}"></span>
+            <span class="db-sub-name">${w.name}</span>
+            <span class="db-sub-time db-sub-pending">Not submitted</span>`;
           list.appendChild(row);
         });
+
+        updateStatusPills();
+        updateReadinessPill();
       }
 
       async function removeSubmission(id) {
@@ -3395,9 +2800,119 @@ if (!settings.demo) await removeEmployee(removed._id);
         }
       }
 
+      // ── Schedule readiness pill ────────────────────────────
+      function updateReadinessPill() {
+        const dot = document.getElementById("status-readiness-dot");
+        const val = document.getElementById("status-readiness-val");
+        if (!dot || !val) return;
+
+        if (!_calConnected) {
+          dot.className = "db-status-dot dot-neutral";
+          val.textContent = "No calendar";
+          return;
+        }
+        if (_submissions.length === 0) {
+          dot.className = "db-status-dot dot-neutral";
+          val.textContent = "Awaiting submissions";
+          return;
+        }
+        // Check readiness using last fetched student data
+        if (!_lastReadinessCheck) {
+          dot.className = "db-status-dot dot-neutral";
+          val.textContent = "—";
+          return;
+        }
+        const { gaps } = _lastReadinessCheck;
+        if (gaps.length === 0) {
+          dot.className = "db-status-dot dot-green";
+          val.textContent = "Ready";
+        } else {
+          dot.className = "db-status-dot dot-red";
+          val.textContent = `Gaps on ${gaps.join(", ")}`;
+        }
+      }
+
+      let _lastReadinessCheck = null;
+
+      async function checkScheduleReadiness() {
+        if (!_calConnected || _submissions.length === 0) {
+          updateReadinessPill();
+          return;
+        }
+        try {
+          // Build workers from submissions
+          const submissionWorkers = _submissions.map(s => {
+            const emp = workers.find(w => w._id?.toString() === s.employeeId?.toString());
+            return {
+              name: s.employeeName,
+              priority: emp ? emp.priority : 0,
+              defaultStart: emp ? emp.defaultStart : 4,
+              defaultEnd: emp ? emp.defaultEnd : 8,
+              days: s.days,
+              submittedAt: s.submittedAt,
+            };
+          });
+          if (submissionWorkers.length === 0) return;
+
+          // Get next monday for events fetch
+          const weekOf = _centerSettings?.windowOpen
+            ? getMondayOfWeek(new Date(_centerSettings.windowOpen))
+            : getNextMondayStr();
+
+          const calId = settings.calendarId || "";
+          const evRes = await fetch(`/events?monday=${weekOf}&calendarId=${encodeURIComponent(calId)}`);
+          if (!evRes.ok) { updateReadinessPill(); return; }
+          const evData = await evRes.json();
+
+          const genRes = await fetch("/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workers: submissionWorkers,
+              studentData: evData.studentData,
+              oneOnOneData: evData.oneOnOneData,
+              mode: settings.mode || "simplified",
+            }),
+          });
+          if (!genRes.ok) { updateReadinessPill(); return; }
+          const genData = await genRes.json();
+
+          // Detect true gaps: slots with students > 0 but no assigned workers
+          const gaps = [];
+          for (const day of genData.schedule) {
+            const evDay = (evData.studentData || {})[day.day.toLowerCase()] || {};
+            const hasStudents = Object.values(evDay).some(v => v > 0);
+            if (!hasStudents) continue;
+            // Check if any slot with students has no coverage
+            let hasGap = false;
+            for (const [time, count] of Object.entries(evDay)) {
+              if (count <= 0) continue;
+              const covered = day.assignments.some(a => {
+                const toNum = (t) => {
+                  const [h, m] = t.split(":"); let hr = parseInt(h);
+                  if (day.day === "Saturday" && hr < 10) hr += 12;
+                  return hr + (m === "30" ? 0.5 : 0);
+                };
+                const tNum = toNum(time);
+                return toNum(a.start) <= tNum && toNum(a.end) > tNum;
+              });
+              if (!covered) { hasGap = true; break; }
+            }
+            if (hasGap) gaps.push(day.day);
+          }
+          _lastReadinessCheck = { gaps };
+          updateReadinessPill();
+        } catch (e) {
+          console.warn("Readiness check failed:", e.message);
+          updateReadinessPill();
+        }
+      }
+
       // ── Init ───────────────────────────────────────────────
       applyTheme();
       checkCalendarStatus();
+      closeOnOverlayClick("window-modal", closeWindowModal);
+      closeOnOverlayClick("build-warning-modal", closeBuildWarning);
       if (settings.demo) {
         document.body.classList.add("demo-active");
         activateDemo();
