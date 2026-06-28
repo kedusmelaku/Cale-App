@@ -631,12 +631,12 @@
 
       // ── Demo ───────────────────────────────────────────────
       const DEMO_WORKERS = [
-        { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
-        { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
-        { name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
-        { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { _id: "demo-1", name: "Alex",   priority: 2, defaultStart: 3, defaultEnd: 8, pin: "1001" },
+        { _id: "demo-2", name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8, pin: "1002" },
+        { _id: "demo-3", name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1003" },
+        { _id: "demo-4", name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1004" },
+        { _id: "demo-5", name: "Casey",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1005" },
+        { _id: "demo-6", name: "Riley",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1006" },
       ];
 
       function buildDemoAvailability() {
@@ -701,6 +701,11 @@
       function activateDemo() {
         workers = JSON.parse(JSON.stringify(DEMO_WORKERS));
         availability = buildDemoAvailability();
+        // Populate submissionsByEmployeeId so the Form tab has data
+        submissionsByEmployeeId = {};
+        workers.forEach((w) => {
+          submissionsByEmployeeId[w._id] = availability[w.name].map(d => ({ ...d }));
+        });
         scheduleData = [];
         renderAvailability();
         showEmptyState("default");
@@ -709,6 +714,7 @@
 
       async function deactivateDemo() {
         await loadEmployees();
+        submissionsByEmployeeId = {};
         // Reconstruct availability from saved employee days
         availability = {};
         workers.forEach((w) => {

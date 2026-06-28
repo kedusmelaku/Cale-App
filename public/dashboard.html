@@ -98,7 +98,7 @@
                 <div class="db-card-sub" id="db-window-summary">Not configured</div>
               </div>
               <div class="db-card-actions">
-                <button class="db-chip-btn db-chip-btn-green" onclick="copyAvLink()" title="Copy form link">Copy Link</button>
+                <button class="db-chip-btn" onclick="copyAvLink()" title="Copy form link">Copy Link</button>
                 <button class="db-chip-btn db-chip-btn-danger" id="db-close-now-btn" style="display:none;" onclick="closeFormNow()">Close Now</button>
                 <button class="db-chip-btn db-chip-btn-primary" onclick="openFormModal()">Configure</button>
               </div>
@@ -619,28 +619,13 @@
       function showTutLinkBlockedMsg() {}
 
       const DEMO_WORKERS = [
-        { _id: "demo-1", name: "Alex",   priority: 2, defaultStart: 3, defaultEnd: 8, pin: "1001" },
-        { _id: "demo-2", name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8, pin: "1002" },
-        { _id: "demo-3", name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1003" },
-        { _id: "demo-4", name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1004" },
-        { _id: "demo-5", name: "Casey",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1005" },
-        { _id: "demo-6", name: "Riley",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1006" },
+        { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
+        { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
+        { name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
       ];
-
-      function buildDemoSubmissions() {
-        const avail = buildDemoAvailability();
-        // Stagger fake submission times over the past week
-        const base = new Date();
-        base.setDate(base.getDate() - 5);
-        return DEMO_WORKERS.map((w, i) => ({
-          _id: `demo-sub-${i + 1}`,
-          employeeId: w._id,
-          employeeName: w.name,
-          weekOf: getNextMondayStr(),
-          days: avail[w.name],
-          submittedAt: new Date(base.getTime() + i * 3 * 3600000).toISOString(),
-        }));
-      }
 
       function buildDemoAvailability() {
         const mk = (sel, start, end) => DAYS.map((d) => ({
@@ -826,46 +811,17 @@
       }
 
       // ── Demo ───────────────────────────────────────────────
-      let _realWorkers = null;
-      let _realSubmissions = null;
-
       function activateDemo() {
-        // Snapshot real state so we can restore it on exit
-        _realWorkers = JSON.parse(JSON.stringify(workers));
-        _realSubmissions = JSON.parse(JSON.stringify(_submissions));
-
         workers = JSON.parse(JSON.stringify(DEMO_WORKERS));
         availability = buildDemoAvailability();
-        _submissions = buildDemoSubmissions();
-
         renderWorkers();
-        renderSubmissions();
         updateStatusPills();
-        updateReadinessPill();
       }
 
       async function deactivateDemo() {
-        // If we have a real snapshot (captured after real data was loaded), restore it.
-        // If the snapshot is empty arrays (demo was on at page load before data loaded),
-        // do a fresh fetch instead so we get real data.
-        if (_realWorkers !== null && _realWorkers.length > 0) {
-          workers = _realWorkers;
-        } else {
-          await loadEmployees();
-        }
-        _realWorkers = null;
-
-        if (_realSubmissions !== null && _realSubmissions.length > 0) {
-          _submissions = _realSubmissions;
-        } else {
-          // Will be loaded via loadCenterSettings → loadSubmissions below
-          _submissions = [];
-        }
-        _realSubmissions = null;
-
+        await loadEmployees();
         availability = {};
         renderWorkers();
-        renderSubmissions();
         loadCenterSettings();
       }
 
@@ -1892,7 +1848,7 @@
             <span class="db-sub-stripe" style="background:${color}"></span>
             <span class="db-sub-name">${s.employeeName}</span>
             <span class="db-sub-time">${time}</span>
-            ${settings.demo ? "" : `<button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`}`;
+            <button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`;
           list.appendChild(row);
         });
 
@@ -1913,7 +1869,6 @@
       }
 
       async function removeSubmission(id) {
-        if (settings.demo) return; // demo submissions are not real
         if (!confirm("Remove this submission?")) return;
         try {
           await fetch(`/submissions/${id}`, { method: "DELETE" });
@@ -1928,6 +1883,13 @@
         const dot = document.getElementById("status-readiness-dot");
         const val = document.getElementById("status-readiness-val");
         if (!dot || !val) return;
+
+        if (settings.demo) {
+          val.textContent = "Demo";
+          dot.className = "db-status-dot dot-neutral";
+          setPillState("status-readiness", "neutral");
+          return;
+        }
 
         if (!_calConnected) {
           dot.className = "db-status-dot dot-neutral";
