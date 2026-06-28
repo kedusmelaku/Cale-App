@@ -23,6 +23,7 @@ const employeeSchema = new mongoose.Schema({
   pin: { type: String, default: "" },
 });
 
+employeeSchema.index({ centerId: 1 });
 const Employee = mongoose.model("Employee", employeeSchema);
 
 module.exports = Employee;

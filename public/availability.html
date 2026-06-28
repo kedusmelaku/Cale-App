@@ -402,8 +402,8 @@
           const res = await fetch(`/center-settings/${_centerId}`);
           const data = await res.json();
           const s = data.data;
-          if (s && s.windowOpen) _windowOpen = new Date(s.windowOpen);
-          if (s && s.windowClose) _windowClose = new Date(s.windowClose);
+          _windowOpen  = (s && s.windowOpen)  ? new Date(s.windowOpen)  : null;
+          _windowClose = (s && s.windowClose) ? new Date(s.windowClose) : null;
         } catch (e) {
           console.warn("Could not load center settings:", e.message);
         }
@@ -465,30 +465,35 @@
       }
 
       function isWindowOpen() {
-        if (!_windowOpen || !_windowClose) return true; // no window set = always open
+        if (!_windowOpen) return true; // no window configured = always open
         const now = new Date();
-        return now >= _windowOpen && now <= _windowClose;
+        if (now < _windowOpen) return false; // not open yet
+        if (!_windowClose) return true;      // open with no close time = manually open
+        return now <= _windowClose;
       }
 
       function updateWindowStatus() {
         const el = document.getElementById("window-status-msg");
-        if (!_windowOpen || !_windowClose) {
+        if (!_windowOpen) {
           el.style.display = "none";
           return;
         }
         el.style.display = "block";
-        if (isWindowOpen()) {
+        const now = new Date();
+        if (now < _windowOpen) {
+          // Scheduled — not open yet
+          el.className = "window-status closed";
+          el.textContent = `Submissions open ${formatDateTime(_windowOpen)}`;
+        } else if (!_windowClose || now <= _windowClose) {
+          // Open: either no close time (manual) or close time hasn't passed
           el.className = "window-status open";
-          el.textContent = `Submissions open until ${formatDateTime(_windowClose)}`;
+          el.textContent = _windowClose
+            ? `Submissions open until ${formatDateTime(_windowClose)}`
+            : "Submissions open";
         } else {
-          const now = new Date();
-          if (now < _windowOpen) {
-            el.className = "window-status closed";
-            el.textContent = `Submissions open ${formatDateTime(_windowOpen)}`;
-          } else {
-            el.className = "window-status closed";
-            el.textContent = `Submissions closed as of ${formatDateTime(_windowClose)}`;
-          }
+          // Past close time
+          el.className = "window-status closed";
+          el.textContent = `Submissions closed as of ${formatDateTime(_windowClose)}`;
         }
       }
 
@@ -508,8 +513,8 @@
         // are always current, even if the page has been open a long time.
         try {
           const s = await fetch(`/center-settings/${_centerId}`).then(r => r.json());
-          if (s.data?.windowOpen) _windowOpen = new Date(s.data.windowOpen);
-          if (s.data?.windowClose) _windowClose = new Date(s.data.windowClose);
+          _windowOpen  = s.data?.windowOpen  ? new Date(s.data.windowOpen)  : null;
+          _windowClose = s.data?.windowClose ? new Date(s.data.windowClose) : null;
           _weekOf = _windowOpen ? getMondayStrictlyAfter(_windowOpen) : getNextMonday();
           updateWindowStatus();
         } catch (e) {
