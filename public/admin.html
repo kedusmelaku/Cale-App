@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheduler — Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f2; min-height: 100vh; color: #1a1a1a;
+    }
+    .topbar {
+      background: #1a1a1a; color: #fff; padding: 0 28px;
+      height: 56px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
+    .topbar-badge {
+      background: #fef3c7; color: #92400e;
+      font-size: 0.75rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; margin-left: 10px;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .btn-ghost {
+      background: transparent; border: 1.5px solid rgba(255,255,255,0.25); color: #fff;
+      padding: 6px 14px; border-radius: 7px; font-size: 0.85rem; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+    .main { max-width: 800px; margin: 40px auto; padding: 0 24px; }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+    }
+    .section-title { font-size: 1.1rem; font-weight: 700; }
+    .btn-primary {
+      background: #1a1a1a; color: #fff; border: none; padding: 9px 18px;
+      border-radius: 7px; font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #333; }
+    .card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px;
+      padding: 18px 20px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .center-name { font-weight: 600; font-size: 0.975rem; }
+    .center-id { font-size: 0.8125rem; color: #6b7280; margin-top: 2px; font-family: monospace; }
+    .card-actions { display: flex; gap: 8px; }
+    .btn-edit {
+      background: #f3f4f6; border: none; padding: 6px 14px; border-radius: 6px;
+      font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-edit:hover { background: #e5e7eb; }
+    .btn-delete {
+      background: #fee2e2; color: #b91c1c; border: none; padding: 6px 14px; border-radius: 6px;
+      font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-delete:hover { background: #fecaca; }
+    .empty { color: #9ca3af; font-size: 0.9rem; padding: 32px 0; text-align: center; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 12px; padding: 28px 28px 24px;
+      width: 100%; max-width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 0.8125rem; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .field input {
+      width: 100%; padding: 9px 12px; font-size: 0.9rem;
+      border: 1.5px solid #d1d5db; border-radius: 7px; outline: none; transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: #3b82f6; }
+    .field-hint { font-size: 0.78rem; color: #9ca3af; margin-top: 4px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .btn-cancel {
+      background: #f3f4f6; border: none; padding: 9px 18px; border-radius: 7px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-cancel:hover { background: #e5e7eb; }
+    .error-msg { font-size: 0.8125rem; color: #ef4444; margin-top: 10px; min-height: 18px; }
+
+    .loading { color: #9ca3af; padding: 32px 0; text-align: center; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div style="display:flex;align-items:center;">
+      <span class="topbar-title">Scheduler</span>
+      <span class="topbar-badge">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-ghost" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="section-header">
+      <span class="section-title">Centers</span>
+      <button class="btn-primary" onclick="openAddModal()">+ Add Center</button>
+    </div>
+    <div id="centers-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">Add Center</div>
+      <div class="field" id="field-centerid">
+        <label for="m-centerid">Center ID</label>
+        <input type="text" id="m-centerid" placeholder="e.g. arlington-heights" autocomplete="off" />
+        <div class="field-hint">Lowercase letters and hyphens only. This is what managers type at login.</div>
+      </div>
+      <div class="field">
+        <label for="m-name">Display Name</label>
+        <input type="text" id="m-name" placeholder="e.g. Arlington Heights Mathnasium" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="m-password" id="m-password-label">Password</label>
+        <input type="password" id="m-password" placeholder="Manager password for this center" autocomplete="new-password" />
+        <div class="field-hint" id="m-password-hint">Leave blank to keep the existing password.</div>
+      </div>
+      <div class="error-msg" id="modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" id="modal-submit" onclick="submitModal()">Add Center</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let _centers = [];
+    let _editingCenterId = null;
+
+    async function loadCenters() {
+      try {
+        const res = await fetch("/api/admin/centers");
+        if (res.status === 401) { window.location.href = "/admin/login"; return; }
+        const data = await res.json();
+        _centers = data.data || [];
+        renderCenters();
+      } catch (e) {
+        document.getElementById("centers-list").innerHTML = "<div class='empty'>Failed to load centers.</div>";
+      }
+    }
+
+    function renderCenters() {
+      const el = document.getElementById("centers-list");
+      if (_centers.length === 0) {
+        el.innerHTML = "<div class='empty'>No centers yet. Add one to get started.</div>";
+        return;
+      }
+      el.innerHTML = _centers.map(c => `
+        <div class="card">
+          <div>
+            <div class="center-name">${escHtml(c.name)}</div>
+            <div class="center-id">${escHtml(c.centerId)}</div>
+          </div>
+          <div class="card-actions">
+            <button class="btn-edit" onclick="openEditModal('${escHtml(c.centerId)}')">Edit</button>
+            <button class="btn-delete" onclick="deleteCenter('${escHtml(c.centerId)}', '${escHtml(c.name)}')">Delete</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    function openAddModal() {
+      _editingCenterId = null;
+      document.getElementById("modal-title").textContent = "Add Center";
+      document.getElementById("modal-submit").textContent = "Add Center";
+      document.getElementById("field-centerid").style.display = "";
+      document.getElementById("m-password-hint").style.display = "none";
+      document.getElementById("m-centerid").value = "";
+      document.getElementById("m-name").value = "";
+      document.getElementById("m-password").value = "";
+      document.getElementById("modal-error").textContent = "";
+      document.getElementById("modal-overlay").classList.add("open");
+      document.getElementById("m-centerid").focus();
+    }
+
+    function openEditModal(centerId) {
+      const center = _centers.find(c => c.centerId === centerId);
+      if (!center) return;
+      _editingCenterId = centerId;
+      document.getElementById("modal-title").textContent = "Edit Center";
+      document.getElementById("modal-submit").textContent = "Save Changes";
+      document.getElementById("field-centerid").style.display = "none";
+      document.getElementById("m-password-hint").style.display = "";
+      document.getElementById("m-name").value = center.name;
+      document.getElementById("m-password").value = "";
+      document.getElementById("modal-error").textContent = "";
+      document.getElementById("modal-overlay").classList.add("open");
+      document.getElementById("m-name").focus();
+    }
+
+    function closeModal() {
+      document.getElementById("modal-overlay").classList.remove("open");
+      _editingCenterId = null;
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById("modal-overlay")) closeModal();
+    }
+
+    async function submitModal() {
+      const name = document.getElementById("m-name").value.trim();
+      const password = document.getElementById("m-password").value;
+      const errorEl = document.getElementById("modal-error");
+      const btn = document.getElementById("modal-submit");
+      errorEl.textContent = "";
+
+      if (!name) { errorEl.textContent = "Display name is required."; return; }
+
+      if (_editingCenterId) {
+        // Edit
+        const body = { name };
+        if (password) body.password = password;
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/admin/centers/${_editingCenterId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          if (!res.ok) { errorEl.textContent = data.error || "Something went wrong."; btn.disabled = false; return; }
+          closeModal();
+          await loadCenters();
+        } catch { errorEl.textContent = "Something went wrong."; btn.disabled = false; }
+      } else {
+        // Add
+        const centerId = document.getElementById("m-centerid").value.trim().toLowerCase();
+        if (!centerId) { errorEl.textContent = "Center ID is required."; return; }
+        if (!password) { errorEl.textContent = "Password is required."; return; }
+        if (!/^[a-z0-9-]+$/.test(centerId)) {
+          errorEl.textContent = "Center ID can only contain lowercase letters, numbers, and hyphens."; return;
+        }
+        btn.disabled = true;
+        try {
+          const res = await fetch("/api/admin/centers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ centerId, name, password }),
+          });
+          const data = await res.json();
+          if (!res.ok) { errorEl.textContent = data.error || "Something went wrong."; btn.disabled = false; return; }
+          closeModal();
+          await loadCenters();
+        } catch { errorEl.textContent = "Something went wrong."; btn.disabled = false; }
+        btn.disabled = false;
+      }
+      btn.disabled = false;
+    }
+
+    async function deleteCenter(centerId, name) {
+      if (!confirm(`Delete "${name}"?\n\nThis will permanently delete all employees, submissions, and settings for this center. This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`/api/admin/centers/${centerId}`, { method: "DELETE" });
+        if (!res.ok) { alert("Failed to delete center."); return; }
+        await loadCenters();
+      } catch { alert("Something went wrong."); }
+    }
+
+    async function logout() {
+      await fetch("/api/logout", { method: "POST" });
+      window.location.href = "/admin/login";
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModal();
+      if (e.key === "Enter" && document.getElementById("modal-overlay").classList.contains("open")) submitModal();
+    });
+
+    loadCenters();
+  </script>
+</body>
+</html>

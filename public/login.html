@@ -48,6 +48,7 @@
       margin-bottom: 6px;
     }
 
+    input[type="text"],
     input[type="password"] {
       width: 100%;
       padding: 10px 12px;
@@ -60,10 +61,12 @@
       color: #1a1a1a;
     }
 
+    input[type="text"]:focus,
     input[type="password"]:focus {
       border-color: #3b82f6;
     }
 
+    input[type="text"].error-state,
     input[type="password"].error-state {
       border-color: #ef4444;
     }
@@ -104,12 +107,21 @@
     <div class="logo">Scheduler</div>
     <div class="subtitle">Manager sign-in</div>
 
+    <label for="center-id">Center ID</label>
+    <input
+      type="text"
+      id="center-id"
+      autocomplete="username"
+      autofocus
+      placeholder="e.g. arlington-heights"
+      style="margin-bottom: 16px;"
+    />
+
     <label for="password">Password</label>
     <input
       type="password"
       id="password"
       autocomplete="current-password"
-      autofocus
       placeholder="Enter manager password"
     />
     <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
@@ -118,33 +130,41 @@
   </div>
 
   <script>
+    const centerInput = document.getElementById("center-id");
     const input   = document.getElementById("password");
     const errorEl = document.getElementById("error-msg");
     const btn     = document.getElementById("submit-btn");
 
     async function attemptLogin() {
+      const centerId = centerInput.value.trim();
       const password = input.value;
-      if (!password) return;
+      if (!centerId || !password) {
+        errorEl.textContent = "Please enter your Center ID and password.";
+        if (!centerId) centerInput.classList.add("error-state");
+        if (!password) input.classList.add("error-state");
+        return;
+      }
 
       btn.disabled = true;
       btn.textContent = "Signing in…";
       errorEl.textContent = "";
+      centerInput.classList.remove("error-state");
       input.classList.remove("error-state");
 
       try {
         const res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password }),
+          body: JSON.stringify({ centerId, password }),
         });
 
         if (res.ok) {
-          // Redirect to wherever the user was trying to go, defaulting to /
           const params = new URLSearchParams(window.location.search);
           window.location.href = params.get("next") || "/";
         } else {
           const data = await res.json().catch(() => ({}));
-          errorEl.textContent = data.error || "Incorrect password.";
+          errorEl.textContent = data.error || "Incorrect Center ID or password.";
+          centerInput.classList.add("error-state");
           input.classList.add("error-state");
           input.select();
           btn.disabled = false;
@@ -158,9 +178,8 @@
     }
 
     btn.addEventListener("click", attemptLogin);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") attemptLogin();
-    });
+    centerInput.addEventListener("keydown", (e) => { if (e.key === "Enter") input.focus(); });
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
   </script>
 </body>
 </html>

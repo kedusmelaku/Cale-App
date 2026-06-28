@@ -383,15 +383,23 @@
       let _windowOpen = null;
       let _windowClose = null;
 
+      // Extract centerId from URL path: /availability/arlington-heights
+      const _centerId = window.location.pathname.split("/").filter(Boolean)[1] || "";
+
       // ── Init ───────────────────────────────────────────────
       (async function init() {
+        if (!_centerId) {
+          document.body.innerHTML = "<p style='padding:40px;font-family:sans-serif;color:#666;'>Invalid availability link. Please contact your manager.</p>";
+          return;
+        }
+
         // Apply saved theme
         const saved = JSON.parse(localStorage.getItem("scheduler-settings") || "{}");
         if (saved.theme === "dark") document.body.classList.add("dark");
 
         // Load center settings to check window and get week
         try {
-          const res = await fetch("/center-settings");
+          const res = await fetch(`/center-settings/${_centerId}`);
           const data = await res.json();
           const s = data.data;
           if (s && s.windowOpen) _windowOpen = new Date(s.windowOpen);
@@ -499,7 +507,7 @@
         // Re-fetch center settings on every attempt so window state and weekOf
         // are always current, even if the page has been open a long time.
         try {
-          const s = await fetch("/center-settings").then(r => r.json());
+          const s = await fetch(`/center-settings/${_centerId}`).then(r => r.json());
           if (s.data?.windowOpen) _windowOpen = new Date(s.data.windowOpen);
           if (s.data?.windowClose) _windowClose = new Date(s.data.windowClose);
           _weekOf = _windowOpen ? getMondayStrictlyAfter(_windowOpen) : getNextMonday();
@@ -518,7 +526,7 @@
           const res = await fetch("/availability/lookup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pin }),
+            body: JSON.stringify({ pin, centerId: _centerId }),
           });
           const data = await res.json();
           if (!res.ok) {
@@ -742,6 +750,7 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              centerId: _centerId,
               employeeId: _employee._id,
               employeeName: _employee.name,
               weekOf: _weekOf,
