@@ -1726,7 +1726,12 @@
 
       function copyAvLink() {
         const link = window.location.origin + "/availability";
-        navigator.clipboard.writeText(link).catch(() => {});
+        navigator.clipboard.writeText(link).then(() => {
+          const btn = document.querySelector("[onclick=\"copyAvLink()\"]");
+          if (!btn) return;
+          btn.textContent = "Copied!";
+          setTimeout(() => (btn.textContent = "Copy Link"), 2000);
+        }).catch(() => {});
       }
 
       // ── Build warning modal ────────────────────────────────
@@ -1760,7 +1765,7 @@
         if (settings.demo) return;
         try {
           const weekOf = _centerSettings?.windowOpen
-            ? getMondayOfWeek(new Date(_centerSettings.windowOpen))
+            ? getMondayStrictlyAfter(new Date(_centerSettings.windowOpen))
             : getNextMondayStr();
           const res = await fetch(`/submissions?weekOf=${weekOf}`);
           const data = await res.json();
@@ -1790,9 +1795,7 @@
         if (_submissionPollTimer || settings.demo) return;
         _submissionPollTimer = setInterval(() => {
           if (document.hidden) return;
-          if (_centerSettings && isFormOpen(_centerSettings)) {
-            loadSubmissions();
-          }
+          loadSubmissions();
         }, 20000); // every 20s
       }
 
@@ -1801,6 +1804,17 @@
         const day = d.getDay();
         const diff = day === 0 ? 6 : day - 1;
         d.setDate(d.getDate() - diff);
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dd}`;
+      }
+
+      function getMondayStrictlyAfter(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const daysUntil = day === 1 ? 7 : (8 - day) % 7;
+        d.setDate(d.getDate() + daysUntil);
         const y = d.getFullYear();
         const m = String(d.getMonth()+1).padStart(2, "0");
         const dd = String(d.getDate()).padStart(2, "0");
@@ -1885,7 +1899,7 @@
         }
         if (_submissions.length === 0) {
           dot.className = "db-status-dot dot-neutral";
-          val.textContent = "Awaiting submissions";
+          val.textContent = "Awaiting subs";
           setPillState("status-readiness", "neutral");
           return;
         }
@@ -1931,7 +1945,7 @@
 
           // Get next monday for events fetch
           const weekOf = _centerSettings?.windowOpen
-            ? getMondayOfWeek(new Date(_centerSettings.windowOpen))
+            ? getMondayStrictlyAfter(new Date(_centerSettings.windowOpen))
             : getNextMondayStr();
 
           const calId = settings.calendarId || "";

@@ -182,6 +182,79 @@
       .submit-btn:hover { background: var(--accent-hover); }
       .submit-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
 
+      /* Confirmation modal */
+      .confirm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .confirm-overlay.open { display: flex; }
+      .confirm-modal {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        padding: 28px 24px 24px;
+        width: 100%;
+        max-width: 380px;
+      }
+      .confirm-modal h3 {
+        font-family: "Noto Serif", serif;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 16px;
+      }
+      .confirm-day-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 20px;
+      }
+      .confirm-day-row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        font-size: 0.88rem;
+      }
+      .confirm-day-name {
+        font-weight: 600;
+        color: var(--text);
+        min-width: 90px;
+      }
+      .confirm-day-hours {
+        color: var(--text-muted);
+        font-size: 0.83rem;
+      }
+      .confirm-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .confirm-actions button {
+        flex: 1;
+        padding: 10px;
+        border-radius: var(--radius);
+        font-family: "Noto Sans", sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+      }
+      .confirm-cancel {
+        background: var(--surface2);
+        color: var(--text);
+        border: 1.5px solid var(--border) !important;
+      }
+      .confirm-submit {
+        background: var(--accent);
+        color: #fff;
+      }
+      .confirm-submit:hover { background: var(--accent-hover); }
+
       .error-msg {
         font-size: 0.85rem;
         color: #c0392b;
@@ -249,7 +322,7 @@
           <div id="greeting" class="greeting"></div>
           <div id="week-label" class="week-label"></div>
           <div id="day-list"></div>
-          <button class="submit-btn" id="submit-btn" onclick="submitAvailability()">
+          <button class="submit-btn" id="submit-btn" onclick="showConfirm()">
             Submit Availability
           </button>
           <div id="submit-error" class="error-msg" style="display:none;"></div>
@@ -262,6 +335,17 @@
           <div class="success-icon">✅</div>
           <div class="success-title">Availability submitted!</div>
           <div class="success-sub" id="success-sub">Your availability has been saved.</div>
+        </div>
+      </div>
+      <!-- Confirmation modal -->
+      <div class="confirm-overlay" id="confirm-overlay">
+        <div class="confirm-modal">
+          <h3>Confirm your availability</h3>
+          <div class="confirm-day-list" id="confirm-day-list"></div>
+          <div class="confirm-actions">
+            <button class="confirm-cancel" onclick="closeConfirm()">Edit</button>
+            <button class="confirm-submit" id="confirm-submit-btn" onclick="doSubmit()">Submit →</button>
+          </div>
         </div>
       </div>
     </div>
@@ -314,8 +398,6 @@
         return `${y}-${m}-${dd}`;
       }
 
-      // Returns the Monday strictly after the given date (or 7 days later if
-      // the date is already a Monday) — used to target the upcoming week.
       function getMondayStrictlyAfter(date) {
         const d = new Date(date);
         const day = d.getDay();
@@ -394,7 +476,7 @@
         }
 
         // Re-fetch center settings on every attempt so window state and weekOf
-        // are always current, even if the page has been open for a long time.
+        // are always current, even if the page has been open a long time.
         try {
           const s = await fetch("/center-settings").then(r => r.json());
           if (s.data?.windowOpen) _windowOpen = new Date(s.data.windowOpen);
@@ -555,11 +637,54 @@
         renderDays();
       }
 
-      // ── Submit ─────────────────────────────────────────────
-      async function submitAvailability() {
-        const btn = document.getElementById("submit-btn");
+      // ── Confirmation modal ──────────────────────────────────
+      function showConfirm() {
         const errEl = document.getElementById("submit-error");
         errEl.style.display = "none";
+
+        const anySelected = DAYS.some(d => dayState[d]?.selected);
+        if (!anySelected) {
+          errEl.textContent = "Please select at least one day.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        const list = document.getElementById("confirm-day-list");
+        list.innerHTML = DAYS.filter(d => dayState[d]?.selected).map(d => {
+          const s = dayState[d];
+          const isSat = d === "saturday";
+          let hoursStr;
+          if (s.allDay) {
+            hoursStr = isSat ? "10:00 AM – 2:00 PM" : "Default hours";
+          } else {
+            hoursStr = `${fmtTime(s.start, s.startMinute, isSat)} – ${fmtTime(s.end, s.endMinute, isSat)}`;
+          }
+          return `<div class="confirm-day-row">
+            <span class="confirm-day-name">${DAY_FULL[d]}</span>
+            <span class="confirm-day-hours">${hoursStr}</span>
+          </div>`;
+        }).join("");
+
+        const btn = document.getElementById("confirm-submit-btn");
+        btn.disabled = false;
+        btn.textContent = "Submit →";
+        document.getElementById("confirm-overlay").classList.add("open");
+      }
+
+      function fmtTime(h, min, isSat) {
+        const displayH = h > 12 ? h - 12 : h;
+        const displayM = (min || 0) === 30 ? ":30" : ":00";
+        const ampm = isSat ? (h >= 12 ? "PM" : "AM") : "PM";
+        return `${displayH}${displayM} ${ampm}`;
+      }
+
+      function closeConfirm() {
+        document.getElementById("confirm-overlay").classList.remove("open");
+      }
+
+      async function doSubmit() {
+        const confirmBtn = document.getElementById("confirm-submit-btn");
+        const errEl = document.getElementById("submit-error");
 
         const days = DAYS.map((d) => ({
           day: d,
@@ -571,15 +696,8 @@
           endMinute: dayState[d] ? dayState[d].endMinute : 0,
         }));
 
-        const anySelected = days.some(d => d.selected);
-        if (!anySelected) {
-          errEl.textContent = "Please select at least one day.";
-          errEl.style.display = "block";
-          return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = "Submitting…";
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = "Submitting…";
 
         try {
           const res = await fetch("/submissions", {
@@ -593,19 +711,21 @@
             }),
           });
           const data = await res.json();
+          closeConfirm();
           if (!res.ok) {
             errEl.textContent = data.error || "Something went wrong. Please try again.";
             errEl.style.display = "block";
-            btn.disabled = false;
-            btn.textContent = "Submit Availability";
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = "Submit →";
             return;
           }
           showSuccess();
         } catch (e) {
+          closeConfirm();
           errEl.textContent = "Something went wrong. Please try again.";
           errEl.style.display = "block";
-          btn.disabled = false;
-          btn.textContent = "Submit Availability";
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = "Submit →";
         }
       }
 
