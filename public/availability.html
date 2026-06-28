@@ -179,91 +179,8 @@
         transition: background 0.15s;
       }
 
-      .submit-btn:hover {
-        background: var(--accent-hover);
-      }
-      .submit-btn:disabled {
-        background: var(--border);
-        color: var(--text-muted);
-        cursor: default;
-      }
-
-      /* Confirmation modal */
-      .confirm-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: 100;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-      }
-      .confirm-overlay.open {
-        display: flex;
-      }
-      .confirm-modal {
-        background: var(--surface);
-        border-radius: var(--radius);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-        padding: 28px 24px 24px;
-        width: 100%;
-        max-width: 380px;
-      }
-      .confirm-modal h3 {
-        font-family: "Noto Serif", serif;
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: var(--text);
-        margin-bottom: 16px;
-      }
-      .confirm-day-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 20px;
-      }
-      .confirm-day-row {
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-        font-size: 0.88rem;
-      }
-      .confirm-day-name {
-        font-weight: 600;
-        color: var(--text);
-        min-width: 90px;
-      }
-      .confirm-day-hours {
-        color: var(--text-muted);
-        font-size: 0.83rem;
-      }
-      .confirm-actions {
-        display: flex;
-        gap: 10px;
-      }
-      .confirm-actions button {
-        flex: 1;
-        padding: 10px;
-        border-radius: var(--radius);
-        font-family: "Noto Sans", sans-serif;
-        font-size: 0.9rem;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-      }
-      .confirm-cancel {
-        background: var(--surface2);
-        color: var(--text);
-        border: 1.5px solid var(--border) !important;
-      }
-      .confirm-submit {
-        background: var(--accent);
-        color: #fff;
-      }
-      .confirm-submit:hover {
-        background: var(--accent-hover);
-      }
+      .submit-btn:hover { background: var(--accent-hover); }
+      .submit-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
 
       .error-msg {
         font-size: 0.85rem;
@@ -276,10 +193,7 @@
         padding: 40px 24px;
       }
 
-      .success-icon {
-        font-size: 2.5rem;
-        margin-bottom: 14px;
-      }
+      .success-icon { font-size: 2.5rem; margin-bottom: 14px; }
 
       .success-title {
         font-family: "Noto Serif", serif;
@@ -294,16 +208,8 @@
         color: var(--text-muted);
       }
 
-      #step-pin,
-      #step-form,
-      #step-success {
-        display: none;
-      }
-      #step-pin.active,
-      #step-form.active,
-      #step-success.active {
-        display: block;
-      }
+      #step-pin, #step-form, #step-success { display: none; }
+      #step-pin.active, #step-form.active, #step-success.active { display: block; }
     </style>
   </head>
   <body>
@@ -316,10 +222,7 @@
       <!-- Step 1: PIN entry -->
       <div id="step-pin" class="active">
         <div class="av-form-card">
-          <div
-            id="window-status-msg"
-            class="window-status"
-            style="display: none"></div>
+          <div id="window-status-msg" class="window-status" style="display:none;"></div>
           <label class="field-label" for="pin-input">Your PIN</label>
           <div class="pin-row">
             <div class="pin-field">
@@ -331,13 +234,12 @@
                 maxlength="4"
                 min="0"
                 max="9999"
-                autocomplete="off" />
+                autocomplete="off"
+              />
             </div>
-            <button class="btn-primary" onclick="lookupPin()">
-              Continue →
-            </button>
+            <button class="btn-primary" onclick="lookupPin()">Continue →</button>
           </div>
-          <div id="pin-error" class="error-msg" style="display: none"></div>
+          <div id="pin-error" class="error-msg" style="display:none;"></div>
         </div>
       </div>
 
@@ -347,10 +249,10 @@
           <div id="greeting" class="greeting"></div>
           <div id="week-label" class="week-label"></div>
           <div id="day-list"></div>
-          <button class="submit-btn" id="submit-btn" onclick="showConfirm()">
+          <button class="submit-btn" id="submit-btn" onclick="submitAvailability()">
             Submit Availability
           </button>
-          <div id="submit-error" class="error-msg" style="display: none"></div>
+          <div id="submit-error" class="error-msg" style="display:none;"></div>
         </div>
       </div>
 
@@ -359,27 +261,7 @@
         <div class="av-form-card success-card">
           <div class="success-icon">✅</div>
           <div class="success-title">Availability submitted!</div>
-          <div class="success-sub" id="success-sub">
-            Your availability has been saved.
-          </div>
-        </div>
-      </div>
-      <!-- Confirmation modal -->
-      <div class="confirm-overlay" id="confirm-overlay">
-        <div class="confirm-modal">
-          <h3>Confirm your availability</h3>
-          <div class="confirm-day-list" id="confirm-day-list"></div>
-          <div class="confirm-actions">
-            <button class="confirm-cancel" onclick="closeConfirm()">
-              Edit
-            </button>
-            <button
-              class="confirm-submit"
-              id="confirm-submit-btn"
-              onclick="doSubmit()">
-              Submit →
-            </button>
-          </div>
+          <div class="success-sub" id="success-sub">Your availability has been saved.</div>
         </div>
       </div>
     </div>
@@ -387,11 +269,8 @@
     <script>
       const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
       const DAY_FULL = {
-        monday: "Monday",
-        tuesday: "Tuesday",
-        wednesday: "Wednesday",
-        thursday: "Thursday",
-        saturday: "Saturday",
+        monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
+        thursday: "Thursday", saturday: "Saturday",
       };
 
       let _employee = null;
@@ -402,9 +281,7 @@
       // ── Init ───────────────────────────────────────────────
       (async function init() {
         // Apply saved theme
-        const saved = JSON.parse(
-          localStorage.getItem("scheduler-settings") || "{}",
-        );
+        const saved = JSON.parse(localStorage.getItem("scheduler-settings") || "{}");
         if (saved.theme === "dark") document.body.classList.add("dark");
 
         // Load center settings to check window and get week
@@ -419,7 +296,9 @@
         }
 
         // Determine weekOf from window open date, or default to next Monday
-        _weekOf = _windowOpen ? getMondayOfWeek(_windowOpen) : getNextMonday();
+        _weekOf = _windowOpen
+          ? getMondayStrictlyAfter(_windowOpen)
+          : getNextMonday();
 
         updateWindowStatus();
       })();
@@ -429,10 +308,19 @@
         const day = d.getDay();
         const diff = day === 0 ? 6 : day - 1;
         d.setDate(d.getDate() - diff);
-        // Use LOCAL date parts (not toISOString, which is UTC) so the weekOf
-        // matches the dashboard's computation exactly. A UTC formatting here
-        // shifted the day for evening times in behind-UTC timezones, causing
-        // submissions to be tagged to a different week than the dashboard queried.
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dd}`;
+      }
+
+      // Returns the Monday strictly after the given date (or 7 days later if
+      // the date is already a Monday) — used to target the upcoming week.
+      function getMondayStrictlyAfter(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const daysUntil = day === 1 ? 7 : (8 - day) % 7;
+        d.setDate(d.getDate() + daysUntil);
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const dd = String(d.getDate()).padStart(2, "0");
@@ -454,21 +342,14 @@
       function formatDate(dateStr) {
         if (!dateStr) return "";
         const d = new Date(dateStr + "T00:00:00");
-        return d.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        });
+        return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
       }
 
       function formatDateTime(date) {
         if (!date) return "";
         return date.toLocaleString("en-US", {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
+          weekday: "short", month: "short", day: "numeric",
+          hour: "numeric", minute: "2-digit",
         });
       }
 
@@ -502,15 +383,30 @@
 
       // ── PIN lookup ─────────────────────────────────────────
       async function lookupPin() {
-        const pin = document
-          .getElementById("pin-input")
-          .value.trim()
-          .padStart(4, "0");
+        const pin = document.getElementById("pin-input").value.trim().padStart(4, "0");
         const errEl = document.getElementById("pin-error");
         errEl.style.display = "none";
 
         if (!pin || pin.length > 4) {
           errEl.textContent = "Please enter your 4-digit PIN.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        // Re-fetch center settings on every attempt so window state and weekOf
+        // are always current, even if the page has been open for a long time.
+        try {
+          const s = await fetch("/center-settings").then(r => r.json());
+          if (s.data?.windowOpen) _windowOpen = new Date(s.data.windowOpen);
+          if (s.data?.windowClose) _windowClose = new Date(s.data.windowClose);
+          _weekOf = _windowOpen ? getMondayStrictlyAfter(_windowOpen) : getNextMonday();
+          updateWindowStatus();
+        } catch (e) {
+          console.warn("Could not refresh center settings:", e.message);
+        }
+
+        if (!isWindowOpen()) {
+          errEl.textContent = "The availability window is not currently open.";
           errEl.style.display = "block";
           return;
         }
@@ -523,18 +419,11 @@
           });
           const data = await res.json();
           if (!res.ok) {
-            errEl.textContent =
-              data.error || "PIN not found. Please try again.";
+            errEl.textContent = data.error || "PIN not found. Please try again.";
             errEl.style.display = "block";
             return;
           }
           _employee = data.data;
-          if (!isWindowOpen()) {
-            errEl.textContent =
-              "The availability window is not currently open.";
-            errEl.style.display = "block";
-            return;
-          }
           showForm();
         } catch (e) {
           errEl.textContent = "Something went wrong. Please try again.";
@@ -543,11 +432,9 @@
       }
 
       // Allow Enter key on PIN input
-      document
-        .getElementById("pin-input")
-        .addEventListener("keydown", function (e) {
-          if (e.key === "Enter") lookupPin();
-        });
+      document.getElementById("pin-input").addEventListener("keydown", function(e) {
+        if (e.key === "Enter") lookupPin();
+      });
 
       // ── Form ────────────────────────────────────────────────
       function showForm() {
@@ -573,24 +460,15 @@
             const displayH = h > 12 ? h - 12 : h;
             const displayM = m === 0 ? "00" : "30";
             const ampm = isSaturday ? (h >= 12 ? "PM" : "AM") : "PM";
-            options.push({
-              value: totalMins,
-              label: `${displayH}:${displayM} ${ampm}`,
-            });
+            options.push({ value: totalMins, label: `${displayH}:${displayM} ${ampm}` });
           }
         }
         return options;
       }
 
-      function minsToHour(m) {
-        return Math.floor(m / 60);
-      }
-      function minsToMinute(m) {
-        return m % 60;
-      }
-      function hourMinToMins(h, m) {
-        return h * 60 + (m || 0);
-      }
+      function minsToHour(m) { return Math.floor(m / 60); }
+      function minsToMinute(m) { return m % 60; }
+      function hourMinToMins(h, m) { return h * 60 + (m || 0); }
 
       // State for the form
       const dayState = {};
@@ -601,7 +479,7 @@
 
         DAYS.forEach((d) => {
           const isSat = d === "saturday";
-          const defaultStart = isSat ? 10 : _employee.priority === 2 ? 3 : 4;
+          const defaultStart = isSat ? 10 : (_employee.priority === 2 ? 3 : 4);
           const defaultEnd = isSat ? 14 : 8;
 
           if (!dayState[d]) {
@@ -628,32 +506,24 @@
                 onchange="toggleDay('${d}', this.checked)" aria-label="${DAY_FULL[d]}">
               <label class="av-day-name" for="day-${d}">${DAY_FULL[d]}</label>
             </div>
-            ${
-              s.selected
-                ? `
+            ${s.selected ? `
             <div class="av-day-hours">
               <label class="av-hours-check">
                 <input type="checkbox" ${s.allDay ? "checked" : ""}
                   onchange="toggleAllDay('${d}', this.checked)">
                 Default hours
               </label>
-              ${
-                !s.allDay
-                  ? `
+              ${!s.allDay ? `
               <div class="av-time-row">
                 <select aria-label="Start time" onchange="updateTime('${d}', 'start', this.value)">
-                  ${opts.map((o) => `<option value="${o.value}" ${o.value === startMins ? "selected" : ""}>${o.label}</option>`).join("")}
+                  ${opts.map(o => `<option value="${o.value}" ${o.value === startMins ? "selected" : ""}>${o.label}</option>`).join("")}
                 </select>
                 <span>–</span>
                 <select aria-label="End time" onchange="updateTime('${d}', 'end', this.value)">
-                  ${opts.map((o) => `<option value="${o.value}" ${o.value === endMins ? "selected" : ""}>${o.label}</option>`).join("")}
+                  ${opts.map(o => `<option value="${o.value}" ${o.value === endMins ? "selected" : ""}>${o.label}</option>`).join("")}
                 </select>
-              </div>`
-                  : ""
-              }
-            </div>`
-                : ""
-            }`;
+              </div>` : ""}
+            </div>` : ""}`;
           list.appendChild(block);
         });
       }
@@ -673,96 +543,43 @@
         const s = dayState[d];
         if (field === "start") {
           const endMins = hourMinToMins(s.end, s.endMinute);
-          if (totalMins >= endMins) {
-            renderDays();
-            return;
-          }
+          if (totalMins >= endMins) { renderDays(); return; }
           s.start = minsToHour(totalMins);
           s.startMinute = minsToMinute(totalMins);
         } else {
           const startMins = hourMinToMins(s.start, s.startMinute);
-          if (totalMins <= startMins) {
-            renderDays();
-            return;
-          }
+          if (totalMins <= startMins) { renderDays(); return; }
           s.end = minsToHour(totalMins);
           s.endMinute = minsToMinute(totalMins);
         }
         renderDays();
       }
 
-      // ── Confirmation modal ─────────────────────────────────
-      function showConfirm() {
+      // ── Submit ─────────────────────────────────────────────
+      async function submitAvailability() {
+        const btn = document.getElementById("submit-btn");
+        const errEl = document.getElementById("submit-error");
+        errEl.style.display = "none";
+
         const days = DAYS.map((d) => ({
           day: d,
           selected: dayState[d] ? dayState[d].selected : false,
           allDay: dayState[d] ? dayState[d].allDay : true,
           start: dayState[d] ? dayState[d].start : 4,
-          startMinute: dayState[d] ? dayState[d].startMinute : 0,
           end: dayState[d] ? dayState[d].end : 8,
+          startMinute: dayState[d] ? dayState[d].startMinute : 0,
           endMinute: dayState[d] ? dayState[d].endMinute : 0,
         }));
 
-        const errEl = document.getElementById("submit-error");
-        errEl.style.display = "none";
-
-        const anySelected = days.some((d) => d.selected);
+        const anySelected = days.some(d => d.selected);
         if (!anySelected) {
           errEl.textContent = "Please select at least one day.";
           errEl.style.display = "block";
           return;
         }
 
-        const list = document.getElementById("confirm-day-list");
-        list.innerHTML = days
-          .filter((d) => d.selected)
-          .map((d) => {
-            const isSat = d.day === "saturday";
-            let hoursStr;
-            if (d.allDay) {
-              hoursStr = isSat ? "10:00 AM – 2:00 PM" : "Default hours";
-            } else {
-              hoursStr = `${fmtMins(d.start, d.startMinute, isSat)} – ${fmtMins(d.end, d.endMinute, isSat)}`;
-            }
-            return `<div class="confirm-day-row">
-            <span class="confirm-day-name">${DAY_FULL[d.day]}</span>
-            <span class="confirm-day-hours">${hoursStr}</span>
-          </div>`;
-          })
-          .join("");
-
-        document.getElementById("confirm-overlay").classList.add("open");
-      }
-
-      function fmtMins(h, min, isSat) {
-        const displayH = h > 12 ? h - 12 : h;
-        const displayM = (min || 0) === 30 ? ":30" : ":00";
-        const ampm = isSat ? (h >= 12 ? "PM" : "AM") : "PM";
-        return `${displayH}${displayM} ${ampm}`;
-      }
-
-      function closeConfirm() {
-        document.getElementById("confirm-overlay").classList.remove("open");
-      }
-
-      // ── Submit ─────────────────────────────────────────────
-      async function doSubmit() {
-        const confirmBtn = document.getElementById("confirm-submit-btn");
-        const errEl = document.getElementById("submit-error");
-        errEl.style.display = "none";
-
-        const days = DAYS.map((d) => ({
-          day: d,
-          selected: dayState[d] ? dayState[d].selected : false,
-          allDay: dayState[d] ? dayState[d].allDay : true,
-          start: dayState[d] ? dayState[d].start : 4,
-          end: dayState[d] ? dayState[d].end : 8,
-          startMinute: dayState[d] ? dayState[d].startMinute : 0,
-          endMinute: dayState[d] ? dayState[d].endMinute : 0,
-        }));
-
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = "Submitting…";
+        btn.disabled = true;
+        btn.textContent = "Submitting…";
 
         try {
           const res = await fetch("/submissions", {
@@ -777,22 +594,18 @@
           });
           const data = await res.json();
           if (!res.ok) {
-            closeConfirm();
-            errEl.textContent =
-              data.error || "Something went wrong. Please try again.";
+            errEl.textContent = data.error || "Something went wrong. Please try again.";
             errEl.style.display = "block";
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = "Submit →";
+            btn.disabled = false;
+            btn.textContent = "Submit Availability";
             return;
           }
-          closeConfirm();
           showSuccess();
         } catch (e) {
-          closeConfirm();
           errEl.textContent = "Something went wrong. Please try again.";
           errEl.style.display = "block";
-          confirmBtn.disabled = false;
-          confirmBtn.textContent = "Submit →";
+          btn.disabled = false;
+          btn.textContent = "Submit Availability";
         }
       }
 
