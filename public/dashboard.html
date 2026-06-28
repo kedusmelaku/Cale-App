@@ -572,6 +572,35 @@
 
     <script>
 
+      // ── Shared constants (mirrored from utils.js; dashboard keeps them
+      //    inline rather than loading utils.js to avoid redeclaration
+      //    conflicts with its own inline helper functions) ──
+      const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
+      const DAY_FULL = {
+        monday: "Monday",
+        tuesday: "Tuesday",
+        wednesday: "Wednesday",
+        thursday: "Thursday",
+        saturday: "Saturday",
+      };
+      const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
+      const PRIORITY_CLASSES = ["", "p1", "p2"];
+      const PRIORITY_TOOLTIP_HTML =
+        '<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.';
+      const PRIORITY_TOOLTIP_ARIA_LABEL =
+        "Priority level info: Normal is for high schoolers or people with limited availability, default hours 4 to 8. Priority is for adults with moderate availability, default hours 4 to 8. High Priority is for adults who are usually fully available, default hours 3 to 8.";
+      const WORKER_COLORS = [
+        "#4f86c6", "#e05c5c", "#3aaa72", "#e08c2a", "#8a6bbf",
+        "#2aaab4", "#c47a2a", "#5a8a5a", "#c45a8a", "#2a7ac4", "#7aaa3a",
+      ];
+      const WEEKDAY_SLOTS = [
+        "3", "3:30", "4", "4:30", "5", "5:30", "6", "6:30", "7", "7:30",
+      ];
+      const SAT_SLOTS = [
+        "10", "10:30", "11", "11:30", "12", "12:30", "1", "1:30",
+      ];
+      const SLOT_H = 40;
+
       // ── Tutorial stubs (tutorial removed, kept for call-site safety) ──
       const tut = { active: false };
       let tutWaiting = null;
