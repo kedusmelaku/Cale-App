@@ -4,182 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scheduler — Admin</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f5f5f2; min-height: 100vh; color: #1a1a1a;
-    }
-    .topbar {
-      background: #1a1a1a; color: #fff; padding: 0 28px;
-      height: 56px; display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 10;
-    }
-    .topbar-left { display: flex; align-items: center; gap: 10px; }
-    .topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
-    .topbar-badge {
-      background: #fef3c7; color: #92400e;
-      font-size: 0.75rem; font-weight: 600; padding: 2px 10px; border-radius: 99px;
-    }
-    .btn-ghost {
-      background: transparent; border: 1.5px solid rgba(255,255,255,0.25); color: #fff;
-      padding: 6px 14px; border-radius: 7px; font-size: 0.85rem; cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-ghost:hover { background: rgba(255,255,255,0.1); }
-    .btn-ghost-dark {
-      background: transparent; border: 1.5px solid #d1d5db; color: #374151;
-      padding: 6px 14px; border-radius: 7px; font-size: 0.85rem; cursor: pointer;
-      transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px;
-    }
-    .btn-ghost-dark:hover { background: #f3f4f6; }
-
-    /* ── Views ── */
-    .view { display: none; }
-    .view.active { display: block; }
-
-    /* ── List view ── */
-    .main { max-width: 800px; margin: 40px auto; padding: 0 24px; }
-    .section-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
-    }
-    .section-title { font-size: 1.1rem; font-weight: 700; }
-    .btn-primary {
-      background: #1a1a1a; color: #fff; border: none; padding: 9px 18px;
-      border-radius: 7px; font-size: 0.875rem; font-weight: 600; cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-primary:hover { background: #333; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .center-card {
-      background: #fff; border-radius: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px;
-      padding: 18px 20px; display: flex; align-items: center; justify-content: space-between;
-      cursor: pointer; transition: box-shadow 0.15s;
-    }
-    .center-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.13); }
-    .center-name { font-weight: 600; font-size: 0.975rem; }
-    .center-id { font-size: 0.8125rem; color: #6b7280; margin-top: 2px; font-family: monospace; }
-    .card-right { display: flex; align-items: center; gap: 10px; }
-    .card-arrow { color: #9ca3af; font-size: 1.1rem; }
-    .btn-edit {
-      background: #f3f4f6; border: none; padding: 6px 14px; border-radius: 6px;
-      font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
-    }
-    .btn-edit:hover { background: #e5e7eb; }
-    .btn-delete {
-      background: #fee2e2; color: #b91c1c; border: none; padding: 6px 14px; border-radius: 6px;
-      font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
-    }
-    .btn-delete:hover { background: #fecaca; }
-    .empty { color: #9ca3af; font-size: 0.9rem; padding: 32px 0; text-align: center; }
-    .loading { color: #9ca3af; padding: 32px 0; text-align: center; font-size: 0.9rem; }
-
-    /* ── Detail view ── */
-    .detail-main { max-width: 800px; margin: 40px auto; padding: 0 24px; }
-    .detail-toprow {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px;
-    }
-    .detail-title-block {}
-    .detail-name { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
-    .detail-id { font-size: 0.875rem; color: #6b7280; font-family: monospace; margin-top: 3px; }
-    .detail-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px; margin-bottom: 28px;
-    }
-    .stat-card {
-      background: #fff; border-radius: 10px; padding: 16px 18px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-    .stat-label { font-size: 0.78rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-    .stat-value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
-    .stat-sub { font-size: 0.8rem; color: #6b7280; margin-top: 3px; }
-
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
-    .dot-green { background: #22c55e; }
-    .dot-red { background: #ef4444; }
-    .dot-yellow { background: #f59e0b; }
-    .dot-gray { background: #d1d5db; }
-
-    .detail-section { margin-bottom: 28px; }
-    .detail-section-title {
-      font-size: 0.78rem; font-weight: 700; color: #6b7280;
-      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
-    }
-
-    .employee-table {
-      background: #fff; border-radius: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden;
-    }
-    .emp-row {
-      display: flex; align-items: center; padding: 12px 18px;
-      border-bottom: 1px solid #f3f4f6; gap: 12px;
-    }
-    .emp-row:last-child { border-bottom: none; }
-    .emp-name { flex: 1; font-weight: 500; font-size: 0.9rem; }
-    .emp-priority {
-      font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 99px;
-    }
-    .pri-0 { background: #f3f4f6; color: #6b7280; }
-    .pri-1 { background: #dbeafe; color: #1d4ed8; }
-    .pri-2 { background: #fef3c7; color: #92400e; }
-    .emp-pin {
-      font-size: 0.8rem; color: #6b7280; font-family: monospace;
-      background: #f9fafb; padding: 2px 8px; border-radius: 5px;
-    }
-    .emp-pin-missing {
-      font-size: 0.8rem; color: #ef4444; font-style: italic;
-    }
-    .emp-empty { padding: 20px 18px; color: #9ca3af; font-size: 0.875rem; }
-
-    /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-      z-index: 100; align-items: center; justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: #fff; border-radius: 12px; padding: 28px 28px 24px;
-      width: 100%; max-width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-    }
-    .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 0.8125rem; font-weight: 600; color: #374151; margin-bottom: 5px; }
-    .field input {
-      width: 100%; padding: 9px 12px; font-size: 0.9rem;
-      border: 1.5px solid #d1d5db; border-radius: 7px; outline: none; transition: border-color 0.15s;
-    }
-    .field input:focus { border-color: #3b82f6; }
-    .field-hint { font-size: 0.78rem; color: #9ca3af; margin-top: 4px; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
-    .btn-cancel {
-      background: #f3f4f6; border: none; padding: 9px 18px; border-radius: 7px;
-      font-size: 0.875rem; font-weight: 600; cursor: pointer;
-    }
-    .btn-cancel:hover { background: #e5e7eb; }
-    .error-msg { font-size: 0.8125rem; color: #ef4444; margin-top: 10px; min-height: 18px; }
-  </style>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
-  <div class="topbar">
-    <div class="topbar-left">
-      <span class="topbar-title">Scheduler</span>
-      <span class="topbar-badge">Admin</span>
+<body class="admin-page">
+  <div class="admin-topbar">
+    <div class="admin-topbar-left">
+      <span class="admin-topbar-title">Scheduler</span>
+      <span class="admin-topbar-badge">Admin</span>
     </div>
-    <button class="btn-ghost" onclick="logout()">Sign out</button>
+    <button class="admin-btn-ghost" onclick="logout()">Sign out</button>
   </div>
 
   <!-- ── List View ── -->
   <div id="view-list" class="view active">
-    <div class="main">
-      <div class="section-header">
-        <span class="section-title">Centers</span>
-        <button class="btn-primary" onclick="openAddModal()">+ Add Center</button>
+    <div class="admin-main">
+      <div class="admin-section-header">
+        <span class="admin-section-title">Centers</span>
+        <button class="admin-btn-primary" onclick="openAddModal()">+ Add Center</button>
       </div>
-      <div id="centers-list"><div class="loading">Loading…</div></div>
+      <div id="centers-list"><div class="admin-loading">Loading…</div></div>
     </div>
   </div>
 
@@ -187,14 +30,14 @@
   <div id="view-detail" class="view">
     <div class="detail-main">
       <div class="detail-toprow">
-        <div>
-          <button class="btn-ghost-dark" onclick="showList()" style="margin-bottom:16px;">← All Centers</button>
+        <div class="detail-title-block">
+          <button class="admin-btn-ghost-dark" onclick="showList()" style="margin-bottom:16px;">← All Centers</button>
           <div class="detail-name" id="d-name">—</div>
           <div class="detail-id" id="d-id">—</div>
         </div>
         <div class="detail-actions">
-          <button class="btn-edit" id="d-edit-btn">Edit</button>
-          <button class="btn-delete" id="d-delete-btn">Delete</button>
+          <button class="admin-btn-edit" id="d-edit-btn">Edit</button>
+          <button class="admin-btn-delete" id="d-delete-btn">Delete</button>
         </div>
       </div>
 
@@ -221,7 +64,7 @@
           <div class="stat-sub" id="d-form-sub">—</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Last Activity</div>
+          <div class="stat-label">Last Submission</div>
           <div class="stat-value" id="d-activity-val" style="font-size:1rem; padding-top:4px;">—</div>
           <div class="stat-sub" id="d-activity-sub"></div>
         </div>
@@ -238,27 +81,27 @@
   </div>
 
   <!-- Add / Edit Modal -->
-  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-    <div class="modal">
-      <div class="modal-title" id="modal-title">Add Center</div>
-      <div class="field" id="field-centerid">
+  <div class="admin-modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+    <div class="admin-modal">
+      <div class="admin-modal-title" id="modal-title">Add Center</div>
+      <div class="admin-field" id="field-centerid">
         <label for="m-centerid">Center ID</label>
         <input type="text" id="m-centerid" placeholder="e.g. arlington-heights" autocomplete="off" />
-        <div class="field-hint">Lowercase letters and hyphens only. This is what managers type at login.</div>
+        <div class="admin-field-hint">Lowercase letters and hyphens only. This is what managers type at login.</div>
       </div>
-      <div class="field">
+      <div class="admin-field">
         <label for="m-name">Display Name</label>
         <input type="text" id="m-name" placeholder="e.g. Arlington Heights Mathnasium" autocomplete="off" />
       </div>
-      <div class="field">
+      <div class="admin-field">
         <label for="m-password">Password</label>
         <input type="password" id="m-password" placeholder="Manager password for this center" autocomplete="new-password" />
-        <div class="field-hint" id="m-password-hint">Leave blank to keep the existing password.</div>
+        <div class="admin-field-hint" id="m-password-hint">Leave blank to keep the existing password.</div>
       </div>
-      <div class="error-msg" id="modal-error"></div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="btn-primary" id="modal-submit" onclick="submitModal()">Add Center</button>
+      <div class="admin-modal-error" id="modal-error"></div>
+      <div class="admin-modal-actions">
+        <button class="admin-btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="admin-btn-primary" id="modal-submit" onclick="submitModal()">Add Center</button>
       </div>
     </div>
   </div>
@@ -289,14 +132,14 @@
         _centers = data.data || [];
         renderCenters();
       } catch {
-        document.getElementById("centers-list").innerHTML = "<div class='empty'>Failed to load centers.</div>";
+        document.getElementById("centers-list").innerHTML = "<div class='admin-empty'>Failed to load centers.</div>";
       }
     }
 
     function renderCenters() {
       const el = document.getElementById("centers-list");
       if (_centers.length === 0) {
-        el.innerHTML = "<div class='empty'>No centers yet. Add one to get started.</div>";
+        el.innerHTML = "<div class='admin-empty'>No centers yet. Add one to get started.</div>";
         return;
       }
       el.innerHTML = _centers.map(c => `
@@ -306,8 +149,8 @@
             <div class="center-id">${esc(c.centerId)}</div>
           </div>
           <div class="card-right">
-            <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${esc(c.centerId)}')">Edit</button>
-            <button class="btn-delete" onclick="event.stopPropagation(); deleteCenter('${esc(c.centerId)}', '${esc(c.name)}')">Delete</button>
+            <button class="admin-btn-edit" onclick="event.stopPropagation(); openEditModal('${esc(c.centerId)}')">Edit</button>
+            <button class="admin-btn-delete" onclick="event.stopPropagation(); deleteCenter('${esc(c.centerId)}', '${esc(c.name)}')">Delete</button>
             <span class="card-arrow">›</span>
           </div>
         </div>
@@ -319,7 +162,6 @@
       _detailCenterId = centerId;
       showDetail();
 
-      // Show loading state
       document.getElementById("d-name").textContent = "Loading…";
       document.getElementById("d-id").textContent = centerId;
       document.getElementById("d-emp-list").innerHTML = "<div class='emp-empty'>Loading…</div>";
@@ -339,13 +181,12 @@
     function renderDetail(d) {
       const { center, employees, settings, calendarConnected, weekOf, submissionCount, lastActivityAt } = d;
 
-      // Header
       document.getElementById("d-name").textContent = center.name;
       document.getElementById("d-id").textContent = center.centerId;
       document.getElementById("d-edit-btn").onclick = () => openEditModal(center.centerId);
       document.getElementById("d-delete-btn").onclick = () => deleteCenter(center.centerId, center.name);
 
-      // Employees stat
+      // Employees
       const pinCount = employees.filter(e => e.hasPin).length;
       document.getElementById("d-emp-count").textContent = employees.length;
       document.getElementById("d-pin-sub").textContent =
@@ -353,41 +194,36 @@
         : pinCount === employees.length ? "All PINs set"
         : `${employees.length - pinCount} missing PIN${employees.length - pinCount !== 1 ? "s" : ""}`;
 
-      // Submissions stat
+      // Submissions
       document.getElementById("d-sub-count").textContent = `${submissionCount} / ${employees.length}`;
       document.getElementById("d-sub-sub").textContent = `for week of ${weekOf}`;
 
       // Calendar
-      const calDot = calendarConnected
-        ? `<span class="dot dot-green"></span>Connected`
-        : `<span class="dot dot-red"></span>Not connected`;
-      document.getElementById("d-cal-val").innerHTML = calDot;
-      document.getElementById("d-cal-sub").textContent = "";
+      document.getElementById("d-cal-val").innerHTML = calendarConnected
+        ? `<span class="admin-dot dot-green"></span>Connected`
+        : `<span class="admin-dot dot-red"></span>Not connected`;
 
       // Form window
       const now = new Date();
-      let formVal = "—", formSub = "";
-      if (!settings || !settings.windowOpen) {
-        formVal = "Not set";
-        formSub = "No window configured";
-      } else {
+      let formVal = "Not set", formSub = "No window configured";
+      if (settings && settings.windowOpen) {
         const open = new Date(settings.windowOpen);
         const close = settings.windowClose ? new Date(settings.windowClose) : null;
         if (now < open) {
-          formVal = `<span class="dot dot-yellow"></span>Scheduled`;
+          formVal = `<span class="admin-dot dot-yellow"></span>Scheduled`;
           formSub = `Opens ${fmtDate(open)}`;
         } else if (!close || now <= close) {
-          formVal = `<span class="dot dot-green"></span>Open`;
+          formVal = `<span class="admin-dot dot-green"></span>Open`;
           formSub = close ? `Closes ${fmtDate(close)}` : "No close time set";
         } else {
-          formVal = `<span class="dot dot-gray"></span>Closed`;
+          formVal = `<span class="admin-dot dot-gray"></span>Closed`;
           formSub = `Closed ${fmtDate(close)}`;
         }
       }
       document.getElementById("d-form-val").innerHTML = formVal;
       document.getElementById("d-form-sub").textContent = formSub;
 
-      // Last activity
+      // Last submission
       if (lastActivityAt) {
         document.getElementById("d-activity-val").textContent = timeAgo(new Date(lastActivityAt));
         document.getElementById("d-activity-sub").textContent = fmtDate(new Date(lastActivityAt));
@@ -421,11 +257,9 @@
     function esc(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     }
-
     function fmtDate(d) {
       return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     }
-
     function timeAgo(d) {
       const diff = Math.floor((Date.now() - d.getTime()) / 1000);
       if (diff < 60) return "Just now";
@@ -495,7 +329,6 @@
           if (!res.ok) { errorEl.textContent = data.error || "Something went wrong."; btn.disabled = false; return; }
           closeModal();
           await loadCenters();
-          // Refresh detail if we edited the currently open center
           if (_detailCenterId === _editingCenterId) openDetail(_detailCenterId);
         } else {
           const centerId = document.getElementById("m-centerid").value.trim().toLowerCase();
