@@ -2027,6 +2027,8 @@ body.dark {
 .db-chip-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
 .db-chip-btn-danger { border-color: #e5b4b4; color: #c0392b; }
 .db-chip-btn-danger:hover { background: #fff0f0; border-color: #c0392b; color: #c0392b; }
+.db-chip-btn-green { border-color: var(--green); color: var(--green-on-tint); }
+.db-chip-btn-green:hover { background: var(--green-bg); border-color: var(--green); color: var(--green-on-tint); }
 
 /* Submissions list */
 .db-submissions-list {
