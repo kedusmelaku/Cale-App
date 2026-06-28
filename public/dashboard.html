@@ -528,7 +528,16 @@
         <h3>Edit Employee</h3>
         <label class="field-label" for="edit-employee-name">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
-        <label class="field-label" style="margin-top:14px;" for="edit-employee-pin">PIN</label>
+        <label class="field-label" style="margin-top:14px;">PIN
+          <span
+            class="info-tag"
+            tabindex="0"
+            aria-label="The PIN is what employees enter on the availability form to identify themselves. You can change it here."
+            >i<span class="info-tooltip"
+              >Employees enter this PIN on the availability form to identify themselves. Change it here if needed.</span
+            ></span
+          >
+        </label>
         <input type="text" id="edit-employee-pin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
         <label class="field-label"
           >Priority
@@ -1146,6 +1155,8 @@
           return alert("Another employee with that name already exists.");
         const pinRaw = document.getElementById("edit-employee-pin").value.trim();
         const pin = pinRaw ? pinRaw.padStart(4, "0").slice(0, 4) : (workers[editEmployeeIndex].pin || "");
+        const pinConflict = workers.find((w, i) => i !== editEmployeeIndex && w.pin === pin);
+        if (pinConflict) return alert(`PIN ${pin} is already used by ${pinConflict.name}. Choose a different PIN.`);
         workers[editEmployeeIndex].name = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
         workers[editEmployeeIndex].pin = pin;

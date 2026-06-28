@@ -356,6 +356,8 @@ header {
   z-index: 100;
   justify-content: center;
   align-items: center;
+  overflow-y: auto;
+  padding: 20px 0;
 }
 
 .modal-overlay.open { display: flex; }
@@ -367,8 +369,8 @@ header {
   padding: 28px;
   width: 360px;
   box-shadow: var(--shadow-md);
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .modal h3 {
@@ -559,19 +561,6 @@ header {
   transform: translateX(-50%);
   border: 5px solid transparent;
   border-top-color: var(--tooltip-bg);
-}
-
-/* Flip tooltip downward for the first card so it doesn't clip at the top of the panel */
-.av-section:first-child .info-tooltip {
-  bottom: auto;
-  top: calc(100% + 6px);
-}
-
-.av-section:first-child .info-tooltip::after {
-  top: auto;
-  bottom: 100%;
-  border-top-color: transparent;
-  border-bottom-color: var(--tooltip-bg);
 }
 
 /* ── Availability Panel ── */
