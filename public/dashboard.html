@@ -1108,7 +1108,15 @@
         .addEventListener("keydown", function (e) {
           if (e.key === "Enter") {
             e.preventDefault();
-            // ensure the add-employee modal is currently open
+            const modalEl = document.getElementById("modal");
+            if (modalEl.classList.contains("open")) addWorker();
+          }
+        });
+      document
+        .getElementById("new-worker-pin")
+        .addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
             const modalEl = document.getElementById("modal");
             if (modalEl.classList.contains("open")) addWorker();
           }
@@ -1170,7 +1178,40 @@
 
       closeOnOverlayClick("edit-employee-modal", closeEditEmployeeModal);
 
-      // ── Availability ───────────────────────────────────────
+      // Enter to save in edit employee modal
+      ["edit-employee-name", "edit-employee-pin"].forEach((id) => {
+        document.getElementById(id).addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (document.getElementById("edit-employee-modal").classList.contains("open"))
+              confirmEditEmployee();
+          }
+        });
+      });
+
+      // ── Global keyboard shortcuts ───────────────────────────
+      document.addEventListener("keydown", function (e) {
+        // Ignore when typing in an input/select/textarea
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
+
+        // Escape — close any open modal or panel
+        if (e.key === "Escape") {
+          if (document.getElementById("modal").classList.contains("open"))              { closeModal(); return; }
+          if (document.getElementById("edit-employee-modal").classList.contains("open")){ closeEditEmployeeModal(); return; }
+          if (document.getElementById("window-modal").classList.contains("open"))       { closeFormModal(); return; }
+          if (document.getElementById("build-warning-modal").classList.contains("open")){ closeBuildWarning(); return; }
+          if (document.getElementById("settings-panel").classList.contains("open"))     { closeSettings(); return; }
+          if (document.getElementById("about-modal").classList.contains("open"))        { closeAbout(); return; }
+        }
+
+        // N — open Add Employee (only when no modal open and not typing)
+        if (e.key === "n" && !typing && !e.metaKey && !e.ctrlKey) {
+          const anyOpen = ["modal","edit-employee-modal","window-modal","build-warning-modal","settings-panel","about-modal"]
+            .some(id => document.getElementById(id).classList.contains("open"));
+          if (!anyOpen) { e.preventDefault(); openModal(); }
+        }
+      });
       // Ensures every current worker has an availability entry, without
       // touching any worker's existing entry. Previously this rebuilt the
       // entire availability object from scratch on every call, which meant
