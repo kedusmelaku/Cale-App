@@ -52,9 +52,10 @@
       <div class="page-body schedule-layout">
         <div class="availability-panel">
           <h2 class="panel-title">Availability</h2>
-          <p class="panel-subtitle">
-            Select which days each employee is available this week.
-          </p>
+          <div class="av-tabs">
+            <button class="av-tab active" id="av-tab-form" onclick="setAvMode('form')">Form</button>
+            <button class="av-tab" id="av-tab-manual" onclick="setAvMode('manual')">Manual</button>
+          </div>
           <div id="availability-list"></div>
         </div>
         <div class="output-panel">
@@ -605,6 +606,8 @@
       // ── State ──────────────────────────────────────────────
       let workers = [];
       let availability = {};
+      let avMode = "form"; // "form" | "manual"
+      let submissionsByEmployeeId = {}; // employeeId -> submission days array
       let scheduleData = [];
       let addShiftTarget = null;
       let dragState = null;
@@ -786,6 +789,22 @@
           );
         }
         markStale();
+        // Reload submissions for the new week
+        const mondayStr = document.getElementById("week-date").value;
+        fetch(`/submissions?weekOf=${mondayStr}`)
+          .then(r => r.json())
+          .then(data => {
+            submissionsByEmployeeId = {};
+            (data.data || []).forEach((s) => {
+              const w = workers.find(w => w._id?.toString() === s.employeeId?.toString());
+              if (w) {
+                w.submittedAt = s.submittedAt;
+                submissionsByEmployeeId[s.employeeId?.toString()] = s.days;
+              }
+            });
+            renderAvailability();
+          })
+          .catch(e => console.warn("Could not reload submissions:", e.message));
       }
 
       function timeOptions(isSaturday) {
@@ -939,9 +958,66 @@
         renderAvailability();
       }
 
+      function setAvMode(mode) {
+        avMode = mode;
+        document.getElementById("av-tab-form").classList.toggle("active", mode === "form");
+        document.getElementById("av-tab-manual").classList.toggle("active", mode === "manual");
+        renderAvailability();
+        markStale();
+      }
+
       function renderAvailability() {
         const list = document.getElementById("availability-list");
         list.innerHTML = "";
+        if (avMode === "form") {
+          renderAvailabilityForm(list);
+        } else {
+          renderAvailabilityManual(list);
+        }
+      }
+
+      function renderAvailabilityForm(list) {
+        _sortedWorkers().forEach((w) => {
+          const sub = submissionsByEmployeeId[w._id?.toString()];
+          const section = document.createElement("div");
+          section.className = "av-section";
+
+          const selectedDays = sub ? sub.filter(d => d.selected) : [];
+          const daysHtml = selectedDays.length
+            ? selectedDays.map(d => {
+                const isSat = d.day === "saturday";
+                let hoursStr;
+                if (d.allDay) {
+                  hoursStr = isSat ? "10 AM – 2 PM" : (w.priority === 2 ? "3 – 8 PM" : "4 – 8 PM");
+                } else {
+                  hoursStr = `${formatHour(d.start, d.startMinute, isSat)} – ${formatHour(d.end, d.endMinute, isSat)}`;
+                }
+                return `<div class="av-form-day">
+                  <span class="av-form-day-name">${DAY_FULL[d.day]}</span>
+                  <span class="av-form-day-hours">${hoursStr}</span>
+                </div>`;
+              }).join("")
+            : `<div class="av-no-submission">No submission</div>`;
+
+          section.innerHTML = `
+            <div class="av-worker-header">
+              <div class="av-color" style="background:${_getWorkerColor(w.name)}"></div>
+              <span class="av-name">${w.name}</span>
+              <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
+            </div>
+            <div class="av-days">${daysHtml}</div>`;
+          list.appendChild(section);
+        });
+      }
+
+      function formatHour(h, min, isSat) {
+        const displayH = h > 12 ? h - 12 : h;
+        const displayM = (min || 0) === 30 ? ":30" : "";
+        const ampm = isSat ? (h >= 12 ? "PM" : "AM") : "PM";
+        return `${displayH}${displayM} ${ampm}`;
+      }
+
+      function renderAvailabilityManual(list) {
         _sortedWorkers().forEach((w) => {
           const av = availability[w.name];
           if (!av) return;
@@ -1295,16 +1371,31 @@
 
         const payload = workers
           .map((w) => {
-            const days = (availability[w.name] || [])
-              .filter((d) => d.selected)
-              .map((d) => ({
-                day: d.day,
-                allDay: d.allDay,
-                start: d.start,
-                end: d.end,
-                startMinute: d.startMinute || 0,
-                endMinute: d.endMinute || 0,
-              }));
+            let days;
+            if (avMode === "form") {
+              const sub = submissionsByEmployeeId[w._id?.toString()];
+              days = sub
+                ? sub.filter(d => d.selected).map(d => ({
+                    day: d.day,
+                    allDay: d.allDay,
+                    start: d.start,
+                    end: d.end,
+                    startMinute: d.startMinute || 0,
+                    endMinute: d.endMinute || 0,
+                  }))
+                : [];
+            } else {
+              days = (availability[w.name] || [])
+                .filter((d) => d.selected)
+                .map((d) => ({
+                  day: d.day,
+                  allDay: d.allDay,
+                  start: d.start,
+                  end: d.end,
+                  startMinute: d.startMinute || 0,
+                  endMinute: d.endMinute || 0,
+                }));
+            }
             return { name: w.name, priority: w.priority, days, submittedAt: w.submittedAt || null };
           })
           .filter((w) => w.days.length > 0);
@@ -1912,8 +2003,19 @@
             const submissions = data.data || [];
             submissions.forEach((s) => {
               const w = workers.find(w => w._id?.toString() === s.employeeId?.toString());
-              if (w) w.submittedAt = s.submittedAt;
+              if (w) {
+                w.submittedAt = s.submittedAt;
+                submissionsByEmployeeId[s.employeeId?.toString()] = s.days;
+              }
             });
+            // Pre-populate manual availability from submissions for workers who submitted
+            workers.forEach((w) => {
+              const sub = submissionsByEmployeeId[w._id?.toString()];
+              if (sub && (!availability[w.name] || availability[w.name].every(d => !d.selected))) {
+                availability[w.name] = sub.map(d => ({ ...d }));
+              }
+            });
+            renderAvailability();
           } catch (e) {
             console.warn("Could not load submissions:", e.message);
           }
