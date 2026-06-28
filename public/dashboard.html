@@ -61,28 +61,28 @@
           <!-- Status pills row -->
           <div class="db-status-row">
             <div class="db-status-pill" id="status-cal">
-              <span class="db-status-label">Calendar <span class="info-tag" tabindex="0" aria-label="Calendar connection status. When connected, Scheduler reads student bookings from your Google Calendar to check coverage.">i<span class="info-tooltip">Shows whether your Google Calendar is connected. Scheduler reads student bookings from it to check schedule coverage.</span></span></span>
+              <span class="db-status-label">Calendar <span class="info-tag" tabindex="0" aria-label="Whether Google Calendar is connected. When connected, Scheduler reads your student bookings to check schedule coverage.">i<span class="info-tooltip">Whether your Google Calendar is connected. When connected, Scheduler reads student bookings from it to check coverage.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-cal-dot"></span>
                 <span class="db-status-val" id="status-cal-val">Checking…</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-window">
-              <span class="db-status-label">Form <span class="info-tag" tabindex="0" aria-label="Availability form status: Not set, Scheduled (opens later), Open (employees can submit now), or Closed.">i<span class="info-tooltip">Status of the availability form: <b>Not set</b>, <b>Scheduled</b> (opens later), <b>Open</b> (accepting submissions now), or <b>Closed</b>.</span></span></span>
+              <span class="db-status-label">Form <span class="info-tag" tabindex="0" aria-label="Availability form status: Not set, Scheduled (opens later), Open (employees can submit now), or Closed.">i<span class="info-tooltip">Status of the availability form. <b>Not set</b> means no window is configured. <b>Scheduled</b> means it will open later. <b>Open</b> means employees can submit now. <b>Closed</b> means the window has passed.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-window-dot"></span>
                 <span class="db-status-val" id="status-window-val">—</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-subs">
-              <span class="db-status-label">Submissions <span class="info-tag" tabindex="0" aria-label="How many employees have submitted their availability out of your total team.">i<span class="info-tooltip">How many of your employees have submitted availability, out of the whole team.</span></span></span>
+              <span class="db-status-label">Submissions <span class="info-tag" tabindex="0" aria-label="How many employees have submitted their availability out of your total team.">i<span class="info-tooltip">How many employees have submitted their availability for the upcoming week, out of your whole team.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-subs-dot"></span>
                 <span class="db-status-val" id="status-subs-val">—</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-readiness">
-              <span class="db-status-label">Schedule <span class="info-tag" tabindex="0" aria-label="Whether a complete schedule can be built from current submissions with no uncovered time slots that have students.">i<span class="info-tooltip">Whether the current submissions can cover every time slot that has students. <b>Ready</b> means no gaps; <b>Gaps</b> lists days still short on coverage.</span></span></span>
+              <span class="db-status-label">Schedule <span class="info-tag" tabindex="0" aria-label="Whether submissions cover all student slots this week. Ready means full coverage, Gaps lists days that are short, No bookings means no students are booked this week.">i<span class="info-tooltip">Whether the submitted availability covers every time slot that has students this week.<br><b>Ready</b>: all student slots are covered.<br><b>Gaps</b>: some slots have no available employee.<br><b>No bookings</b>: no student sessions found for this week.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-readiness-dot"></span>
                 <span class="db-status-val" id="status-readiness-val">—</span>
@@ -94,7 +94,7 @@
           <div class="db-card" id="db-window-card">
             <div class="db-card-header">
               <div>
-                <div class="db-card-title">Availability Form <span class="info-tag" tabindex="0" aria-label="Set when employees can submit availability. Configure opens a form setup; Copy Link copies the employee submission link.">i<span class="info-tooltip">Set when employees can submit their availability. <b>Configure</b> sets the open/close times. <b>Copy Link</b> copies the link employees use to submit.</span></span></div>
+                <div class="db-card-title">Availability Form <span class="info-tag" tabindex="0" aria-label="Set when employees can submit availability. Configure sets the open and close times. Copy Link copies the link to send to employees.">i<span class="info-tooltip">Controls the availability form employees use to submit their hours. <b>Configure</b> sets when it opens and closes. <b>Copy Link</b> copies the link to send to employees.</span></span></div>
                 <div class="db-card-sub" id="db-window-summary">Not configured</div>
               </div>
               <div class="db-card-actions">
@@ -109,7 +109,7 @@
           <div class="db-card" id="db-submissions-card">
             <div class="db-card-header">
               <div>
-                <div class="db-card-title">Submissions <span class="info-tag" tabindex="0" aria-label="Live list of who has submitted availability and in what order. Updates automatically as employees submit or are added.">i<span class="info-tooltip">Live list of who submitted and in what order. Updates as employees submit. Employees not yet submitted appear greyed out at the bottom.</span></span></div>
+                <div class="db-card-title">Submissions <span class="info-tag" tabindex="0" aria-label="Live list of who has submitted availability and in what order. Employees who haven't submitted appear greyed out at the bottom.">i<span class="info-tooltip">Live list of who has submitted availability for the week, in the order they submitted. Employees who haven't submitted yet appear greyed out at the bottom.</span></span></div>
                 <div class="db-card-sub" id="db-subs-summary">No submissions yet</div>
               </div>
             </div>
@@ -309,16 +309,12 @@
                 <span
                   class="info-tag"
                   tabindex="0"
-                  aria-label="Scheduling mode info: Normal assigns workers in shift blocks (4 to 8, 4 to 6, 6 to 8) — faster, clean regular shifts, best for most weeks. Ultra-efficient assigns workers slot by slot every 30 minutes based on exact student counts — more precise but may produce shorter or irregular shift times."
+                  aria-label="Scheduling mode: Normal builds clean shift blocks (like 4–8 or 4–6). Ultra-efficient assigns workers slot by slot based on exact student counts — more precise but may produce irregular shift times."
                   >i<span class="info-tooltip" style="width: 260px"
-                    ><strong>Normal:</strong> Assigns workers in shift blocks
-                    (4–8, 4–6, 6–8). Faster and produces clean, regular shifts —
-                    best for most weeks.<br /><br /><strong
+                    ><strong>Normal:</strong> Builds clean shift blocks (e.g. 4–8, 4–6, 6–8). Faster and easier to read — best for most weeks.<br /><br /><strong
                       >Ultra-efficient:</strong
                     >
-                    Assigns workers slot-by-slot every 30 minutes based on exact
-                    student counts. More precise but may produce shorter or
-                    irregular shift times.</span
+                    Assigns workers every 30 minutes based on exact student counts. More precise but may produce shorter or irregular shifts.</span
                   ></span
                 >
               </div>
@@ -484,9 +480,9 @@
             aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
               ><strong>Normal:</strong> High schoolers or people with limited
-              availability.<br /><strong>Priority:</strong> Adults with moderate
-              availability.<br /><strong>High Priority:</strong> Adults who are
-              usually fully available.</span
+              availability. Default hours: 4–8.<br /><strong>Priority:</strong> Adults with moderate
+              availability. Default hours: 4–8.<br /><strong>High Priority:</strong> Adults who are
+              usually fully available. Default hours: 3–8.</span
             ></span
           >
         </label>
@@ -510,12 +506,9 @@
           <span
             class="info-tag"
             tabindex="0"
-            aria-label="The PIN is auto-generated. Employees enter it on the availability form to submit their hours. You can see each employee's PIN on their card in the Team list and change it by editing the employee."
+            aria-label="The PIN is auto-generated. Employees enter it on the availability form to identify themselves. You can view or change it by editing the employee."
             >i<span class="info-tooltip"
-              >A unique PIN is generated automatically. Your employee enters it on
-              the availability form to submit their hours. You can view it anytime
-              on their card in the <strong>Team</strong> list, and change it by
-              editing the employee.</span
+              >A unique PIN is auto-generated for each employee. They enter it on the availability form to identify themselves. You can view or change it anytime by editing the employee.</span
             ></span
           >
         </label>
@@ -545,9 +538,9 @@
             aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
               ><strong>Normal:</strong> High schoolers or people with limited
-              availability.<br /><strong>Priority:</strong> Adults with moderate
-              availability.<br /><strong>High Priority:</strong> Adults who are
-              usually fully available.</span
+              availability. Default hours: 4–8.<br /><strong>Priority:</strong> Adults with moderate
+              availability. Default hours: 4–8.<br /><strong>High Priority:</strong> Adults who are
+              usually fully available. Default hours: 3–8.</span
             ></span
           >
         </label>
@@ -1909,7 +1902,12 @@
           setPillState("status-readiness", "neutral");
           return;
         }
-        const { gaps } = _lastReadinessCheck;
+        const { gaps, noStudents } = _lastReadinessCheck;
+        if (noStudents) {
+          val.textContent = "No bookings";
+          setPillState("status-readiness", "neutral");
+          return;
+        }
         if (gaps.length === 0) {
           dot.className = "db-status-dot dot-green";
           val.textContent = "Ready";
@@ -1952,6 +1950,18 @@
           const evRes = await fetch(`/events?monday=${weekOf}&calendarId=${encodeURIComponent(calId)}`);
           if (!evRes.ok) { updateReadinessPill(); return; }
           const evData = await evRes.json();
+
+          // If no student bookings exist this week, show a distinct state
+          // rather than a misleading "Ready" (no gaps on an empty week).
+          const studentData = evData.studentData || {};
+          const anyStudents = Object.values(studentData).some(day =>
+            Object.values(day).some(count => count > 0)
+          );
+          if (!anyStudents) {
+            _lastReadinessCheck = { gaps: [], noStudents: true };
+            updateReadinessPill();
+            return;
+          }
 
           const genRes = await fetch("/generate", {
             method: "POST",
