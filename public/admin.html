@@ -13,19 +13,32 @@
     .topbar {
       background: #1a1a1a; color: #fff; padding: 0 28px;
       height: 56px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
     }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
     .topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
     .topbar-badge {
       background: #fef3c7; color: #92400e;
-      font-size: 0.75rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; margin-left: 10px;
+      font-size: 0.75rem; font-weight: 600; padding: 2px 10px; border-radius: 99px;
     }
-    .topbar-right { display: flex; align-items: center; gap: 12px; }
     .btn-ghost {
       background: transparent; border: 1.5px solid rgba(255,255,255,0.25); color: #fff;
       padding: 6px 14px; border-radius: 7px; font-size: 0.85rem; cursor: pointer;
       transition: background 0.15s;
     }
     .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+    .btn-ghost-dark {
+      background: transparent; border: 1.5px solid #d1d5db; color: #374151;
+      padding: 6px 14px; border-radius: 7px; font-size: 0.85rem; cursor: pointer;
+      transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-ghost-dark:hover { background: #f3f4f6; }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── List view ── */
     .main { max-width: 800px; margin: 40px auto; padding: 0 24px; }
     .section-header {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
@@ -37,14 +50,19 @@
       transition: background 0.15s;
     }
     .btn-primary:hover { background: #333; }
-    .card {
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .center-card {
       background: #fff; border-radius: 10px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px;
       padding: 18px 20px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: box-shadow 0.15s;
     }
+    .center-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.13); }
     .center-name { font-weight: 600; font-size: 0.975rem; }
     .center-id { font-size: 0.8125rem; color: #6b7280; margin-top: 2px; font-family: monospace; }
-    .card-actions { display: flex; gap: 8px; }
+    .card-right { display: flex; align-items: center; gap: 10px; }
+    .card-arrow { color: #9ca3af; font-size: 1.1rem; }
     .btn-edit {
       background: #f3f4f6; border: none; padding: 6px 14px; border-radius: 6px;
       font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
@@ -56,6 +74,66 @@
     }
     .btn-delete:hover { background: #fecaca; }
     .empty { color: #9ca3af; font-size: 0.9rem; padding: 32px 0; text-align: center; }
+    .loading { color: #9ca3af; padding: 32px 0; text-align: center; font-size: 0.9rem; }
+
+    /* ── Detail view ── */
+    .detail-main { max-width: 800px; margin: 40px auto; padding: 0 24px; }
+    .detail-toprow {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px;
+    }
+    .detail-title-block {}
+    .detail-name { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
+    .detail-id { font-size: 0.875rem; color: #6b7280; font-family: monospace; margin-top: 3px; }
+    .detail-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 28px;
+    }
+    .stat-card {
+      background: #fff; border-radius: 10px; padding: 16px 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .stat-label { font-size: 0.78rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .stat-value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+    .stat-sub { font-size: 0.8rem; color: #6b7280; margin-top: 3px; }
+
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    .dot-green { background: #22c55e; }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-gray { background: #d1d5db; }
+
+    .detail-section { margin-bottom: 28px; }
+    .detail-section-title {
+      font-size: 0.78rem; font-weight: 700; color: #6b7280;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
+    }
+
+    .employee-table {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden;
+    }
+    .emp-row {
+      display: flex; align-items: center; padding: 12px 18px;
+      border-bottom: 1px solid #f3f4f6; gap: 12px;
+    }
+    .emp-row:last-child { border-bottom: none; }
+    .emp-name { flex: 1; font-weight: 500; font-size: 0.9rem; }
+    .emp-priority {
+      font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 99px;
+    }
+    .pri-0 { background: #f3f4f6; color: #6b7280; }
+    .pri-1 { background: #dbeafe; color: #1d4ed8; }
+    .pri-2 { background: #fef3c7; color: #92400e; }
+    .emp-pin {
+      font-size: 0.8rem; color: #6b7280; font-family: monospace;
+      background: #f9fafb; padding: 2px 8px; border-radius: 5px;
+    }
+    .emp-pin-missing {
+      font-size: 0.8rem; color: #ef4444; font-style: italic;
+    }
+    .emp-empty { padding: 20px 18px; color: #9ca3af; font-size: 0.875rem; }
 
     /* Modal */
     .modal-overlay {
@@ -83,27 +161,80 @@
     }
     .btn-cancel:hover { background: #e5e7eb; }
     .error-msg { font-size: 0.8125rem; color: #ef4444; margin-top: 10px; min-height: 18px; }
-
-    .loading { color: #9ca3af; padding: 32px 0; text-align: center; font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <div style="display:flex;align-items:center;">
+    <div class="topbar-left">
       <span class="topbar-title">Scheduler</span>
       <span class="topbar-badge">Admin</span>
     </div>
-    <div class="topbar-right">
-      <button class="btn-ghost" onclick="logout()">Sign out</button>
+    <button class="btn-ghost" onclick="logout()">Sign out</button>
+  </div>
+
+  <!-- ── List View ── -->
+  <div id="view-list" class="view active">
+    <div class="main">
+      <div class="section-header">
+        <span class="section-title">Centers</span>
+        <button class="btn-primary" onclick="openAddModal()">+ Add Center</button>
+      </div>
+      <div id="centers-list"><div class="loading">Loading…</div></div>
     </div>
   </div>
 
-  <div class="main">
-    <div class="section-header">
-      <span class="section-title">Centers</span>
-      <button class="btn-primary" onclick="openAddModal()">+ Add Center</button>
+  <!-- ── Detail View ── -->
+  <div id="view-detail" class="view">
+    <div class="detail-main">
+      <div class="detail-toprow">
+        <div>
+          <button class="btn-ghost-dark" onclick="showList()" style="margin-bottom:16px;">← All Centers</button>
+          <div class="detail-name" id="d-name">—</div>
+          <div class="detail-id" id="d-id">—</div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn-edit" id="d-edit-btn">Edit</button>
+          <button class="btn-delete" id="d-delete-btn">Delete</button>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Employees</div>
+          <div class="stat-value" id="d-emp-count">—</div>
+          <div class="stat-sub" id="d-pin-sub">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Submissions</div>
+          <div class="stat-value" id="d-sub-count">—</div>
+          <div class="stat-sub" id="d-sub-sub">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Calendar</div>
+          <div class="stat-value" id="d-cal-val">—</div>
+          <div class="stat-sub" id="d-cal-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Form Window</div>
+          <div class="stat-value" id="d-form-val">—</div>
+          <div class="stat-sub" id="d-form-sub">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Last Activity</div>
+          <div class="stat-value" id="d-activity-val" style="font-size:1rem; padding-top:4px;">—</div>
+          <div class="stat-sub" id="d-activity-sub"></div>
+        </div>
+      </div>
+
+      <!-- Employee list -->
+      <div class="detail-section">
+        <div class="detail-section-title">Team</div>
+        <div class="employee-table" id="d-emp-list">
+          <div class="emp-empty">Loading…</div>
+        </div>
+      </div>
     </div>
-    <div id="centers-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- Add / Edit Modal -->
@@ -120,7 +251,7 @@
         <input type="text" id="m-name" placeholder="e.g. Arlington Heights Mathnasium" autocomplete="off" />
       </div>
       <div class="field">
-        <label for="m-password" id="m-password-label">Password</label>
+        <label for="m-password">Password</label>
         <input type="password" id="m-password" placeholder="Manager password for this center" autocomplete="new-password" />
         <div class="field-hint" id="m-password-hint">Leave blank to keep the existing password.</div>
       </div>
@@ -135,7 +266,21 @@
   <script>
     let _centers = [];
     let _editingCenterId = null;
+    let _detailCenterId = null;
 
+    // ── View switching ────────────────────────────────────────
+    function showList() {
+      document.getElementById("view-list").classList.add("active");
+      document.getElementById("view-detail").classList.remove("active");
+      _detailCenterId = null;
+    }
+
+    function showDetail() {
+      document.getElementById("view-list").classList.remove("active");
+      document.getElementById("view-detail").classList.add("active");
+    }
+
+    // ── List view ─────────────────────────────────────────────
     async function loadCenters() {
       try {
         const res = await fetch("/api/admin/centers");
@@ -143,7 +288,7 @@
         const data = await res.json();
         _centers = data.data || [];
         renderCenters();
-      } catch (e) {
+      } catch {
         document.getElementById("centers-list").innerHTML = "<div class='empty'>Failed to load centers.</div>";
       }
     }
@@ -155,23 +300,142 @@
         return;
       }
       el.innerHTML = _centers.map(c => `
-        <div class="card">
+        <div class="center-card" onclick="openDetail('${esc(c.centerId)}')">
           <div>
-            <div class="center-name">${escHtml(c.name)}</div>
-            <div class="center-id">${escHtml(c.centerId)}</div>
+            <div class="center-name">${esc(c.name)}</div>
+            <div class="center-id">${esc(c.centerId)}</div>
           </div>
-          <div class="card-actions">
-            <button class="btn-edit" onclick="openEditModal('${escHtml(c.centerId)}')">Edit</button>
-            <button class="btn-delete" onclick="deleteCenter('${escHtml(c.centerId)}', '${escHtml(c.name)}')">Delete</button>
+          <div class="card-right">
+            <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${esc(c.centerId)}')">Edit</button>
+            <button class="btn-delete" onclick="event.stopPropagation(); deleteCenter('${esc(c.centerId)}', '${esc(c.name)}')">Delete</button>
+            <span class="card-arrow">›</span>
           </div>
         </div>
       `).join("");
     }
 
-    function escHtml(s) {
+    // ── Detail view ───────────────────────────────────────────
+    async function openDetail(centerId) {
+      _detailCenterId = centerId;
+      showDetail();
+
+      // Show loading state
+      document.getElementById("d-name").textContent = "Loading…";
+      document.getElementById("d-id").textContent = centerId;
+      document.getElementById("d-emp-list").innerHTML = "<div class='emp-empty'>Loading…</div>";
+      ["d-emp-count","d-pin-sub","d-sub-count","d-sub-sub","d-cal-val","d-cal-sub","d-form-val","d-form-sub","d-activity-val","d-activity-sub"]
+        .forEach(id => { document.getElementById(id).textContent = "—"; });
+
+      try {
+        const res = await fetch(`/api/admin/centers/${centerId}/details`);
+        if (res.status === 401) { window.location.href = "/admin/login"; return; }
+        const { data } = await res.json();
+        renderDetail(data);
+      } catch {
+        document.getElementById("d-name").textContent = "Failed to load";
+      }
+    }
+
+    function renderDetail(d) {
+      const { center, employees, settings, calendarConnected, weekOf, submissionCount, lastActivityAt } = d;
+
+      // Header
+      document.getElementById("d-name").textContent = center.name;
+      document.getElementById("d-id").textContent = center.centerId;
+      document.getElementById("d-edit-btn").onclick = () => openEditModal(center.centerId);
+      document.getElementById("d-delete-btn").onclick = () => deleteCenter(center.centerId, center.name);
+
+      // Employees stat
+      const pinCount = employees.filter(e => e.hasPin).length;
+      document.getElementById("d-emp-count").textContent = employees.length;
+      document.getElementById("d-pin-sub").textContent =
+        employees.length === 0 ? "No employees yet"
+        : pinCount === employees.length ? "All PINs set"
+        : `${employees.length - pinCount} missing PIN${employees.length - pinCount !== 1 ? "s" : ""}`;
+
+      // Submissions stat
+      document.getElementById("d-sub-count").textContent = `${submissionCount} / ${employees.length}`;
+      document.getElementById("d-sub-sub").textContent = `for week of ${weekOf}`;
+
+      // Calendar
+      const calDot = calendarConnected
+        ? `<span class="dot dot-green"></span>Connected`
+        : `<span class="dot dot-red"></span>Not connected`;
+      document.getElementById("d-cal-val").innerHTML = calDot;
+      document.getElementById("d-cal-sub").textContent = "";
+
+      // Form window
+      const now = new Date();
+      let formVal = "—", formSub = "";
+      if (!settings || !settings.windowOpen) {
+        formVal = "Not set";
+        formSub = "No window configured";
+      } else {
+        const open = new Date(settings.windowOpen);
+        const close = settings.windowClose ? new Date(settings.windowClose) : null;
+        if (now < open) {
+          formVal = `<span class="dot dot-yellow"></span>Scheduled`;
+          formSub = `Opens ${fmtDate(open)}`;
+        } else if (!close || now <= close) {
+          formVal = `<span class="dot dot-green"></span>Open`;
+          formSub = close ? `Closes ${fmtDate(close)}` : "No close time set";
+        } else {
+          formVal = `<span class="dot dot-gray"></span>Closed`;
+          formSub = `Closed ${fmtDate(close)}`;
+        }
+      }
+      document.getElementById("d-form-val").innerHTML = formVal;
+      document.getElementById("d-form-sub").textContent = formSub;
+
+      // Last activity
+      if (lastActivityAt) {
+        document.getElementById("d-activity-val").textContent = timeAgo(new Date(lastActivityAt));
+        document.getElementById("d-activity-sub").textContent = fmtDate(new Date(lastActivityAt));
+      } else {
+        document.getElementById("d-activity-val").textContent = "None";
+        document.getElementById("d-activity-sub").textContent = "No submissions yet";
+      }
+
+      // Employee list
+      const empEl = document.getElementById("d-emp-list");
+      if (employees.length === 0) {
+        empEl.innerHTML = "<div class='emp-empty'>No employees added yet.</div>";
+      } else {
+        const priorityLabel = ["Normal", "Priority", "High Priority"];
+        const priorityClass = ["pri-0", "pri-1", "pri-2"];
+        empEl.innerHTML = employees
+          .sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name))
+          .map(e => `
+            <div class="emp-row">
+              <div class="emp-name">${esc(e.name)}</div>
+              <span class="emp-priority ${priorityClass[e.priority] || "pri-0"}">${priorityLabel[e.priority] || "Normal"}</span>
+              ${e.hasPin
+                ? `<span class="emp-pin">PIN: ${esc(e.pin)}</span>`
+                : `<span class="emp-pin-missing">No PIN</span>`}
+            </div>
+          `).join("");
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────
+    function esc(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     }
 
+    function fmtDate(d) {
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+
+    function timeAgo(d) {
+      const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+      if (diff < 60) return "Just now";
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
+      return fmtDate(d);
+    }
+
+    // ── Add / Edit modal ──────────────────────────────────────
     function openAddModal() {
       _editingCenterId = null;
       document.getElementById("modal-title").textContent = "Add Center";
@@ -183,7 +447,7 @@
       document.getElementById("m-password").value = "";
       document.getElementById("modal-error").textContent = "";
       document.getElementById("modal-overlay").classList.add("open");
-      document.getElementById("m-centerid").focus();
+      setTimeout(() => document.getElementById("m-centerid").focus(), 50);
     }
 
     function openEditModal(centerId) {
@@ -198,7 +462,7 @@
       document.getElementById("m-password").value = "";
       document.getElementById("modal-error").textContent = "";
       document.getElementById("modal-overlay").classList.add("open");
-      document.getElementById("m-name").focus();
+      setTimeout(() => document.getElementById("m-name").focus(), 50);
     }
 
     function closeModal() {
@@ -216,55 +480,50 @@
       const errorEl = document.getElementById("modal-error");
       const btn = document.getElementById("modal-submit");
       errorEl.textContent = "";
-
       if (!name) { errorEl.textContent = "Display name is required."; return; }
 
-      if (_editingCenterId) {
-        // Edit
-        const body = { name };
-        if (password) body.password = password;
-        btn.disabled = true;
-        try {
+      btn.disabled = true;
+      try {
+        if (_editingCenterId) {
+          const body = { name };
+          if (password) body.password = password;
           const res = await fetch(`/api/admin/centers/${_editingCenterId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
           const data = await res.json();
           if (!res.ok) { errorEl.textContent = data.error || "Something went wrong."; btn.disabled = false; return; }
           closeModal();
           await loadCenters();
-        } catch { errorEl.textContent = "Something went wrong."; btn.disabled = false; }
-      } else {
-        // Add
-        const centerId = document.getElementById("m-centerid").value.trim().toLowerCase();
-        if (!centerId) { errorEl.textContent = "Center ID is required."; return; }
-        if (!password) { errorEl.textContent = "Password is required."; return; }
-        if (!/^[a-z0-9-]+$/.test(centerId)) {
-          errorEl.textContent = "Center ID can only contain lowercase letters, numbers, and hyphens."; return;
-        }
-        btn.disabled = true;
-        try {
+          // Refresh detail if we edited the currently open center
+          if (_detailCenterId === _editingCenterId) openDetail(_detailCenterId);
+        } else {
+          const centerId = document.getElementById("m-centerid").value.trim().toLowerCase();
+          if (!centerId) { errorEl.textContent = "Center ID is required."; btn.disabled = false; return; }
+          if (!password) { errorEl.textContent = "Password is required."; btn.disabled = false; return; }
+          if (!/^[a-z0-9-]+$/.test(centerId)) {
+            errorEl.textContent = "Center ID can only contain lowercase letters, numbers, and hyphens.";
+            btn.disabled = false; return;
+          }
           const res = await fetch("/api/admin/centers", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ centerId, name, password }),
           });
           const data = await res.json();
           if (!res.ok) { errorEl.textContent = data.error || "Something went wrong."; btn.disabled = false; return; }
           closeModal();
           await loadCenters();
-        } catch { errorEl.textContent = "Something went wrong."; btn.disabled = false; }
-        btn.disabled = false;
-      }
+        }
+      } catch { errorEl.textContent = "Something went wrong."; }
       btn.disabled = false;
     }
 
     async function deleteCenter(centerId, name) {
-      if (!confirm(`Delete "${name}"?\n\nThis will permanently delete all employees, submissions, and settings for this center. This cannot be undone.`)) return;
+      if (!confirm(`Delete "${name}"?\n\nThis permanently deletes all employees, submissions, and settings for this center. This cannot be undone.`)) return;
       try {
         const res = await fetch(`/api/admin/centers/${centerId}`, { method: "DELETE" });
         if (!res.ok) { alert("Failed to delete center."); return; }
+        showList();
         await loadCenters();
       } catch { alert("Something went wrong."); }
     }

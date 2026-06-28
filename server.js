@@ -726,6 +726,56 @@ app.delete("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
   }
 });
 
+// Center detail view — returns everything the admin needs in one call
+app.get("/api/admin/centers/:centerId/details", requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const { centerId } = req.params;
+
+    const center = await Center.findOne({ centerId }, { passwordHash: 0 });
+    if (!center) return res.status(404).json({ error: "Center not found." });
+
+    const employees = await Employee.find({ centerId });
+    const settings  = await CenterSettings.findOne({ centerId });
+    const oauthDoc  = await OAuthToken.findOne({ centerId });
+
+    // Current week's Monday (same logic as the frontend uses)
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMon = day === 0 ? -6 : 1 - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMon);
+    const weekOf = monday.toISOString().slice(0, 10);
+
+    const submissions = await Submission.find({ centerId, weekOf }).sort({ submittedAt: 1 });
+    const lastSub = submissions.length > 0 ? submissions[submissions.length - 1].submittedAt : null;
+
+    // Also check last submission across all weeks for "last activity"
+    const anyLastSub = await Submission.findOne({ centerId }).sort({ submittedAt: -1 });
+
+    res.json({
+      data: {
+        center,
+        employees: employees.map(e => ({
+          _id: e._id,
+          name: e.name,
+          priority: e.priority,
+          hasPin: !!(e.pin && e.pin.trim()),
+          pin: e.pin,
+        })),
+        settings: settings || null,
+        calendarConnected: !!(oauthDoc && oauthDoc.token &&
+          (oauthDoc.token.access_token || oauthDoc.token.refresh_token)),
+        weekOf,
+        submissionCount: submissions.length,
+        lastActivityAt: anyLastSub ? anyLastSub.submittedAt : null,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Warm up auth client on startup
 try {
   const { getAuth } = require("./auth");
