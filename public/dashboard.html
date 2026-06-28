@@ -61,24 +61,32 @@
           <!-- Status pills row -->
           <div class="db-status-row">
             <div class="db-status-pill" id="status-cal">
-              <span class="db-status-dot" id="status-cal-dot"></span>
               <span class="db-status-label">Calendar</span>
-              <span class="db-status-val" id="status-cal-val">Checking…</span>
+              <span class="db-status-valwrap">
+                <span class="db-status-dot" id="status-cal-dot"></span>
+                <span class="db-status-val" id="status-cal-val">Checking…</span>
+              </span>
             </div>
             <div class="db-status-pill" id="status-window">
-              <span class="db-status-dot" id="status-window-dot"></span>
               <span class="db-status-label">Window</span>
-              <span class="db-status-val" id="status-window-val">—</span>
+              <span class="db-status-valwrap">
+                <span class="db-status-dot" id="status-window-dot"></span>
+                <span class="db-status-val" id="status-window-val">—</span>
+              </span>
             </div>
             <div class="db-status-pill" id="status-subs">
-              <span class="db-status-dot" id="status-subs-dot"></span>
               <span class="db-status-label">Submissions</span>
-              <span class="db-status-val" id="status-subs-val">—</span>
+              <span class="db-status-valwrap">
+                <span class="db-status-dot" id="status-subs-dot"></span>
+                <span class="db-status-val" id="status-subs-val">—</span>
+              </span>
             </div>
             <div class="db-status-pill" id="status-readiness">
-              <span class="db-status-dot" id="status-readiness-dot"></span>
               <span class="db-status-label">Schedule</span>
-              <span class="db-status-val" id="status-readiness-val">—</span>
+              <span class="db-status-valwrap">
+                <span class="db-status-dot" id="status-readiness-dot"></span>
+                <span class="db-status-val" id="status-readiness-val">—</span>
+              </span>
             </div>
           </div>
 
@@ -166,174 +174,13 @@
       </div>
     </div>
 
-    <!-- ── Screen 2: Schedule ── -->
-    <div id="screen-schedule" class="screen">
-      <header>
-        <button class="btn-back" onclick="goToWorkers()">← Employees</button>
-        <span class="header-title">Scheduler</span>
-        <div class="header-actions">
-          <button
-            class="btn-secondary copy-btn"
-            id="copy-btn"
-            disabled
-            onclick="copyToClipboard()"
-          >
-            Copy to Clipboard
-          </button>
-          <button class="btn-primary" id="btn-generate" onclick="generate()">
-            Generate Schedule
-          </button>
-          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
-            ⚙
-          </button>
-        </div>
-      </header>
-      <div class="page-body schedule-layout">
-        <div class="availability-panel">
-          <h2 class="panel-title">Availability</h2>
-          <p class="panel-subtitle">
-            Select which days each employee is available this week.
-          </p>
-          <div id="availability-list"></div>
-        </div>
-        <div class="output-panel">
-          <div class="output-panel-header">
-            <h2 class="panel-title">
-              Schedule
-              <span class="schedule-cal-status" id="schedule-cal-status">
-                <span id="schedule-cal-dot" class="cal-status-dot"></span>
-                <span id="schedule-cal-text" class="schedule-cal-text"
-                  >Checking…</span
-                >
-              </span>
-            </h2>
-            <div class="output-controls">
-              <div class="date-field">
-                <label class="date-label" for="week-date">Week of (Monday)</label>
-                <input type="date" id="week-date" aria-label="Week of (Monday)" onchange="onWeekDateChange(this.value)" />
-              </div>
-              <button
-                class="btn-edit"
-                id="edit-btn"
-                disabled
-                onclick="goToEdit()"
-              >
-                Edit Schedule
-              </button>
-              <button
-                class="btn-secondary"
-                id="finish-btn"
-                style="display: none"
-                onclick="finishFromSchedule(event)"
-              >
-                Finish →
-              </button>
-            </div>
-          </div>
-          <div class="schedule-grid">
-            <div class="stale-banner" id="stale-banner" style="display: none">
-              ⚠ Something has been changed —
-              <button class="stale-regen-btn" onclick="generate()">
-                Regenerate
-              </button>
-            </div>
-            <div class="empty-state" id="empty-state">
-              Enter a date and click <strong>Generate Schedule</strong>.
-            </div>
-            <div
-              class="empty-state"
-              id="empty-state-no-calendar"
-              style="display: none"
-            >
-              <div class="empty-state-icon">📅</div>
-              <strong>Google Calendar isn't connected</strong>
-              <p>
-                Scheduler needs your calendar to read student booking counts.
-                Connect it to generate a schedule.
-              </p>
-              <button
-                class="btn-primary"
-                style="margin-top: 14px"
-                onclick="goToAuth()"
-              >
-                Connect Google Calendar →
-              </button>
-            </div>
-            <div
-              class="empty-state"
-              id="empty-state-calendar-error"
-              style="display: none"
-            >
-              <div class="empty-state-icon">⚠️</div>
-              <strong>Couldn't reach Google Calendar</strong>
-              <p>
-                There was a problem fetching your calendar data. Check your
-                connection or try reconnecting.
-              </p>
-              <button
-                class="btn-primary"
-                style="margin-top: 14px"
-                onclick="goToAuth()"
-              >
-                Reconnect →
-              </button>
-            </div>
-            <div
-              class="empty-state"
-              id="empty-state-no-students"
-              style="display: none"
-            >
-              <div class="empty-state-icon">🗓️</div>
-              <strong>No student bookings found this week</strong>
-              <p>
-                Your calendar had no lesson events for the selected week. Make
-                sure you've picked the right Monday date.
-              </p>
-              <button
-                class="btn-secondary"
-                style="margin-top: 14px"
-                onclick="generate()"
-              >
-                Try again
-              </button>
-            </div>
-            <div id="schedule-output" style="display: none"></div>
-            <div id="hours-summary" style="display: none"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Screen 3: Edit ── -->
-    <div id="screen-edit" class="screen">
-      <header>
-        <button class="btn-back" onclick="showScreen('screen-schedule')">
-          ← Schedule
-        </button>
-        <span class="header-title">Edit Schedule</span>
-        <div class="header-actions">
-          <button class="btn-secondary copy-btn" onclick="copyToClipboard()">
-            Copy to Clipboard
-          </button>
-          <button class="btn-primary" onclick="finishEdit()">Finish →</button>
-        </div>
-      </header>
-      <div id="oob-banner" class="oob-banner" style="display: none"></div>
-      <div class="edit-body">
-        <div class="edit-timeline-wrap">
-          <div id="edit-timeline"></div>
-        </div>
-        <div id="hours-summary-edit" style="display: none"></div>
-      </div>
-    </div>
-
     <!-- ── Screen: Google Calendar Connect ── -->
     <div id="screen-auth" class="screen">
       <header>
         <button
           class="btn-back"
           id="auth-back-btn"
-          onclick="showScreen('screen-schedule')"
+          onclick="showScreen('screen-workers')"
           style="visibility: hidden"
         >
           ← Back
@@ -629,10 +476,6 @@
         <h3>Add Employee</h3>
         <label class="field-label" for="new-worker-name">Name</label>
         <input type="text" id="new-worker-name" placeholder="Full name" />
-        <label class="field-label" style="margin-top:14px;" for="new-worker-pin">PIN
-          <span class="info-tag" tabindex="0" aria-label="A 4-digit PIN the employee uses to submit their availability. You set it — tell them their PIN after adding them.">i<span class="info-tooltip">A 4-digit PIN the employee uses to submit their availability via the shared link. You set it and share it with them.</span></span>
-        </label>
-        <input type="text" id="new-worker-pin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
         <label class="field-label"
           >Priority
           <span
@@ -667,25 +510,6 @@
           <button class="btn-confirm" onclick="addWorker()">
             Add Employee
           </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Add Employee to Day Modal ── -->
-    <div class="modal-overlay" id="add-shift-modal">
-      <div class="modal">
-        <h3>Add Employee to <span id="add-shift-day-name"></span></h3>
-        <label class="field-label" for="add-shift-worker">Employee</label>
-        <select id="add-shift-worker" class="field-select" onchange="updateAddShiftDefaultTimes()"></select>
-        <label class="field-label" for="add-shift-start" style="margin-top: 14px">Start</label>
-        <select id="add-shift-start" class="field-select"></select>
-        <label class="field-label" for="add-shift-end" style="margin-top: 14px">End</label>
-        <select id="add-shift-end" class="field-select"></select>
-        <div class="modal-actions" style="margin-top: 20px">
-          <button class="btn-cancel" onclick="closeAddShiftModal()">
-            Cancel
-          </button>
-          <button class="btn-confirm" onclick="confirmAddShift()">Add</button>
         </div>
       </div>
     </div>
@@ -756,6 +580,35 @@
       function unlockSettingsLinks() {}
       function lockSettingsLinks() {}
       function showTutLinkBlockedMsg() {}
+
+      const DEMO_WORKERS = [
+        { name: "Alex", priority: 2, defaultStart: 3, defaultEnd: 8 },
+        { name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8 },
+        { name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Casey", priority: 0, defaultStart: 4, defaultEnd: 8 },
+        { name: "Riley", priority: 0, defaultStart: 4, defaultEnd: 8 },
+      ];
+
+      function buildDemoAvailability() {
+        const mk = (sel, start, end) => DAYS.map((d) => ({
+          day: d,
+          selected: typeof sel === "function" ? sel(d) : sel,
+          allDay: true,
+          start: d === "saturday" ? 10 : start,
+          end: d === "saturday" ? 14 : end,
+          startMinute: 0,
+          endMinute: 0,
+        }));
+        return {
+          Alex:   mk(true, 3, 8),
+          Jordan: mk((d) => d !== "wednesday", 4, 8),
+          Taylor: mk((d) => d !== "thursday", 4, 8),
+          Morgan: mk((d) => ["monday", "wednesday", "saturday"].includes(d), 4, 8),
+          Casey:  mk((d) => ["tuesday", "thursday"].includes(d), 4, 8),
+          Riley:  mk((d) => ["monday", "tuesday", "saturday"].includes(d), 4, 8),
+        };
+      }
 
       // ── Settings ───────────────────────────────────────────
       let settings = {
@@ -857,7 +710,7 @@
         settings.mode = val;
         saveSettings();
         syncToggleButtons();
-        markStale();
+        if (_calConnected === true) checkScheduleReadiness();
       }
 
       function setDemo(checked) {
@@ -931,22 +784,15 @@
       function activateDemo() {
         workers = JSON.parse(JSON.stringify(DEMO_WORKERS));
         availability = buildDemoAvailability();
-        scheduleData = [];
         renderWorkers();
-        renderAvailability();
-        showEmptyState("default");
-        document.getElementById("hours-summary-edit").style.display = "none";
-        showScreen("screen-workers");
+        updateStatusPills();
       }
 
       async function deactivateDemo() {
         await loadEmployees();
         availability = {};
-        scheduleData = [];
         renderWorkers();
-        showEmptyState("default");
-        document.getElementById("hours-summary-edit").style.display = "none";
-        showScreen("screen-workers");
+        loadCenterSettings();
       }
 
       // ── Helpers ────────────────────────────────────────────
@@ -962,176 +808,25 @@
         });
       }
 
-      function slotList(isSat) {
-        return isSat ? SAT_SLOTS : WEEKDAY_SLOTS;
-      }
 
-      function timeToIndex(time, isSat) {
-        const parts = time.split(":");
-        let hour = parseInt(parts[0]);
-        const mins = parts[1] ? parseInt(parts[1]) : 0;
-        if (isSat && hour < 10) hour += 12;
-        return (hour - (isSat ? 10 : 3)) * 2 + (mins === 30 ? 1 : 0);
-      }
 
-      function indexToTime(idx, isSat) {
-        const base = isSat ? 10 : 3;
-        const totalHalfHours = base * 2 + idx;
-        const h = Math.floor(totalHalfHours / 2);
-        const m = totalHalfHours % 2 === 1 ? 30 : 0;
-        const maxH = isSat ? 14 : 8;
-        if (h >= maxH) return isSat ? "2" : "8";
-        if (isSat && h > 12) return h - 12 + (m ? ":30" : "");
-        return h + (m ? ":30" : "");
-      }
 
-      function getDatesForWeek(mondayStr) {
-        if (!mondayStr) return {};
-        const base = new Date(mondayStr + "T00:00:00");
-        const offsets = {
-          monday: 0,
-          tuesday: 1,
-          wednesday: 2,
-          thursday: 3,
-          saturday: 5,
-        };
-        const result = {};
-        for (const [day, offset] of Object.entries(offsets)) {
-          const d = new Date(base);
-          d.setDate(d.getDate() + offset);
-          result[day] = `${d.getMonth() + 1}/${d.getDate()}`;
-        }
-        return result;
-      }
 
-      function getNextMonday() {
-        const today = new Date();
-        const day = today.getDay();
-        const daysUntil = day === 1 ? 0 : (8 - day) % 7;
-        const monday = new Date(today);
-        monday.setDate(today.getDate() + daysUntil);
-        const y = monday.getFullYear();
-        const m = String(monday.getMonth() + 1).padStart(2, "0");
-        const d = String(monday.getDate()).padStart(2, "0");
-        return `${y}-${m}-${d}`;
-      }
 
       // Returns the Monday on/before the given YYYY-MM-DD date string,
       // computed in local time to match how the <input type="date"> value
       // is interpreted elsewhere in this file (new Date(str + "T00:00:00")).
-      function nearestMonday(dateStr) {
-        const d = new Date(dateStr + "T00:00:00");
-        const day = d.getDay(); // 0 = Sunday ... 6 = Saturday
-        // Distance back to Monday: Sunday(0)->6, Monday(1)->0, Tuesday(2)->1, ...
-        const diff = day === 0 ? 6 : day - 1;
-        d.setDate(d.getDate() - diff);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        return `${y}-${m}-${dd}`;
-      }
 
-      function isMonday(dateStr) {
-        if (!dateStr) return true;
-        const d = new Date(dateStr + "T00:00:00");
-        return d.getDay() === 1;
-      }
 
       // Guards the Monday-only week-date field: if a non-Monday date is
       // picked, snap it to the nearest preceding Monday and let the user know.
-      function onWeekDateChange(val) {
-        if (!val) return;
-        if (!isMonday(val)) {
-          const corrected = nearestMonday(val);
-          document.getElementById("week-date").value = corrected;
-          alert(
-            "Scheduler weeks must start on a Monday — date adjusted to " +
-              corrected +
-              ".",
-          );
-        }
-        markStale();
-      }
 
-      function timeOptions(isSaturday) {
-        const options = [];
-        const start = isSaturday ? 10 : 3;
-        const end = isSaturday ? 14 : 8;
-        for (let h = start; h <= end; h++) {
-          for (let m of [0, 30]) {
-            if (h === end && m === 30) break;
-            const totalMins = h * 60 + m;
-            const displayH = h > 12 ? h - 12 : h;
-            const displayM = m === 0 ? "00" : "30";
-            const ampm = isSaturday ? (h >= 12 ? "PM" : "AM") : "PM";
-            options.push({
-              value: totalMins,
-              hour: h,
-              minute: m,
-              label: `${displayH}:${displayM} ${ampm}`,
-            });
-          }
-        }
-        return options;
-      }
 
-      function minsToHour(mins) {
-        return Math.floor(mins / 60);
-      }
-      function minsToMinute(mins) {
-        return mins % 60;
-      }
-      function hourMinToMins(h, m) {
-        return h * 60 + (m || 0);
-      }
 
-      function buildClipboardText() {
-        let text = "";
-        for (const day of scheduleData) {
-          if (day.assignments.length === 0) continue;
-          const dateStr = day.date ? ` (${day.date})` : "";
-          text += `Hours for ${day.day}${dateStr}:\n`;
-          for (const a of day.assignments) {
-            const name = a.name.charAt(0).toUpperCase() + a.name.slice(1);
-            text += `${name}: ${a.start}-${a.end}\n`;
-          }
-          text += "\n";
-        }
-        return text;
-      }
 
-      function getOutOfBoundsWorkers() {
-        const warnings = [];
-        for (const day of scheduleData) {
-          const isSat = day.day === "Saturday";
-          for (const a of day.assignments) {
-            if (a.availStart === null || a.availEnd === null) {
-              warnings.push(
-                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
-              );
-              continue;
-            }
-            const shiftStart = timeToIndex(a.start, isSat);
-            const shiftEnd = timeToIndex(a.end, isSat);
-            const avStartIdx = timeToIndex(a.availStart.toString(), isSat);
-            const avEndIdx = timeToIndex(a.availEnd.toString(), isSat);
-            if (shiftStart < avStartIdx || shiftEnd > avEndIdx) {
-              warnings.push(
-                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
-              );
-            }
-          }
-        }
-        return warnings;
-      }
 
       // ── Navigation ─────────────────────────────────────────
-      const SCREEN_ORDER = [
-        "screen-workers",
-        "screen-schedule",
-        "screen-edit",
-        "screen-auth",
-      ];
+      const SCREEN_ORDER = ["screen-workers", "screen-auth"];
 
       function showScreen(newId) {
         const current = document.querySelector(".screen.active");
@@ -1201,58 +896,19 @@
         window.location.href = "/scheduler";
       }
 
-      function goToEdit() {
-        renderEditScreen();
-        showScreen("screen-edit");
-        tutAdvance("went-to-edit");
-      }
 
       // Shared by finishEdit() and finishFromSchedule(): warns about any
       // out-of-bounds workers, confirms with the user, then clears the
       // schedule/availability/date and returns to the Employees screen.
       // Returns true if the finish actually happened (user confirmed),
       // false if they cancelled.
-      function doFinish() {
-        const warnings = getOutOfBoundsWorkers();
-        const warnText =
-          warnings.length > 0
-            ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
-            : "";
-        if (!confirm(`${warnText}Finish editing and return to start?`)) return false;
-        scheduleData = [];
-        availability = {};
-        document.getElementById("week-date").value = "";
-        document.getElementById("stale-banner").style.display = "none";
-        showEmptyState("default");
-        document.getElementById("hours-summary-edit").style.display = "none";
-        showScreen("screen-workers");
-        return true;
-      }
 
-      function finishEdit() {
-        // If tutorial is waiting for this action, let the tutorial handle teardown
-        if (tut.active && tutWaiting === "finish-clicked") {
-          tutAdvance("finish-clicked");
-          return;
-        }
-        doFinish();
-      }
 
       // Lets the user finish directly from the Schedule screen, without
       // having to open the drag-and-drop Edit screen first. Blocked while
       // the tutorial is active (same pattern as the locked settings links)
       // since finishing here would wipe schedule/availability state out
       // from under the in-progress tutorial steps.
-      function finishFromSchedule(e) {
-        if (tut.active) {
-          if (e) {
-            e.preventDefault();
-            showTutLinkBlockedMsg(e);
-          }
-          return;
-        }
-        doFinish();
-      }
 
       // ── Screen 1: Employees ────────────────────────────────
       function renderWorkers() {
@@ -1293,9 +949,20 @@ if (!settings.demo) await removeEmployee(removed._id);
       }
 
       // ── Add Employee Modal ─────────────────────────────────
+      // Generates a random 4-digit PIN not already used by another employee.
+      function generateUniquePin() {
+        const used = new Set(workers.map((w) => w.pin).filter(Boolean));
+        let pin;
+        let attempts = 0;
+        do {
+          pin = String(Math.floor(1000 + Math.random() * 9000));
+          attempts++;
+        } while (used.has(pin) && attempts < 50);
+        return pin;
+      }
+
       function openModal() {
         document.getElementById("new-worker-name").value = "";
-        document.getElementById("new-worker-pin").value = "";
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
         setTimeout(
@@ -1322,8 +989,7 @@ if (!settings.demo) await removeEmployee(removed._id);
   if (!name) return alert("Enter a name.");
   if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
     return alert("An employee with that name already exists.");
-  const pinRaw = document.getElementById("new-worker-pin").value.trim();
-  const pin = pinRaw.padStart(4, "0").slice(0, 4);
+  const pin = generateUniquePin();
   const newWorker = { name, priority: newWorkerPriority, pin };
   if (!settings.demo) {
     const saved = await addEmployee(newWorker);
@@ -1350,45 +1016,6 @@ if (!settings.demo) await removeEmployee(removed._id);
         });
 
       closeOnOverlayClick("modal", closeModal);
-
-      // Open Add Employee modal when Enter is pressed while hovering the add button
-      (function () {
-        let hoveringAddButton = false;
-        const addBtn = document.getElementById("btn-add-worker");
-        if (!addBtn) return;
-
-        addBtn.addEventListener("mouseenter", () => (hoveringAddButton = true));
-        addBtn.addEventListener(
-          "mouseleave",
-          () => (hoveringAddButton = false),
-        );
-
-        // Also handle keyboard activation when the button itself has focus
-        addBtn.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            openModal();
-          }
-        });
-
-        // Global Enter handler: when not typing and hovering the button, open modal
-        document.addEventListener("keydown", (e) => {
-          if (e.key !== "Enter") return;
-          const modalEl = document.getElementById("modal");
-          if (modalEl && modalEl.classList.contains("open")) return;
-          const active = document.activeElement;
-          const tag = active && active.tagName && active.tagName.toLowerCase();
-          const isTyping =
-            tag === "input" ||
-            tag === "textarea" ||
-            (active && active.isContentEditable);
-          if (isTyping) return;
-          if (hoveringAddButton) {
-            e.preventDefault();
-            openModal();
-          }
-        });
-      })();
 
       // ── Edit Employee Modal ────────────────────────────────
       function openEditEmployeeModal(wi) {
@@ -1462,156 +1089,17 @@ if (!settings.demo) await removeEmployee(removed._id);
             endMinute: 0,
           }));
         });
-        renderAvailability();
       }
 
-      function renderAvailability() {
-        const list = document.getElementById("availability-list");
-        list.innerHTML = "";
-        sortedWorkers().forEach((w) => {
-          const av = availability[w.name];
-          if (!av) return;
-          const allSelected = av.every((d) => d.selected);
-          const section = document.createElement("div");
-          section.className = "av-section";
-          section.innerHTML = `
-            <div class="av-worker-header">
-              <div class="av-color" style="background:${getWorkerColor(w.name)}"></div>
-              <span class="av-name">${w.name}</span>
-              <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-              <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
-              <label class="av-select-all">
-                <input type="checkbox" ${allSelected ? "checked" : ""} onchange="toggleAllDays('${w.name}', this.checked)">
-                <span>All days</span>
-              </label>
-            </div>
-            <div class="av-days">
-              ${av
-                .map(
-                  (d, di) => `
-                <div class="av-day-row ${d.selected ? "selected" : ""}">
-                  <label class="av-day-check">
-                    <input type="checkbox" ${d.selected ? "checked" : ""} onchange="toggleDay('${w.name}', ${di}, this.checked)">
-                    <span class="av-day-label">${DAY_FULL[d.day]}</span>
-                  </label>
-                  ${
-                    d.selected
-                      ? `
-                    <div class="av-hours">
-                      <label class="av-hours-check">
-                        <input type="checkbox" ${d.allDay ? "checked" : ""} onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
-                        <span>Default hours</span>
-                      </label>
-                      ${
-                        !d.allDay
-                          ? `
-                        <div class="av-time-inputs">
-                          <select aria-label="${w.name} ${DAY_FULL[d.day]} start time" onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
-                            ${timeOptions(d.day === "saturday")
-                              .map(
-                                (o) =>
-                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? "selected" : ""}>${o.label}</option>`,
-                              )
-                              .join("")}
-                          </select>
-                          <span>–</span>
-                          <select aria-label="${w.name} ${DAY_FULL[d.day]} end time" onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
-                            ${timeOptions(d.day === "saturday")
-                              .map(
-                                (o) =>
-                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? "selected" : ""}>${o.label}</option>`,
-                              )
-                              .join("")}
-                          </select>
-                        </div>`
-                          : ""
-                      }
-                    </div>`
-                      : ""
-                  }
-                </div>`,
-                )
-                .join("")}
-            </div>`;
-          list.appendChild(section);
-        });
-      }
 
-      function toggleAllDays(name, checked) {
-        availability[name].forEach((d) => (d.selected = checked));
-        renderAvailability();
-        markStale();
-      }
-      function toggleDay(name, di, checked) {
-        availability[name][di].selected = checked;
-        renderAvailability();
-        markStale();
-      }
-      function toggleAllDay(name, di, checked) {
-        availability[name][di].allDay = checked;
-        renderAvailability();
-        markStale();
-      }
 
-      function updateHour(name, di, field, val) {
-        const totalMins = parseInt(val);
-        const d = availability[name][di];
-        if (field === "start") {
-          const endMins = hourMinToMins(d.end, d.endMinute || 0);
-          if (totalMins >= endMins) {
-            renderAvailability();
-            return;
-          }
-        }
-        if (field === "end") {
-          const startMins = hourMinToMins(d.start, d.startMinute || 0);
-          if (totalMins <= startMins) {
-            renderAvailability();
-            return;
-          }
-        }
-        d[field] = minsToHour(totalMins);
-        if (field === "start") d.startMinute = minsToMinute(totalMins);
-        if (field === "end") d.endMinute = minsToMinute(totalMins);
-        markStale();
-      }
 
       // ── Empty state management ─────────────────────────────
       const EMPTY_STATE_SUFFIXES = ["", "-no-calendar", "-calendar-error", "-no-students"];
 
-      function hideAllEmptyStates() {
-        EMPTY_STATE_SUFFIXES.forEach((suffix) => {
-          document.getElementById("empty-state" + suffix).style.display = "none";
-        });
-      }
 
-      function showEmptyState(reason) {
-        // Hide schedule output
-        document.getElementById("schedule-output").style.display = "none";
-        document.getElementById("hours-summary").style.display = "none";
-        document.getElementById("copy-btn").disabled = true;
-        document.getElementById("edit-btn").disabled = true;
-        document.getElementById("finish-btn").style.display = "none";
-
-        // Hide all empty states
-        hideAllEmptyStates();
-
-        // Show the right one
-        const map = {
-          default: "empty-state",
-          "no-calendar": "empty-state-no-calendar",
-          "calendar-error": "empty-state-calendar-error",
-          "no-students": "empty-state-no-students",
-        };
-        document.getElementById(map[reason] || "empty-state").style.display =
-          "block";
-      }
 
       // ── Stale schedule tracking ────────────────────────────
-      function markStale() {
-        if (scheduleData.length === 0) return;
-        document.getElementById("stale-banner").style.display = "flex";
-      }
 
       // ── Calendar connection status ──────────────────────────
       let _calConnected = null; // cached state for banner visibility
@@ -1654,42 +1142,25 @@ if (!settings.demo) await removeEmployee(removed._id);
           if (_calConnected === true) {
             calDot.className = "db-status-dot dot-green";
             calVal.textContent = "Connected";
+            setPillState("status-cal", "green");
           } else if (_calConnected === false) {
             calDot.className = "db-status-dot dot-red";
             calVal.textContent = "Not connected";
+            setPillState("status-cal", "red");
           } else {
             calDot.className = "db-status-dot dot-neutral";
             calVal.textContent = "Unknown";
+            setPillState("status-cal", "neutral");
           }
         }
-        updateScheduleCalStatus();
         updateCalWarningBanner();
         updateCalendarPicker();
         updateReadinessPill();
         if (_calConnected === true) {
           checkScheduleReadiness();
-          const noCalEl = document.getElementById("empty-state-no-calendar");
-          if (noCalEl && noCalEl.style.display !== "none") {
-            showEmptyState("default");
-          }
         }
       }
 
-      function updateScheduleCalStatus() {
-        const dot = document.getElementById("schedule-cal-dot");
-        const text = document.getElementById("schedule-cal-text");
-        if (!dot || !text) return;
-        if (_calConnected === true) {
-          dot.className = "cal-status-dot connected";
-          text.textContent = "Connected";
-        } else if (_calConnected === false) {
-          dot.className = "cal-status-dot disconnected";
-          text.textContent = "Not connected";
-        } else {
-          dot.className = "cal-status-dot unknown";
-          text.textContent = "Checking…";
-        }
-      }
 
       function updateCalWarningBanner() {
         // Show warning banner only when disconnected AND not in demo mode
@@ -1794,7 +1265,7 @@ if (!settings.demo) await removeEmployee(removed._id);
       function onCalendarPicked(id) {
         settings.calendarId = id;
         saveSettings();
-        markStale();
+        if (_calConnected === true) checkScheduleReadiness();
       }
 
       // ── Slot tooltips ───────────────────────────────────────
@@ -1803,450 +1274,33 @@ if (!settings.demo) await removeEmployee(removed._id);
       slotTooltip.style.display = "none";
       document.body.appendChild(slotTooltip);
 
-      function showSlotTooltip(e, dayIndex, slotTime) {
-        const day = scheduleData[dayIndex];
-        if (!day) return;
-        const isSat = day.day === "Saturday";
-        const dayKey = day.day.toLowerCase();
-        const students = lastStudentData
-          ? (lastStudentData[dayKey]?.[slotTime] ?? 0)
-          : "—";
-        const isOneOnOne =
-          lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
-        const slotIdx = timeToIndex(slotTime, isSat);
-        const workersHere = day.assignments.filter((a) => {
-          const si = timeToIndex(a.start, isSat);
-          const ei = timeToIndex(a.end, isSat);
-          return slotIdx >= si && slotIdx < ei;
-        });
-        const needed = students === "—" ? "—" : Math.ceil(students / 3);
-        const oneOnOneTag = isOneOnOne
-          ? ' <span class="tooltip-tag ooo">1-on-1</span>'
-          : "";
-        slotTooltip.innerHTML = `
-          <div class="tooltip-time">${slotTime}${isSat ? "" : " PM"}</div>
-          <div class="tooltip-row"><span class="tooltip-label">Students</span><span class="tooltip-val">${students}${oneOnOneTag}</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Needed</span><span class="tooltip-val">${needed}</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Assigned</span><span class="tooltip-val">${workersHere.length > 0 ? workersHere.map((w) => w.name).join(", ") : "none"}</span></div>`;
-        slotTooltip.style.display = "block";
-        positionTooltip(e);
-      }
 
-      function positionTooltip(e) {
-        const tw = slotTooltip.offsetWidth;
-        const th = slotTooltip.offsetHeight;
-        let x = e.clientX + 14;
-        let y = e.clientY - th / 2;
-        if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 14;
-        if (y < 8) y = 8;
-        if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
-        slotTooltip.style.left = x + "px";
-        slotTooltip.style.top = y + "px";
-      }
 
-      function hideSlotTooltip() {
-        slotTooltip.style.display = "none";
-      }
 
       let lastStudentData = null;
       let lastOneOnOneData = null;
 
       // ── Generate ───────────────────────────────────────────
-      async function generate() {
-        const mondayVal = document.getElementById("week-date").value;
-        if (!mondayVal)
-          return alert("Please enter the Monday date for this week.");
-
-        const payload = workers
-          .map((w) => {
-            const days = (availability[w.name] || [])
-              .filter((d) => d.selected)
-              .map((d) => ({
-                day: d.day,
-                allDay: d.allDay,
-                start: d.start,
-                end: d.end,
-                startMinute: d.startMinute || 0,
-                endMinute: d.endMinute || 0,
-              }));
-            return { name: w.name, priority: w.priority, days };
-          })
-          .filter((w) => w.days.length > 0);
-
-        if (payload.length === 0) return alert("No availability set.");
-
-        let studentData = null;
-        let oneOnOneData = null;
-
-        if (!settings.demo) {
-          if (_calConnected === false) {
-            showEmptyState("no-calendar");
-            return;
-          }
-          try {
-            const calParam = settings.calendarId
-              ? `&calendarId=${encodeURIComponent(settings.calendarId)}`
-              : "";
-            const eventsRes = await fetch(
-              `/events?monday=${mondayVal}${calParam}`,
-            );
-            if (eventsRes.status === 401) {
-              goToAuth();
-              return;
-            }
-            if (eventsRes.ok) {
-              const eventsData = await eventsRes.json();
-              studentData = eventsData.studentData;
-              oneOnOneData = eventsData.oneOnOneData;
-              lastStudentData = studentData;
-              lastOneOnOneData = oneOnOneData;
-            } else {
-              showEmptyState("calendar-error");
-              return;
-            }
-          } catch (err) {
-            console.warn("Calendar fetch failed:", err.message);
-            showEmptyState("calendar-error");
-            return;
-          }
-        }
-
-        const res = await fetch("/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workers: payload,
-            studentData,
-            oneOnOneData,
-            mode: settings.mode === "ultra" ? "ultra" : "simplified",
-          }),
-        });
-        const data = await res.json();
-
-        const dates = getDatesForWeek(mondayVal);
-        scheduleData = data.schedule.map((d) => ({
-          ...d,
-          date: dates[d.day.toLowerCase()] || "",
-          assignments: d.assignments.map((a) => {
-            const worker = workers.find((w) => w.name === a.name);
-            const av = worker ? availability[worker.name] : null;
-            const avDay = av
-              ? av.find((x) => x.day === d.day.toLowerCase())
-              : null;
-            return {
-              ...a,
-              availStart: avDay && avDay.selected ? avDay.start : null,
-              availEnd: avDay && avDay.selected ? avDay.end : null,
-            };
-          }),
-        }));
-
-        // Check if any assignments were actually made
-        const totalAssignments = data.schedule.reduce(
-          (sum, d) => sum + d.assignments.length,
-          0,
-        );
-        if (totalAssignments === 0 && !settings.demo && studentData) {
-          showEmptyState("no-students");
-          return;
-        }
-
-        renderSchedule();
-        document.getElementById("copy-btn").disabled = false;
-        document.getElementById("edit-btn").disabled = false;
-        document.getElementById("finish-btn").style.display = "inline-block";
-        document.getElementById("stale-banner").style.display = "none";
-
-        tutAdvance("schedule-generated");
-      }
 
       // ── Schedule View ──────────────────────────────────────
-      function renderSchedule() {
-        // Hide all empty states before showing output
-        hideAllEmptyStates();
-        const output = document.getElementById("schedule-output");
-        output.style.display = "block";
-        output.innerHTML = buildTimelineHTML(scheduleData, false);
-        renderHoursSummary();
-      }
 
-      function computeWorkerHours() {
-        const totals = {};
-        for (const day of scheduleData) {
-          const isSat = day.day === "Saturday";
-          for (const a of day.assignments) {
-            const si = timeToIndex(a.start, isSat);
-            const ei = timeToIndex(a.end, isSat);
-            totals[a.name] = (totals[a.name] || 0) + (ei - si) * 0.5;
-          }
-        }
-        return Object.entries(totals)
-          .filter(([, h]) => h > 0)
-          .sort((a, b) => b[1] - a[1]);
-      }
 
-      function buildHoursRowsHTML(sorted) {
-        return sorted
-          .map(([name, hrs]) => {
-            const color = getWorkerColor(name);
-            const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
-            return `<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
-          })
-          .join("");
-      }
 
-      function renderHoursSummary(targetId = "hours-summary") {
-        const el = document.getElementById(targetId);
-        if (!el) return;
-        const sorted = computeWorkerHours();
-        if (sorted.length === 0) {
-          el.style.display = "none";
-          return;
-        }
-        const rows = buildHoursRowsHTML(sorted);
-        el.innerHTML = `<div class="hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`;
-        el.style.display = "block";
-      }
 
       // Returns the out-of-bounds overlay rectangles (as {top, height} in px) for a shift
       // that runs from si to ei (slot indices) given the worker's available start/end.
       // Used both for the static timeline render and the live drag preview.
-      function computeOobRects(si, ei, availStart, availEnd, isSat) {
-        if (availStart === null || availEnd === null) {
-          return [{ top: 0, height: (ei - si) * SLOT_H }];
-        }
-        const avSi = timeToIndex(availStart.toString(), isSat);
-        const avEi = timeToIndex(availEnd.toString(), isSat);
-        const rects = [];
-        if (si < avSi) {
-          rects.push({ top: 0, height: Math.min(avSi - si, ei - si) * SLOT_H });
-        }
-        if (ei > avEi) {
-          rects.push({
-            top: Math.max(avEi - si, 0) * SLOT_H,
-            height: (ei - Math.max(avEi, si)) * SLOT_H,
-          });
-        }
-        return rects;
-      }
 
-      function buildTimelineHTML(data, isEdit) {
-        let html = `<div class="timeline${isEdit ? " timeline-edit" : ""}">`;
-        data.forEach((day, di) => {
-          const isSat = day.day === "Saturday";
-          const slots = slotList(isSat);
-          const boundaries = [...slots, isSat ? "2" : "8"];
-          const slotLabels = boundaries
-            .map((s, i) => {
-              const isLast = i === boundaries.length - 1;
-              const slotKey = slots[i];
-              const handler = !isLast
-                ? `onmouseenter="showSlotTooltip(event,${di},'${slotKey}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`
-                : "";
-              return `<div class="timeline-line-label${!isLast ? " tooltip-sensor" : ""}" style="top:${i * SLOT_H}px;" ${handler}>${s}</div>`;
-            })
-            .join("");
-          const gridLines = slots
-            .map(() => '<div class="timeline-grid-line"></div>')
-            .join("");
-          const totalSlots = slots.length;
-
-          const workerCols = day.assignments
-            .map((a, ai) => {
-              const si = timeToIndex(a.start, isSat);
-              const ei = timeToIndex(a.end, isSat);
-              const color = getWorkerColor(a.name);
-              const draggable = isEdit
-                ? `data-day="${di}" data-ai="${ai}"`
-                : "";
-              const resizable = isEdit
-                ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
-                : "";
-              const removable = isEdit
-                ? `<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.day}" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</button>`
-                : "";
-
-              const oobOverlay = isEdit
-                ? computeOobRects(si, ei, a.availStart, a.availEnd, isSat)
-                    .map((r) => `<div class="oob-overlay" style="top:${r.top}px; height:${r.height}px;"></div>`)
-                    .join("")
-                : "";
-
-              return `
-              <div class="timeline-worker-col">
-                <div class="timeline-grid-lines">${gridLines}</div>
-                <div class="worker-block ${isEdit ? "draggable" : ""}"
-                  style="top:${si * SLOT_H}px; height:${(ei - si) * SLOT_H}px; background:${color};"
-                  title="${a.name}: ${a.start}–${a.end}" ${draggable}>
-                  ${a.name}${oobOverlay}${resizable}${removable}
-                </div>
-              </div>`;
-            })
-            .join("");
-
-          const addBtn = isEdit
-            ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>`
-            : "";
-          const dateStr = day.date
-            ? ` <span class="day-date">${day.date}</span>`
-            : "";
-
-          html += `
-            <div class="timeline-day">
-              <div class="timeline-day-header">${day.day}${dateStr}</div>
-              <div class="timeline-body">
-                <div class="timeline-slots" style="height:${totalSlots * SLOT_H}px;">${slotLabels}</div>
-                <div class="timeline-workers" style="height:${totalSlots * SLOT_H}px;">${workerCols}</div>
-              </div>
-              ${addBtn}
-            </div>`;
-        });
-        html += `</div>`;
-        return html;
-      }
 
       // ── Edit Screen ────────────────────────────────────────
-      function renderEditScreen() {
-        const sorted = computeWorkerHours();
-        let summaryHtml = "";
-        if (sorted.length > 0) {
-          const rows = buildHoursRowsHTML(sorted);
-          summaryHtml = `<div class="hours-summary edit-hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`;
-        }
-        document.getElementById("edit-timeline").innerHTML =
-          buildTimelineHTML(scheduleData, true) + summaryHtml;
-        attachDragHandlers();
-        updateOobBanner();
-      }
 
-      function updateOobBanner() {
-        const banner = document.getElementById("oob-banner");
-        const warnings = getOutOfBoundsWorkers();
-        banner.style.display = warnings.length === 0 ? "none" : "block";
-        if (warnings.length > 0)
-          banner.innerHTML = `⚠️ Scheduled outside availability: ${warnings.join(", ")}`;
-      }
 
-      function attachDragHandlers() {
-        document
-          .querySelectorAll(".worker-block.draggable")
-          .forEach((block) =>
-            block.addEventListener("mousedown", onBlockMouseDown),
-          );
-        document
-          .querySelectorAll(".resize-handle")
-          .forEach((handle) =>
-            handle.addEventListener("mousedown", onResizeMouseDown),
-          );
-      }
 
-      function onBlockMouseDown(e) {
-        if (e.target.classList.contains("resize-handle")) return;
-        if (e.target.classList.contains("remove-btn")) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const block = e.currentTarget;
-        const di = parseInt(block.dataset.day);
-        const ai = parseInt(block.dataset.ai);
-        dragState = {
-          type: "move",
-          block,
-          di,
-          ai,
-          startY: e.clientY,
-          startTop: parseInt(block.style.top),
-        };
-        document.addEventListener("mousemove", onDragMove);
-        window.addEventListener("mouseup", cancelDrag);
-      }
 
-      function onResizeMouseDown(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const di = parseInt(e.currentTarget.dataset.day);
-        const ai = parseInt(e.currentTarget.dataset.ai);
-        const block = e.currentTarget.closest(".worker-block");
-        dragState = {
-          type: "resize",
-          block,
-          di,
-          ai,
-          startY: e.clientY,
-          startHeight: parseInt(block.style.height),
-        };
-        document.addEventListener("mousemove", onDragMove);
-        window.addEventListener("mouseup", cancelDrag);
-      }
 
-      function onDragMove(e) {
-        if (!dragState) return;
-        const isSat = scheduleData[dragState.di].day === "Saturday";
-        const totalSlots = slotList(isSat).length;
-        const dy = e.clientY - dragState.startY;
-        if (dragState.type === "move") {
-          let newTop = Math.round((dragState.startTop + dy) / SLOT_H) * SLOT_H;
-          const blockH = parseInt(dragState.block.style.height);
-          newTop = Math.max(0, Math.min(newTop, totalSlots * SLOT_H - blockH));
-          dragState.block.style.top = newTop + "px";
-        } else {
-          let newH = Math.round((dragState.startHeight + dy) / SLOT_H) * SLOT_H;
-          newH = Math.max(SLOT_H, newH);
-          const top = parseInt(dragState.block.style.top);
-          newH = Math.min(newH, totalSlots * SLOT_H - top);
-          dragState.block.style.height = newH + "px";
-        }
-        // Live OOB overlay update during drag
-        updateLiveOobOverlay();
-      }
 
-      function updateLiveOobOverlay() {
-        if (!dragState) return;
-        const { block, di, ai } = dragState;
-        const a = scheduleData[di].assignments[ai];
-        const isSat = scheduleData[di].day === "Saturday";
-        const top = parseInt(block.style.top);
-        const height = parseInt(block.style.height);
-        const si = Math.round(top / SLOT_H);
-        const ei = Math.round((top + height) / SLOT_H);
 
-        // Remove existing OOB overlays inside this block
-        block.querySelectorAll(".oob-overlay").forEach((el) => el.remove());
 
-        const rects = computeOobRects(si, ei, a.availStart, a.availEnd, isSat);
-        for (const r of rects) {
-          const overlay = document.createElement("div");
-          overlay.className = "oob-overlay";
-          overlay.style.top = r.top + "px";
-          overlay.style.height = r.height + "px";
-          block.appendChild(overlay);
-        }
-      }
-
-      function cancelDrag() {
-        if (!dragState) return;
-        const { di, ai, block } = dragState;
-        const isSat = scheduleData[di].day === "Saturday";
-        const top = parseInt(block.style.top);
-        const height = parseInt(block.style.height);
-        const si = Math.round(top / SLOT_H);
-        const ei = Math.round((top + height) / SLOT_H);
-        scheduleData[di].assignments[ai].start = indexToTime(si, isSat);
-        scheduleData[di].assignments[ai].end = indexToTime(ei, isSat);
-        document.removeEventListener("mousemove", onDragMove);
-        window.removeEventListener("mouseup", cancelDrag);
-        dragState = null;
-        renderEditScreen();
-        renderSchedule();
-      }
-
-      function removeShift(di, ai) {
-        const name = scheduleData[di].assignments[ai].name;
-        if (!confirm(`Remove ${name} from ${scheduleData[di].day}?`)) return;
-        scheduleData[di].assignments.splice(ai, 1);
-        renderEditScreen();
-        renderSchedule();
-        tutAdvance("shift-removed");
-      }
 
       // ── Add Shift Modal ────────────────────────────────────
       // Computes the default start/end time strings (matching slotList()
@@ -2255,175 +1309,15 @@ if (!settings.demo) await removeEmployee(removed._id);
       //  - if they're available all day, use their priority-based default hours
       //  - if they're unavailable/unselected that day, fall back to their
       //    priority-based default hours (same as "fully available")
-      function computeAddShiftDefaultTimes(worker, day) {
-        const isSat = day.day === "Saturday";
-        const dayKey = day.day.toLowerCase();
-        const av = worker ? availability[worker.name] : null;
-        const avDay = av ? av.find((x) => x.day === dayKey) : null;
-
-        const priorityDefaultStart = isSat ? 10 : worker && worker.priority === 2 ? 3 : 4;
-        const priorityDefaultEnd = isSat ? 14 : 8;
-
-        let startH, startM, endH, endM;
-        if (avDay && avDay.selected && !avDay.allDay) {
-          // Custom hours that day — use exactly what they specified
-          startH = avDay.start;
-          startM = avDay.startMinute || 0;
-          endH = avDay.end;
-          endM = avDay.endMinute || 0;
-        } else {
-          // Fully available, or unavailable/unselected — use priority defaults
-          startH = priorityDefaultStart;
-          startM = 0;
-          endH = priorityDefaultEnd;
-          endM = 0;
-        }
-
-        const fmt = (h, m) => {
-          const displayH = isSat && h > 12 ? h - 12 : h;
-          return m ? `${displayH}:30` : `${displayH}`;
-        };
-        return { start: fmt(startH, startM), end: fmt(endH, endM) };
-      }
 
       // Sets the Start/End dropdowns in the Add Shift modal to the right
       // default times for whichever worker is currently selected.
-      function updateAddShiftDefaultTimes() {
-        const di = addShiftTarget;
-        if (di === null || di === undefined) return;
-        const day = scheduleData[di];
-        const name = document.getElementById("add-shift-worker").value;
-        const worker = workers.find((w) => w.name === name);
-        const { start, end } = computeAddShiftDefaultTimes(worker, day);
 
-        const startSel = document.getElementById("add-shift-start");
-        const endSel = document.getElementById("add-shift-end");
-        const setIfPresent = (sel, val) => {
-          const opt = Array.from(sel.options).find((o) => o.value === val);
-          if (opt) sel.value = val;
-        };
-        setIfPresent(startSel, start);
-        setIfPresent(endSel, end);
-      }
 
-      function openAddShiftModal(di) {
-        addShiftTarget = di;
-        const day = scheduleData[di];
-        const isSat = day.day === "Saturday";
-        const slots = slotList(isSat);
-        document.getElementById("add-shift-day-name").textContent = day.day;
-        const assigned = new Set(day.assignments.map((a) => a.name));
-        const unassigned = workers.filter((w) => !assigned.has(w.name));
 
-        const workerSelect = document.getElementById("add-shift-worker");
-        if (unassigned.length === 0) {
-          workerSelect.innerHTML = `<option value="">No employees available</option>`;
-        } else {
-          workerSelect.innerHTML = unassigned
-            .map((w) => {
-              const av = availability[w.name];
-              const avDay = av
-                ? av.find((x) => x.day === day.day.toLowerCase())
-                : null;
-              let avLabel = "";
-              if (!avDay || !avDay.selected) {
-                avLabel = " — unavailable";
-              } else if (avDay.allDay) {
-                avLabel = " — all day";
-              } else {
-                const fmt = (h, m) => {
-                  const displayH = h > 12 ? h - 12 : h;
-                  const suffix = isSat ? (h >= 12 ? " PM" : " AM") : " PM";
-                  return m ? `${displayH}:30${suffix}` : `${displayH}${suffix}`;
-                };
-                avLabel = ` — ${fmt(avDay.start, avDay.startMinute || 0)}–${fmt(avDay.end, avDay.endMinute || 0)}`;
-              }
-              const isUnavailable = !avDay || !avDay.selected;
-              return `<option value="${w.name}" ${isUnavailable ? 'data-unavailable="true"' : ""}>${w.name}${avLabel}</option>`;
-            })
-            .join("");
-        }
 
-        // Style unavailable options red via JS (CSS can't target option text color reliably cross-browser)
-        workerSelect
-          .querySelectorAll("option[data-unavailable]")
-          .forEach((opt) => {
-            opt.style.color = "#c0392b";
-          });
-
-        const boundary = isSat ? "2" : "8";
-        const timePoints = [...slots, boundary];
-        const toOpt = (s) => `<option value="${s}">${s}</option>`;
-        document.getElementById("add-shift-start").innerHTML = timePoints
-          .map(toOpt)
-          .join("");
-        const endSel = document.getElementById("add-shift-end");
-        endSel.innerHTML = timePoints.map(toOpt).join("");
-        endSel.selectedIndex = Math.min(2, timePoints.length - 1);
-
-        // Default the start/end dropdowns based on the initially-selected
-        // worker's availability for this day (falls back to priority
-        // defaults if unassigned/unavailable that day).
-        updateAddShiftDefaultTimes();
-
-        document.getElementById("add-shift-modal").classList.add("open");
-      }
-
-      function closeAddShiftModal() {
-        document.getElementById("add-shift-modal").classList.remove("open");
-        addShiftTarget = null;
-      }
-
-      function confirmAddShift() {
-        const name = document.getElementById("add-shift-worker").value;
-        if (!name) return alert("No employee selected.");
-        const start = document.getElementById("add-shift-start").value;
-        const end = document.getElementById("add-shift-end").value;
-        const di = addShiftTarget;
-        const isSat = scheduleData[di].day === "Saturday";
-        if (timeToIndex(start, isSat) >= timeToIndex(end, isSat))
-          return alert("End time must be after start time.");
-        const worker = workers.find((w) => w.name === name);
-        const av = availability[name];
-        const avDay = av
-          ? av.find((x) => x.day === scheduleData[di].day.toLowerCase())
-          : null;
-        closeAddShiftModal();
-        scheduleData[di].assignments.push({
-          name,
-          start,
-          end,
-          priority: worker ? worker.priority : 0,
-          availStart: avDay && avDay.selected ? avDay.start : null,
-          availEnd: avDay && avDay.selected ? avDay.end : null,
-        });
-        setTimeout(() => {
-          renderEditScreen();
-          renderSchedule();
-          tutAdvance("shift-added");
-        }, 0);
-      }
-
-      closeOnOverlayClick("add-shift-modal", closeAddShiftModal);
 
       // ── Clipboard ──────────────────────────────────────────
-      function copyToClipboard() {
-        const warnings = getOutOfBoundsWorkers();
-        if (warnings.length > 0) {
-          if (
-            !confirm(
-              `⚠️ The following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\nCopy anyway?`,
-            )
-          )
-            return;
-        }
-        navigator.clipboard.writeText(buildClipboardText()).then(() => {
-          document.querySelectorAll(".copy-btn").forEach((btn) => {
-            btn.textContent = "Copied!";
-            setTimeout(() => (btn.textContent = "Copy to Clipboard"), 2000);
-          });
-        });
-      }
 
       // ── Google OAuth ────────────────────────────────────────
       let _oauthWin = null;
@@ -2552,6 +1446,16 @@ if (!settings.demo) await removeEmployee(removed._id);
         if (closeBtn) closeBtn.style.display = isOpen ? "inline-flex" : "none";
       }
 
+      // Sets the colored top-border state on a status stat-card.
+      function setPillState(pillId, state) {
+        const pill = document.getElementById(pillId);
+        if (!pill) return;
+        pill.classList.remove("is-green", "is-red", "is-warn");
+        if (state === "green") pill.classList.add("is-green");
+        else if (state === "red") pill.classList.add("is-red");
+        else if (state === "warn") pill.classList.add("is-warn");
+      }
+
       function updateStatusPills() {
         // Window pill
         const wDot = document.getElementById("status-window-dot");
@@ -2560,8 +1464,10 @@ if (!settings.demo) await removeEmployee(removed._id);
           const state = getWindowState(_centerSettings);
           const labels = { unset: "Not set", scheduled: "Scheduled", open: "Open", closed: "Closed" };
           const dotClass = { unset: "dot-neutral", scheduled: "dot-warn", open: "dot-green", closed: "dot-neutral" };
+          const pillState = { unset: "neutral", scheduled: "warn", open: "green", closed: "neutral" };
           wVal.textContent = labels[state];
           wDot.className = "db-status-dot " + (dotClass[state] || "dot-neutral");
+          setPillState("status-window", pillState[state] || "neutral");
         }
         // Submissions pill
         const sDot = document.getElementById("status-subs-dot");
@@ -2572,9 +1478,12 @@ if (!settings.demo) await removeEmployee(removed._id);
           if (total === 0) {
             sVal.textContent = "—";
             sDot.className = "db-status-dot dot-neutral";
+            setPillState("status-subs", "neutral");
           } else {
             sVal.textContent = `${submitted} / ${total}`;
-            sDot.className = "db-status-dot " + (submitted === total ? "dot-green" : submitted > 0 ? "dot-warn" : "dot-neutral");
+            const st = submitted === total ? "green" : submitted > 0 ? "warn" : "neutral";
+            sDot.className = "db-status-dot dot-" + st;
+            setPillState("status-subs", st);
           }
         }
         // Submissions card summary
@@ -2809,26 +1718,30 @@ if (!settings.demo) await removeEmployee(removed._id);
         if (!_calConnected) {
           dot.className = "db-status-dot dot-neutral";
           val.textContent = "No calendar";
+          setPillState("status-readiness", "neutral");
           return;
         }
         if (_submissions.length === 0) {
           dot.className = "db-status-dot dot-neutral";
-          val.textContent = "Awaiting submissions";
+          val.textContent = "Awaiting subs";
+          setPillState("status-readiness", "neutral");
           return;
         }
-        // Check readiness using last fetched student data
         if (!_lastReadinessCheck) {
           dot.className = "db-status-dot dot-neutral";
-          val.textContent = "—";
+          val.textContent = "Checking…";
+          setPillState("status-readiness", "neutral");
           return;
         }
         const { gaps } = _lastReadinessCheck;
         if (gaps.length === 0) {
           dot.className = "db-status-dot dot-green";
           val.textContent = "Ready";
+          setPillState("status-readiness", "green");
         } else {
           dot.className = "db-status-dot dot-red";
-          val.textContent = `Gaps on ${gaps.join(", ")}`;
+          val.textContent = `Gaps: ${gaps.join(", ")}`;
+          setPillState("status-readiness", "red");
         }
       }
 
