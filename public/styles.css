@@ -356,8 +356,6 @@ header {
   z-index: 100;
   justify-content: center;
   align-items: center;
-  overflow-y: auto;
-  padding: 20px 0;
 }
 
 .modal-overlay.open { display: flex; }
@@ -369,8 +367,8 @@ header {
   padding: 28px;
   width: 360px;
   box-shadow: var(--shadow-md);
-  max-height: none;
-  overflow: visible;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal h3 {
@@ -2003,6 +2001,12 @@ body.dark {
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-top: 2px;
+}
+.db-card-week {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+  font-style: italic;
 }
 .db-card-actions {
   display: flex;

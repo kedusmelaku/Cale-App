@@ -96,6 +96,7 @@
               <div>
                 <div class="db-card-title">Availability Form <span class="info-tag" tabindex="0" aria-label="Set when employees can submit availability. Configure sets the open and close times. Copy Link copies the link to send to employees.">i<span class="info-tooltip">Controls the availability form employees use to submit their hours. <b>Configure</b> sets when it opens and closes. <b>Copy Link</b> copies the link to send to employees.</span></span></div>
                 <div class="db-card-sub" id="db-window-summary">Not configured</div>
+                <div class="db-card-week" id="db-week-target" style="display:none;"></div>
               </div>
               <div class="db-card-actions">
                 <button class="db-chip-btn db-chip-btn-green" onclick="copyAvLink()" title="Copy form link">Copy Link</button>
@@ -528,16 +529,7 @@
         <h3>Edit Employee</h3>
         <label class="field-label" for="edit-employee-name">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
-        <label class="field-label" style="margin-top:14px;">PIN
-          <span
-            class="info-tag"
-            tabindex="0"
-            aria-label="The PIN is what employees enter on the availability form to identify themselves. You can change it here."
-            >i<span class="info-tooltip"
-              >Employees enter this PIN on the availability form to identify themselves. Change it here if needed.</span
-            ></span
-          >
-        </label>
+        <label class="field-label" style="margin-top:14px;" for="edit-employee-pin">PIN</label>
         <input type="text" id="edit-employee-pin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
         <label class="field-label"
           >Priority
@@ -1108,15 +1100,7 @@
         .addEventListener("keydown", function (e) {
           if (e.key === "Enter") {
             e.preventDefault();
-            const modalEl = document.getElementById("modal");
-            if (modalEl.classList.contains("open")) addWorker();
-          }
-        });
-      document
-        .getElementById("new-worker-pin")
-        .addEventListener("keydown", function (e) {
-          if (e.key === "Enter") {
-            e.preventDefault();
+            // ensure the add-employee modal is currently open
             const modalEl = document.getElementById("modal");
             if (modalEl.classList.contains("open")) addWorker();
           }
@@ -1163,8 +1147,6 @@
           return alert("Another employee with that name already exists.");
         const pinRaw = document.getElementById("edit-employee-pin").value.trim();
         const pin = pinRaw ? pinRaw.padStart(4, "0").slice(0, 4) : (workers[editEmployeeIndex].pin || "");
-        const pinConflict = workers.find((w, i) => i !== editEmployeeIndex && w.pin === pin);
-        if (pinConflict) return alert(`PIN ${pin} is already used by ${pinConflict.name}. Choose a different PIN.`);
         workers[editEmployeeIndex].name = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
         workers[editEmployeeIndex].pin = pin;
@@ -1178,40 +1160,7 @@
 
       closeOnOverlayClick("edit-employee-modal", closeEditEmployeeModal);
 
-      // Enter to save in edit employee modal
-      ["edit-employee-name", "edit-employee-pin"].forEach((id) => {
-        document.getElementById(id).addEventListener("keydown", function (e) {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            if (document.getElementById("edit-employee-modal").classList.contains("open"))
-              confirmEditEmployee();
-          }
-        });
-      });
-
-      // ── Global keyboard shortcuts ───────────────────────────
-      document.addEventListener("keydown", function (e) {
-        // Ignore when typing in an input/select/textarea
-        const tag = document.activeElement?.tagName;
-        const typing = tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
-
-        // Escape — close any open modal or panel
-        if (e.key === "Escape") {
-          if (document.getElementById("modal").classList.contains("open"))              { closeModal(); return; }
-          if (document.getElementById("edit-employee-modal").classList.contains("open")){ closeEditEmployeeModal(); return; }
-          if (document.getElementById("window-modal").classList.contains("open"))       { closeFormModal(); return; }
-          if (document.getElementById("build-warning-modal").classList.contains("open")){ closeBuildWarning(); return; }
-          if (document.getElementById("settings-panel").classList.contains("open"))     { closeSettings(); return; }
-          if (document.getElementById("about-modal").classList.contains("open"))        { closeAbout(); return; }
-        }
-
-        // N — open Add Employee (only when no modal open and not typing)
-        if (e.key === "n" && !typing && !e.metaKey && !e.ctrlKey) {
-          const anyOpen = ["modal","edit-employee-modal","window-modal","build-warning-modal","settings-panel","about-modal"]
-            .some(id => document.getElementById(id).classList.contains("open"));
-          if (!anyOpen) { e.preventDefault(); openModal(); }
-        }
-      });
+      // ── Availability ───────────────────────────────────────
       // Ensures every current worker has an availability entry, without
       // touching any worker's existing entry. Previously this rebuilt the
       // entire availability object from scratch on every call, which meant
@@ -1622,7 +1571,19 @@
       function updateFormCard() {
         const summary = document.getElementById("db-window-summary");
         const closeBtn = document.getElementById("db-close-now-btn");
+        const weekTarget = document.getElementById("db-week-target");
         if (summary) summary.textContent = formatFormSummary(_centerSettings);
+        if (weekTarget) {
+          if (_centerSettings?.windowOpen) {
+            const monday = getMondayStrictlyAfter(new Date(_centerSettings.windowOpen));
+            const d = new Date(monday + "T00:00:00");
+            const label = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+            weekTarget.textContent = `Week of ${label}`;
+            weekTarget.style.display = "block";
+          } else {
+            weekTarget.style.display = "none";
+          }
+        }
         const isOpen = _centerSettings && isFormOpen(_centerSettings);
         if (closeBtn) closeBtn.style.display = isOpen ? "inline-flex" : "none";
       }
