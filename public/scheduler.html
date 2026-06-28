@@ -595,7 +595,10 @@
       function exitDemo() {
         settings.demo = false;
         saveSettings();
-        window.location.href = "/";
+        document.getElementById("demo-toggle").checked = false;
+        document.body.classList.remove("demo-active");
+        deactivateDemo();
+        updateCalWarningBanner();
       }
 
       closeOnOverlayClick("settings-panel", closeSettings);
@@ -1007,7 +1010,6 @@
               <div class="av-color" style="background:${_getWorkerColor(w.name)}"></div>
               <span class="av-name">${w.name}</span>
               <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-              <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
             </div>
             <div class="av-days">${daysHtml}</div>`;
           list.appendChild(section);
@@ -1910,7 +1912,32 @@
 
       closeOnOverlayClick("add-shift-modal", closeAddShiftModal);
 
-      // ── Clipboard ──────────────────────────────────────────
+      // ── Global keyboard shortcuts ───────────────────────────
+      document.addEventListener("keydown", function (e) {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
+
+        // Escape — close any open modal or panel
+        if (e.key === "Escape") {
+          if (document.getElementById("add-shift-modal").classList.contains("open")) { closeAddShiftModal(); return; }
+          if (document.getElementById("settings-panel").classList.contains("open"))  { closeSettings(); return; }
+          if (document.getElementById("about-modal").classList.contains("open"))     { closeAbout(); return; }
+        }
+
+        // Enter — confirm open modal
+        if (e.key === "Enter") {
+          if (document.getElementById("add-shift-modal").classList.contains("open")) {
+            e.preventDefault();
+            confirmAddShift();
+            return;
+          }
+          // Enter on week-date input — trigger generate
+          if (document.activeElement?.id === "week-date") {
+            e.preventDefault();
+            generate();
+          }
+        }
+      });
       function copyToClipboard() {
         const warnings = getOutOfBoundsWorkers();
         if (warnings.length > 0) {
