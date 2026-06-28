@@ -780,13 +780,6 @@
       // ── State ──────────────────────────────────────────────
       let workers = [];
       let availability = {};
-      // Load employees from MongoDB on startup
-      loadEmployees().then(() => {
-        renderWorkers();
-      }).catch((err) => {
-        console.error("Failed to load employees on startup:", err);
-        renderWorkers();
-      });
       let newWorkerPriority = 0;
       let scheduleData = [];
       let addShiftTarget = null;
@@ -961,6 +954,9 @@
         grid.innerHTML = "";
         if (workers.length === 0) {
           grid.innerHTML = `<p class="db-roster-empty">No employees yet.<br>Click + to add one.</p>`;
+          // Still refresh submissions widget (it may show submitted names even
+          // with an empty roster, and clears pending correctly).
+          if (typeof renderSubmissions === "function") renderSubmissions();
           return;
         }
         sortedWorkers().forEach((w) => {
@@ -1499,7 +1495,7 @@
           _centerSettings = data.data;
           updateFormCard();
           updateStatusPills();
-          loadSubmissions();
+          loadSubmissions(true);
         } catch (e) {
           console.warn("Could not load center settings:", e.message);
         }
@@ -1760,7 +1756,7 @@
       // ── Submissions ────────────────────────────────────────
       let _submissions = [];
 
-      async function loadSubmissions() {
+      async function loadSubmissions(force = false) {
         if (settings.demo) return;
         try {
           const weekOf = _centerSettings?.windowOpen
@@ -1769,11 +1765,13 @@
           const res = await fetch(`/submissions?weekOf=${weekOf}`);
           const data = await res.json();
           const incoming = data.data || [];
-          // Only re-render if something actually changed, to avoid flicker.
+          // Re-render if forced (initial load / explicit refresh) or if the
+          // data actually changed. The change check is only an optimization
+          // for background polling to avoid flicker.
           const changed = JSON.stringify(incoming.map((s) => s._id + s.submittedAt)) !==
                           JSON.stringify(_submissions.map((s) => s._id + s.submittedAt));
           _submissions = incoming;
-          if (changed) {
+          if (force || changed) {
             renderSubmissions();
             if (_calConnected === true) checkScheduleReadiness();
           }
@@ -1993,9 +1991,21 @@
       if (settings.demo) {
         document.body.classList.add("demo-active");
         activateDemo();
+      } else {
+        // Load the team first, then the form settings + submissions. Loading
+        // employees first means the submissions widget can correctly compute
+        // who is still pending on its first render.
+        loadEmployees()
+          .then(() => {
+            renderWorkers();
+            return loadCenterSettings();
+          })
+          .catch((err) => {
+            console.error("Startup load failed:", err);
+            renderWorkers();
+            loadCenterSettings();
+          });
       }
-      renderWorkers();
-      loadCenterSettings();
       startSubmissionPolling();
 
       // Refresh submissions immediately when the tab regains focus, so
