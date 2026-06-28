@@ -94,9 +94,8 @@
           <div class="db-card" id="db-window-card">
             <div class="db-card-header">
               <div>
-                <div class="db-card-title">Availability Form <span class="info-tag" tabindex="0" aria-label="Set when employees can submit availability. Configure sets the open and close times. Copy Link copies the link to send to employees.">i<span class="info-tooltip">Controls the availability form employees use to submit their hours. <b>Configure</b> sets when it opens and closes. <b>Copy Link</b> copies the link to send to employees.</span></span></div>
+                <div class="db-card-title">Availability Form<span class="db-card-week-inline" id="db-week-target"></span> <span class="info-tag" tabindex="0" aria-label="Set when employees can submit availability. Configure sets the open and close times. Copy Link copies the link to send to employees.">i<span class="info-tooltip">Controls the availability form employees use to submit their hours. <b>Configure</b> sets when it opens and closes. <b>Copy Link</b> copies the link to send to employees.</span></span></div>
                 <div class="db-card-sub" id="db-window-summary">Not configured</div>
-                <div class="db-card-week" id="db-week-target" style="display:none;"></div>
               </div>
               <div class="db-card-actions">
                 <button class="db-chip-btn db-chip-btn-green" onclick="copyAvLink()" title="Copy form link">Copy Link</button>
@@ -1578,10 +1577,9 @@
             const monday = getMondayStrictlyAfter(new Date(_centerSettings.windowOpen));
             const d = new Date(monday + "T00:00:00");
             const label = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-            weekTarget.textContent = `Week of ${label}`;
-            weekTarget.style.display = "block";
+            weekTarget.textContent = ` — for week of ${label}`;
           } else {
-            weekTarget.style.display = "none";
+            weekTarget.textContent = "";
           }
         }
         const isOpen = _centerSettings && isFormOpen(_centerSettings);
