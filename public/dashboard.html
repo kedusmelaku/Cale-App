@@ -836,7 +836,6 @@
 
       async function loadEmployees() {
         const res = await fetch("/employees");
-        if (res.status === 401) { window.location.href = "/login"; return; }
         const data = await res.json();
         workers = data.data || [];
       }
@@ -1893,10 +1892,75 @@
         return `${y}-${m}-${d}`;
       }
 
+      // ── Submission availability popover ───────────────────
+      let _subPopover = null;
+
+      function formatSubHour(h, min, isSat) {
+        const displayH = h > 12 ? h - 12 : h;
+        const displayM = (min || 0) === 30 ? ":30" : "";
+        const ampm = isSat ? (h >= 12 ? " PM" : " AM") : " PM";
+        return `${displayH}${displayM}${ampm}`;
+      }
+
+      function showSubPopover(btn, sub) {
+        hideSubPopover();
+        const color = getWorkerColor(sub.employeeName);
+        const selectedDays = (sub.days || []).filter(d => d.selected);
+
+        const el = document.createElement("div");
+        el.className = "sub-av-popover";
+
+        const worker = workers.find(w => w._id?.toString() === sub.employeeId?.toString());
+
+        const daysHtml = selectedDays.length === 0
+          ? `<div class="sub-av-popover-empty">No days selected</div>`
+          : selectedDays.map(d => {
+              const isSat = d.day === "saturday";
+              let hoursStr;
+              if (d.allDay) {
+                hoursStr = isSat ? "10 AM – 2 PM"
+                  : (worker && worker.priority === 2 ? "3 – 8 PM" : "4 – 8 PM");
+              } else {
+                hoursStr = `${formatSubHour(d.start, d.startMinute, isSat)} – ${formatSubHour(d.end, d.endMinute, isSat)}`;
+              }
+              const dayLabel = DAY_FULL[d.day] || d.day;
+              return `<div class="sub-av-popover-day">
+                <span class="sub-av-popover-dayname">${dayLabel}</span>
+                <span class="sub-av-popover-hours">${hoursStr}</span>
+              </div>`;
+            }).join("");
+
+        el.innerHTML = `
+          <div class="sub-av-popover-name">
+            <span class="sub-av-popover-stripe" style="background:${color}"></span>
+            ${sub.employeeName}
+          </div>
+          ${daysHtml}`;
+
+        document.body.appendChild(el);
+        _subPopover = el;
+
+        // Position: prefer left of the button, fall back to right
+        const btnRect = btn.getBoundingClientRect();
+        const pw = el.offsetWidth;
+        const ph = el.offsetHeight;
+        let left = btnRect.left - pw - 8;
+        if (left < 8) left = btnRect.right + 8;
+        let top = btnRect.top + btnRect.height / 2 - ph / 2;
+        top = Math.max(8, Math.min(top, window.innerHeight - ph - 8));
+        el.style.left = left + "px";
+        el.style.top = top + "px";
+      }
+
+      function hideSubPopover() {
+        if (_subPopover) { _subPopover.remove(); _subPopover = null; }
+      }
+
       function renderSubmissions() {
         const list = document.getElementById("av-submissions-list");
         if (!list) return;
         list.innerHTML = "";
+        hideSubPopover();
 
         const submittedIds = new Set(_submissions.map(s => s.employeeId));
         const submittedWorkers = _submissions.map((s, i) => ({ ...s, order: i + 1 }));
@@ -1915,7 +1979,13 @@
             <span class="db-sub-stripe" style="background:${color}"></span>
             <span class="db-sub-name">${s.employeeName}</span>
             <span class="db-sub-time">${time}</span>
+            <button class="db-sub-view" title="View availability">View</button>
             ${settings.demo ? "" : `<button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`}`;
+
+          const viewBtn = row.querySelector(".db-sub-view");
+          viewBtn.addEventListener("mouseenter", () => showSubPopover(viewBtn, s));
+          viewBtn.addEventListener("mouseleave", hideSubPopover);
+
           list.appendChild(row);
         });
 
@@ -2091,13 +2161,8 @@
         document.body.classList.add("demo-active");
         activateDemo();
       } else {
-        // Auth check first — if the session is broken, redirect immediately
-        // rather than silently leaving the dashboard in a blank state.
-        fetch("/api/me").then(r => {
-          if (r.status === 401) { window.location.href = "/login"; return null; }
-          return r.json();
-        }).then(d => {
-          if (!d) return;
+        // Load centerId for availability link construction
+        fetch("/api/me").then(r => r.json()).then(d => {
           _centerId = d.centerId || "";
           if (d.centerName) {
             const el = document.getElementById("db-center-name");
@@ -2114,14 +2179,15 @@
             return loadCenterSettings();
           })
           .catch((err) => {
-            // If the load failed due to auth, /api/me will have already
-            // redirected. Otherwise surface the error and still render.
             console.error("Startup load failed:", err);
             renderWorkers();
             loadCenterSettings();
           });
       }
       startSubmissionPolling();
+      // Hide the submission popover on scroll or resize so it never gets stranded
+      document.addEventListener("scroll", hideSubPopover, true);
+      window.addEventListener("resize", hideSubPopover);
 
       // Refresh submissions immediately when the tab regains focus, so
       // returning to the dashboard shows up-to-date submissions right away.
