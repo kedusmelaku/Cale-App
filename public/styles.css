@@ -582,7 +582,71 @@ header {
   margin-bottom: 4px;
 }
 
-.panel-subtitle { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; }
+.panel-subtitle { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; }
+
+/* ── Availability tabs ── */
+.av-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.av-tab {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: "Noto Sans", sans-serif;
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: center;
+}
+
+.av-tab + .av-tab { border-left: 1.5px solid var(--border); }
+
+.av-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.av-tab:not(.active):hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ── Form-mode read-only cards ── */
+.av-form-day {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.av-form-day-name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+}
+
+.av-form-day-hours {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.av-no-submission {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 8px;
+}
 
 .av-section { border-bottom: 1px solid var(--border); padding: 14px 0; }
 .av-section:last-child { border-bottom: none; }
