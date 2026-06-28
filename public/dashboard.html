@@ -61,28 +61,28 @@
           <!-- Status pills row -->
           <div class="db-status-row">
             <div class="db-status-pill" id="status-cal">
-              <span class="db-status-label">Calendar</span>
+              <span class="db-status-label">Calendar <span class="info-tag" tabindex="0" aria-label="Calendar connection status. When connected, Scheduler reads student bookings from your Google Calendar to check coverage.">i<span class="info-tooltip">Shows whether your Google Calendar is connected. Scheduler reads student bookings from it to check schedule coverage.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-cal-dot"></span>
                 <span class="db-status-val" id="status-cal-val">Checking…</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-window">
-              <span class="db-status-label">Window</span>
+              <span class="db-status-label">Form <span class="info-tag" tabindex="0" aria-label="Availability form status: Not set, Scheduled (opens later), Open (employees can submit now), or Closed.">i<span class="info-tooltip">Status of the availability form: <b>Not set</b>, <b>Scheduled</b> (opens later), <b>Open</b> (accepting submissions now), or <b>Closed</b>.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-window-dot"></span>
                 <span class="db-status-val" id="status-window-val">—</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-subs">
-              <span class="db-status-label">Submissions</span>
+              <span class="db-status-label">Submissions <span class="info-tag" tabindex="0" aria-label="How many employees have submitted their availability out of your total team.">i<span class="info-tooltip">How many of your employees have submitted availability, out of the whole team.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-subs-dot"></span>
                 <span class="db-status-val" id="status-subs-val">—</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-readiness">
-              <span class="db-status-label">Schedule</span>
+              <span class="db-status-label">Schedule <span class="info-tag" tabindex="0" aria-label="Whether a complete schedule can be built from current submissions with no uncovered time slots that have students.">i<span class="info-tooltip">Whether the current submissions can cover every time slot that has students. <b>Ready</b> means no gaps; <b>Gaps</b> lists days still short on coverage.</span></span></span>
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-readiness-dot"></span>
                 <span class="db-status-val" id="status-readiness-val">—</span>
@@ -90,17 +90,17 @@
             </div>
           </div>
 
-          <!-- Availability window card -->
+          <!-- Availability form card -->
           <div class="db-card" id="db-window-card">
             <div class="db-card-header">
               <div>
-                <div class="db-card-title">Availability Window</div>
+                <div class="db-card-title">Availability Form <span class="info-tag" tabindex="0" aria-label="Set when employees can submit availability. Configure opens a form setup; Copy Link copies the employee submission link.">i<span class="info-tooltip">Set when employees can submit their availability. <b>Configure</b> sets the open/close times. <b>Copy Link</b> copies the link employees use to submit.</span></span></div>
                 <div class="db-card-sub" id="db-window-summary">Not configured</div>
               </div>
               <div class="db-card-actions">
                 <button class="db-chip-btn" onclick="copyAvLink()" title="Copy form link">Copy Link</button>
-                <button class="db-chip-btn db-chip-btn-danger" id="db-close-now-btn" style="display:none;" onclick="closeWindowNow()">Close Now</button>
-                <button class="db-chip-btn db-chip-btn-primary" onclick="openWindowModal()">Configure</button>
+                <button class="db-chip-btn db-chip-btn-danger" id="db-close-now-btn" style="display:none;" onclick="closeFormNow()">Close Now</button>
+                <button class="db-chip-btn db-chip-btn-primary" onclick="openFormModal()">Configure</button>
               </div>
             </div>
           </div>
@@ -109,7 +109,7 @@
           <div class="db-card" id="db-submissions-card">
             <div class="db-card-header">
               <div>
-                <div class="db-card-title">Submissions</div>
+                <div class="db-card-title">Submissions <span class="info-tag" tabindex="0" aria-label="Live list of who has submitted availability and in what order. Updates automatically as employees submit or are added.">i<span class="info-tooltip">Live list of who submitted and in what order. Updates as employees submit. Employees not yet submitted appear greyed out at the bottom.</span></span></div>
                 <div class="db-card-sub" id="db-subs-summary">No submissions yet</div>
               </div>
             </div>
@@ -123,12 +123,12 @@
       </div>
     </div>
 
-    <!-- ── Availability Window Config Modal ── -->
+    <!-- ── Availability Form Config Modal ── -->
     <div class="modal-overlay" id="window-modal">
       <div class="modal modal-window">
         <div class="modal-titlebar">
-          <h3>Configure Availability Window</h3>
-          <button class="btn-cancel modal-close-x" onclick="closeWindowModal()">✕</button>
+          <h3>Configure Availability Form</h3>
+          <button class="btn-cancel modal-close-x" onclick="closeFormModal()">✕</button>
         </div>
 
         <div class="wm-row">
@@ -154,7 +154,7 @@
         </div>
 
         <div class="wm-activate-wrap">
-          <button class="btn-primary wm-activate-btn" onclick="activateWindow()">Activate &amp; Copy Link</button>
+          <button class="btn-primary wm-activate-btn" onclick="activateForm()">Activate &amp; Copy Link</button>
           <div class="wm-copied-msg" id="wm-copied-msg" style="display:none;">✓ Link copied to clipboard</div>
         </div>
       </div>
@@ -505,6 +505,21 @@
             High Priority
           </button>
         </div>
+        <label class="field-label" style="margin-top:14px;"
+          >PIN
+          <span
+            class="info-tag"
+            tabindex="0"
+            aria-label="The PIN is auto-generated. Employees enter it on the availability form to submit their hours. You can see each employee's PIN on their card in the Team list and change it by editing the employee."
+            >i<span class="info-tooltip"
+              >A unique PIN is generated automatically. Your employee enters it on
+              the availability form to submit their hours. You can view it anytime
+              on their card in the <strong>Team</strong> list, and change it by
+              editing the employee.</span
+            ></span
+          >
+        </label>
+        <input type="text" id="new-worker-pin" class="pin-readonly" readonly tabindex="-1" />
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeModal()">Cancel</button>
           <button class="btn-confirm" onclick="addWorker()">
@@ -901,7 +916,7 @@
         if (workers.length === 0)
           return alert("Add at least one employee first.");
         // If form is still open, show custom warning instead of proceeding
-        if (_centerSettings && isWindowOpen(_centerSettings)) {
+        if (_centerSettings && isFormOpen(_centerSettings)) {
           showBuildWarning();
           return;
         }
@@ -968,12 +983,28 @@
             </div>`;
           grid.appendChild(card);
         });
+        // Keep the submissions widget and status pills in sync whenever the
+        // team changes (add / edit / remove), not just on full reload.
+        if (typeof renderSubmissions === "function") renderSubmissions();
       }
 
       async function removeWorker(wi) {
         if (!confirm(`Remove ${workers[wi].name}?`)) return;
         const removed = workers.splice(wi, 1)[0];
-if (!settings.demo) await removeEmployee(removed._id);
+        if (!settings.demo) await removeEmployee(removed._id);
+        // Drop any submission belonging to the removed employee so the
+        // submissions widget and counts stay accurate.
+        if (removed && removed._id) {
+          const orphan = _submissions.find(
+            (s) => s.employeeId?.toString() === removed._id.toString(),
+          );
+          if (orphan) {
+            _submissions = _submissions.filter((s) => s !== orphan);
+            if (!settings.demo) {
+              try { await fetch(`/submissions/${orphan._id}`, { method: "DELETE" }); } catch (e) {}
+            }
+          }
+        }
         renderWorkers();
       }
 
@@ -992,6 +1023,9 @@ if (!settings.demo) await removeEmployee(removed._id);
 
       function openModal() {
         document.getElementById("new-worker-name").value = "";
+        // Generate the PIN up front and show it so the manager sees exactly
+        // what will be assigned. addWorker() uses this same displayed value.
+        document.getElementById("new-worker-pin").value = generateUniquePin();
         selectPriority(0);
         document.getElementById("modal").classList.add("open");
         setTimeout(
@@ -1018,7 +1052,7 @@ if (!settings.demo) await removeEmployee(removed._id);
   if (!name) return alert("Enter a name.");
   if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
     return alert("An employee with that name already exists.");
-  const pin = generateUniquePin();
+  const pin = document.getElementById("new-worker-pin").value || generateUniquePin();
   const newWorker = { name, priority: newWorkerPriority, pin };
   if (!settings.demo) {
     const saved = await addEmployee(newWorker);
@@ -1418,13 +1452,52 @@ if (!settings.demo) await removeEmployee(removed._id);
         return toLocalDatetimeValue(d);
       }
 
+      // ── Week-rolling helpers ──────────────────────────────────
+      // The availability form opens/closes in the days BEFORE the week being
+      // scheduled (which starts on the upcoming Monday). The boss sets the
+      // weekday+time pattern once; each week we roll those saved times forward
+      // to sit in the same relative position before the new upcoming Monday.
+      // These are only DEFAULTS — the boss can still edit any date/time.
+
+      // Returns the upcoming Monday at 00:00 local (today if today is Monday).
+      function upcomingMondayDate() {
+        const t = new Date();
+        t.setHours(0, 0, 0, 0);
+        const day = t.getDay();
+        const daysUntil = day === 1 ? 0 : (8 - day) % 7;
+        const m = new Date(t);
+        m.setDate(t.getDate() + daysUntil);
+        return m;
+      }
+
+      // Returns the first Monday 00:00 strictly after the given date — i.e. the
+      // start of the week the saved time was collecting availability FOR.
+      function mondayStrictlyAfter(date) {
+        const x = new Date(date);
+        x.setHours(0, 0, 0, 0);
+        const day = x.getDay();
+        let daysUntil = (8 - day) % 7;
+        if (daysUntil === 0) daysUntil = 7;
+        x.setDate(x.getDate() + daysUntil);
+        return x;
+      }
+
+      // Rolls a saved datetime forward, preserving its weekday + time-of-day
+      // relative to the week it precedes, onto the current upcoming week.
+      function rollSavedTimeForward(savedDate) {
+        const saved = new Date(savedDate);
+        const anchorMon = mondayStrictlyAfter(saved);
+        const offset = saved.getTime() - anchorMon.getTime(); // negative = before that Monday
+        return new Date(upcomingMondayDate().getTime() + offset);
+      }
+
       async function loadCenterSettings() {
         if (settings.demo) return;
         try {
           const res = await fetch("/center-settings");
           const data = await res.json();
           _centerSettings = data.data;
-          updateWindowCard();
+          updateFormCard();
           updateStatusPills();
           loadSubmissions();
         } catch (e) {
@@ -1433,7 +1506,7 @@ if (!settings.demo) await removeEmployee(removed._id);
       }
 
       // ── Window state helpers ───────────────────────────────
-      function isWindowOpen(s) {
+      function isFormOpen(s) {
         if (!s) return false;
         const now = new Date();
         const open = s.windowOpen ? new Date(s.windowOpen) : null;
@@ -1444,7 +1517,7 @@ if (!settings.demo) await removeEmployee(removed._id);
         return true; // open with no close time = manually open
       }
 
-      function getWindowState(s) {
+      function getFormState(s) {
         if (!s || !s.windowOpen) return "unset";
         const now = new Date();
         const open = new Date(s.windowOpen);
@@ -1454,9 +1527,9 @@ if (!settings.demo) await removeEmployee(removed._id);
         return "closed";
       }
 
-      function formatWindowSummary(s) {
+      function formatFormSummary(s) {
         if (!s || !s.windowOpen) return "Not configured";
-        const state = getWindowState(s);
+        const state = getFormState(s);
         const fmt = (d) => new Date(d).toLocaleString("en-US", {
           weekday: "short", month: "short", day: "numeric",
           hour: "numeric", minute: "2-digit"
@@ -1467,11 +1540,11 @@ if (!settings.demo) await removeEmployee(removed._id);
         return "Not configured";
       }
 
-      function updateWindowCard() {
+      function updateFormCard() {
         const summary = document.getElementById("db-window-summary");
         const closeBtn = document.getElementById("db-close-now-btn");
-        if (summary) summary.textContent = formatWindowSummary(_centerSettings);
-        const isOpen = _centerSettings && isWindowOpen(_centerSettings);
+        if (summary) summary.textContent = formatFormSummary(_centerSettings);
+        const isOpen = _centerSettings && isFormOpen(_centerSettings);
         if (closeBtn) closeBtn.style.display = isOpen ? "inline-flex" : "none";
       }
 
@@ -1490,7 +1563,7 @@ if (!settings.demo) await removeEmployee(removed._id);
         const wDot = document.getElementById("status-window-dot");
         const wVal = document.getElementById("status-window-val");
         if (wDot && wVal && _centerSettings) {
-          const state = getWindowState(_centerSettings);
+          const state = getFormState(_centerSettings);
           const labels = { unset: "Not set", scheduled: "Scheduled", open: "Open", closed: "Closed" };
           const dotClass = { unset: "dot-neutral", scheduled: "dot-warn", open: "dot-green", closed: "dot-neutral" };
           const pillState = { unset: "neutral", scheduled: "warn", open: "green", closed: "neutral" };
@@ -1526,7 +1599,7 @@ if (!settings.demo) await removeEmployee(removed._id);
         }
       }
 
-      async function closeWindowNow() {
+      async function closeFormNow() {
         try {
           const now = new Date().toISOString();
           const res = await fetch("/center-settings", {
@@ -1536,7 +1609,7 @@ if (!settings.demo) await removeEmployee(removed._id);
           });
           const data = await res.json();
           _centerSettings = data.data;
-          updateWindowCard();
+          updateFormCard();
           updateStatusPills();
         } catch (e) {
           alert("Something went wrong. Please try again.");
@@ -1546,7 +1619,7 @@ if (!settings.demo) await removeEmployee(removed._id);
       // ── Window modal ───────────────────────────────────────
       let _wmCloseMode = "manual";
 
-      function openWindowModal() {
+      function openFormModal() {
         _wmCloseMode = "manual";
         document.getElementById("wm-close-manual-btn").classList.add("active");
         document.getElementById("wm-close-auto-btn").classList.remove("active");
@@ -1561,24 +1634,61 @@ if (!settings.demo) await removeEmployee(removed._id);
           mon.setDate(d.getDate() + diff);
           return mon.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
         })();
-        // Pre-fill open time if existing setting
+
+        const now = new Date();
+        const state = getFormState(_centerSettings);
         const openEl = document.getElementById("wm-open");
-        if (_centerSettings && _centerSettings.windowOpen) {
-          openEl.value = toLocalDatetimeValue(new Date(_centerSettings.windowOpen));
-        } else {
-          openEl.value = "";
-        }
         const closeEl = document.getElementById("wm-close");
-        if (_centerSettings && _centerSettings.windowClose) {
+
+        // OPEN TIME default:
+        // - If the form is currently scheduled or open, keep its existing time.
+        // - Otherwise (closed / not set), roll the last saved open time forward
+        //   to the same weekday+time before the upcoming week, so the boss
+        //   doesn't re-enter it each week. Falls back to "now" if never set.
+        if (_centerSettings && _centerSettings.windowOpen &&
+            (state === "scheduled" || state === "open")) {
+          openEl.value = toLocalDatetimeValue(new Date(_centerSettings.windowOpen));
+        } else if (_centerSettings && _centerSettings.windowOpen) {
+          // Roll the saved pattern forward; if that lands in the past (the boss
+          // is configuring after this week's usual open day), default to now so
+          // activating opens the form immediately rather than as already-closed.
+          const rolled = rollSavedTimeForward(_centerSettings.windowOpen);
+          openEl.value = toLocalDatetimeValue(rolled < now ? now : rolled);
+        } else {
+          openEl.value = toLocalDatetimeValue(now);
+        }
+
+        // CLOSE TIME default:
+        // - If currently open/scheduled with a future close, keep it.
+        // - Otherwise, if a close time was ever saved, roll it forward too and
+        //   switch to "close at a time" mode. If none was saved, default to
+        //   "close manually".
+        if (_centerSettings && _centerSettings.windowClose &&
+            (state === "scheduled" || state === "open") &&
+            new Date(_centerSettings.windowClose) > now) {
           closeEl.value = toLocalDatetimeValue(new Date(_centerSettings.windowClose));
           setCloseMode("auto");
+        } else if (_centerSettings && _centerSettings.windowClose) {
+          const rolledClose = rollSavedTimeForward(_centerSettings.windowClose);
+          // Only use the rolled close if it's still in the future and after the
+          // open time we just set; otherwise fall back to "close manually".
+          const openDate = openEl.value ? new Date(openEl.value) : now;
+          if (rolledClose > now && rolledClose > openDate) {
+            closeEl.value = toLocalDatetimeValue(rolledClose);
+            setCloseMode("auto");
+          } else {
+            closeEl.value = "";
+            setCloseMode("manual");
+          }
         } else {
           closeEl.value = "";
+          setCloseMode("manual");
         }
+
         document.getElementById("window-modal").classList.add("open");
       }
 
-      function closeWindowModal() {
+      function closeFormModal() {
         document.getElementById("window-modal").classList.remove("open");
       }
 
@@ -1589,7 +1699,7 @@ if (!settings.demo) await removeEmployee(removed._id);
         document.getElementById("wm-close-row").style.display = mode === "auto" ? "flex" : "none";
       }
 
-      async function activateWindow() {
+      async function activateForm() {
         const openVal = document.getElementById("wm-open").value;
         if (!openVal) return alert("Please set an open time.");
         const closeVal = _wmCloseMode === "auto" ? document.getElementById("wm-close").value : null;
@@ -1607,7 +1717,7 @@ if (!settings.demo) await removeEmployee(removed._id);
           });
           const data = await res.json();
           _centerSettings = data.data;
-          updateWindowCard();
+          updateFormCard();
           updateStatusPills();
           // Copy link to clipboard
           const link = window.location.origin + "/availability";
@@ -1629,7 +1739,10 @@ if (!settings.demo) await removeEmployee(removed._id);
         const pending = workers.filter(w => !submittedIds.has(w._id?.toString()));
         const list = document.getElementById("build-warning-list");
         list.innerHTML = pending.length > 0
-          ? pending.map(w => `<li>${w.name}</li>`).join("")
+          ? pending.map(w => {
+              const color = getWorkerColor(w.name);
+              return `<li><span class="bw-stripe" style="background:${color}"></span>${w.name}</li>`;
+            }).join("")
           : "<li><em>Everyone has submitted</em></li>";
         document.getElementById("build-warning-modal").classList.add("open");
       }
@@ -1640,7 +1753,7 @@ if (!settings.demo) await removeEmployee(removed._id);
 
       async function closeFormAndContinue() {
         closeBuildWarning();
-        await closeWindowNow();
+        await closeFormNow();
         await _doGoToSchedule();
       }
 
@@ -1655,12 +1768,34 @@ if (!settings.demo) await removeEmployee(removed._id);
             : getNextMondayStr();
           const res = await fetch(`/submissions?weekOf=${weekOf}`);
           const data = await res.json();
-          _submissions = data.data || [];
-          renderSubmissions();
-          if (_calConnected === true) checkScheduleReadiness();
+          const incoming = data.data || [];
+          // Only re-render if something actually changed, to avoid flicker.
+          const changed = JSON.stringify(incoming.map((s) => s._id + s.submittedAt)) !==
+                          JSON.stringify(_submissions.map((s) => s._id + s.submittedAt));
+          _submissions = incoming;
+          if (changed) {
+            renderSubmissions();
+            if (_calConnected === true) checkScheduleReadiness();
+          }
         } catch (e) {
           console.warn("Could not load submissions:", e.message);
         }
+      }
+
+      // ── Live submission polling ───────────────────────────────
+      // While the dashboard is open, re-check submissions periodically so new
+      // employee submissions appear without a manual reload. Polling only runs
+      // when the form is open (no point polling a closed/unset form), and
+      // pauses while the browser tab is hidden to save requests.
+      let _submissionPollTimer = null;
+      function startSubmissionPolling() {
+        if (_submissionPollTimer || settings.demo) return;
+        _submissionPollTimer = setInterval(() => {
+          if (document.hidden) return;
+          if (_centerSettings && isFormOpen(_centerSettings)) {
+            loadSubmissions();
+          }
+        }, 20000); // every 20s
       }
 
       function getMondayOfWeek(date) {
@@ -1853,7 +1988,7 @@ if (!settings.demo) await removeEmployee(removed._id);
       // ── Init ───────────────────────────────────────────────
       applyTheme();
       checkCalendarStatus();
-      closeOnOverlayClick("window-modal", closeWindowModal);
+      closeOnOverlayClick("window-modal", closeFormModal);
       closeOnOverlayClick("build-warning-modal", closeBuildWarning);
       if (settings.demo) {
         document.body.classList.add("demo-active");
@@ -1861,6 +1996,15 @@ if (!settings.demo) await removeEmployee(removed._id);
       }
       renderWorkers();
       loadCenterSettings();
+      startSubmissionPolling();
+
+      // Refresh submissions immediately when the tab regains focus, so
+      // returning to the dashboard shows up-to-date submissions right away.
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && _centerSettings && isFormOpen(_centerSettings)) {
+          loadSubmissions();
+        }
+      });
     </script>
   </body>
 </html>
