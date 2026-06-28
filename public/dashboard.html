@@ -36,7 +36,10 @@
     <div id="screen-workers" class="screen active">
       <!-- ── Top bar ── -->
       <div class="db-topbar">
-        <span class="db-topbar-title">Scheduler</span>
+        <div style="display:flex; flex-direction:column; justify-content:center; gap:1px;">
+          <span class="db-topbar-title">Scheduler</span>
+          <span id="db-center-name" style="font-size:0.75rem; color:var(--text-muted); font-weight:500; letter-spacing:0;"></span>
+        </div>
         <div class="db-topbar-actions">
           <button class="btn-primary" onclick="goToSchedule()">Build Schedule →</button>
           <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
@@ -2088,7 +2091,13 @@
         activateDemo();
       } else {
         // Load centerId for availability link construction
-        fetch("/api/me").then(r => r.json()).then(d => { _centerId = d.centerId || ""; }).catch(() => {});
+        fetch("/api/me").then(r => r.json()).then(d => {
+          _centerId = d.centerId || "";
+          if (d.centerName) {
+            const el = document.getElementById("db-center-name");
+            if (el) el.textContent = d.centerName;
+          }
+        }).catch(() => {});
 
         // Load the team first, then the form settings + submissions. Loading
         // employees first means the submissions widget can correctly compute

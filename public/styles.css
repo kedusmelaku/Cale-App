@@ -1782,7 +1782,7 @@ body.dark {
 
 /* ── Left rail ── */
 .db-rail {
-  width: 272px;
+  width: 300px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   display: flex;
