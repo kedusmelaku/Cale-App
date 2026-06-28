@@ -836,6 +836,7 @@
 
       async function loadEmployees() {
         const res = await fetch("/employees");
+        if (res.status === 401) { window.location.href = "/login"; return; }
         const data = await res.json();
         workers = data.data || [];
       }
@@ -2090,8 +2091,13 @@
         document.body.classList.add("demo-active");
         activateDemo();
       } else {
-        // Load centerId for availability link construction
-        fetch("/api/me").then(r => r.json()).then(d => {
+        // Auth check first — if the session is broken, redirect immediately
+        // rather than silently leaving the dashboard in a blank state.
+        fetch("/api/me").then(r => {
+          if (r.status === 401) { window.location.href = "/login"; return null; }
+          return r.json();
+        }).then(d => {
+          if (!d) return;
           _centerId = d.centerId || "";
           if (d.centerName) {
             const el = document.getElementById("db-center-name");
@@ -2108,6 +2114,8 @@
             return loadCenterSettings();
           })
           .catch((err) => {
+            // If the load failed due to auth, /api/me will have already
+            // redirected. Otherwise surface the error and still render.
             console.error("Startup load failed:", err);
             renderWorkers();
             loadCenterSettings();
