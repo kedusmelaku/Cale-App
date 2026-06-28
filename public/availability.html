@@ -308,7 +308,14 @@
         const day = d.getDay();
         const diff = day === 0 ? 6 : day - 1;
         d.setDate(d.getDate() - diff);
-        return d.toISOString().split("T")[0];
+        // Use LOCAL date parts (not toISOString, which is UTC) so the weekOf
+        // matches the dashboard's computation exactly. A UTC formatting here
+        // shifted the day for evening times in behind-UTC timezones, causing
+        // submissions to be tagged to a different week than the dashboard queried.
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dd}`;
       }
 
       function getNextMonday() {
@@ -317,7 +324,10 @@
         const daysUntil = day === 1 ? 0 : (8 - day) % 7;
         const monday = new Date(today);
         monday.setDate(today.getDate() + daysUntil);
-        return monday.toISOString().split("T")[0];
+        const y = monday.getFullYear();
+        const m = String(monday.getMonth() + 1).padStart(2, "0");
+        const d = String(monday.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
       }
 
       function formatDate(dateStr) {
