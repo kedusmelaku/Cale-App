@@ -1464,6 +1464,7 @@
       // ── Availability Window ────────────────────────────────
       let _windowDirty = false;
       let _centerSettings = null;
+      let _centerId = "";
 
       function toLocalDatetimeValue(date) {
         if (!date) return "";
@@ -1758,7 +1759,7 @@
           updateFormCard();
           updateStatusPills();
           // Copy link to clipboard
-          const link = window.location.origin + "/availability";
+          const link = window.location.origin + "/availability/" + _centerId;
           navigator.clipboard.writeText(link).catch(() => {});
           document.getElementById("wm-copied-msg").style.display = "block";
         } catch (e) {
@@ -1767,7 +1768,7 @@
       }
 
       function copyAvLink() {
-        const link = window.location.origin + "/availability";
+        const link = window.location.origin + "/availability/" + _centerId;
         navigator.clipboard.writeText(link).then(() => {
           const btn = document.querySelector("[onclick=\"copyAvLink()\"]");
           if (!btn) return;
@@ -2073,6 +2074,9 @@
         document.body.classList.add("demo-active");
         activateDemo();
       } else {
+        // Load centerId for availability link construction
+        fetch("/api/me").then(r => r.json()).then(d => { _centerId = d.centerId || ""; }).catch(() => {});
+
         // Load the team first, then the form settings + submissions. Loading
         // employees first means the submissions widget can correctly compute
         // who is still pending on its first render.

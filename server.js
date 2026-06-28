@@ -12,21 +12,19 @@ const Employee = require("./Employee");
 const CenterSettings = require("./CenterSettings");
 const Submission = require("./Submission");
 const OAuthToken = require("./OAuthToken");
+const Center = require("./Center");
 const mongoose = require("mongoose");
 
-if (!process.env.MANAGER_PASSWORD) {
-  console.error("FATAL: MANAGER_PASSWORD env var is not set");
-  process.exit(1);
-}
 if (!process.env.JWT_SECRET) {
   console.error("FATAL: JWT_SECRET env var is not set");
   process.exit(1);
 }
-const PASSWORD_HASH = bcrypt.hashSync(process.env.MANAGER_PASSWORD, 10);
+if (!process.env.ADMIN_PASSWORD) {
+  console.error("FATAL: ADMIN_PASSWORD env var is not set");
+  process.exit(1);
+}
+const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
 
-// On Vercel, each request may hit a fresh function instance with no persistent
-// connection. connectDB() reuses an existing connection when possible and
-// establishes a new one when needed — safe to await at the top of every route.
 let _mongoConnected = false;
 async function connectDB() {
   if (_mongoConnected && mongoose.connection.readyState === 1) return;
@@ -55,7 +53,8 @@ function requireAuth(req, res, next) {
   const token = getTokenFromRequest(req);
   if (token) {
     try {
-      jwt.verify(token, process.env.JWT_SECRET);
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      req.centerId = payload.centerId;
       return next();
     } catch { /* invalid or expired — fall through */ }
   }
@@ -65,6 +64,21 @@ function requireAuth(req, res, next) {
   res.redirect("/login");
 }
 
+// Admin-only middleware — uses a separate ADMIN_PASSWORD, no centerId needed
+function requireAdmin(req, res, next) {
+  const token = getTokenFromRequest(req);
+  if (token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      if (payload.admin) return next();
+    } catch {}
+  }
+  if (req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"))) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+  res.redirect("/admin/login");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +86,10 @@ function requireAuth(req, res, next) {
 app.get("/login", (req, res) => {
   const token = getTokenFromRequest(req);
   if (token) {
-    try { jwt.verify(token, process.env.JWT_SECRET); return res.redirect("/"); } catch {}
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      if (payload.centerId) return res.redirect("/");
+    } catch {}
   }
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
@@ -91,11 +108,17 @@ app.get("/scheduler", requireAuth, (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   try {
-    const { password } = req.body;
-    if (!password) return res.status(400).json({ error: "Password required." });
-    const match = await bcrypt.compare(password, PASSWORD_HASH);
-    if (!match) return res.status(401).json({ error: "Incorrect password." });
-    const token = jwt.sign({ auth: true }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    await connectDB();
+    const { centerId, password } = req.body;
+    if (!centerId || !password) return res.status(400).json({ error: "Center ID and password required." });
+
+    const center = await Center.findOne({ centerId: centerId.trim().toLowerCase() });
+    if (!center) return res.status(401).json({ error: "Incorrect Center ID or password." });
+
+    const match = await bcrypt.compare(password, center.passwordHash);
+    if (!match) return res.status(401).json({ error: "Incorrect Center ID or password." });
+
+    const token = jwt.sign({ centerId: center.centerId }, process.env.JWT_SECRET, { expiresIn: "7d" });
     res.setHeader("Set-Cookie", `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
     res.json({ ok: true });
   } catch (err) {
@@ -153,7 +176,7 @@ app.get("/oauth/callback", requireAuth, async (req, res) => {
     const { getAuth, applyTokens } = require("./auth");
     const auth = getAuth();
     const { tokens } = await auth.getToken(code);
-    await applyTokens(tokens);
+    await applyTokens(req.centerId, tokens);
 
     // Connection is now persisted in MongoDB — no manual env var step needed.
     res.send(`<!doctype html><html><head><title>Connected</title>
@@ -198,7 +221,7 @@ app.get("/cal-status", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const { getAuth, loadTokensFromDB } = require("./auth");
-    await loadTokensFromDB();
+    await loadTokensFromDB(req.centerId);
     const auth = getAuth();
     const creds = auth.credentials;
     const connected = !!(creds && (creds.access_token || creds.refresh_token));
@@ -208,12 +231,11 @@ app.get("/cal-status", requireAuth, async (req, res) => {
   }
 });
 
-// Disconnect: clear OAuth tokens from the database and memory.
 app.post("/oauth/disconnect", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const { clearTokens } = require("./auth");
-    await clearTokens();
+    await clearTokens(req.centerId);
     res.json({ disconnected: true });
   } catch (err) {
     console.error("/oauth/disconnect:", err.message);
@@ -230,7 +252,7 @@ app.get("/calendars", requireAuth, async (req, res) => {
     await connectDB();
     const { google } = require("googleapis");
     const { getAuth, loadTokensFromDB } = require("./auth");
-    await loadTokensFromDB();
+    await loadTokensFromDB(req.centerId);
     const auth = getAuth();
     const calendar = google.calendar({ version: "v3", auth });
 
@@ -337,7 +359,7 @@ app.get("/events", requireAuth, async (req, res) => {
   try {
     await connectDB();
     const { loadTokensFromDB } = require("./auth");
-    await loadTokensFromDB();
+    await loadTokensFromDB(req.centerId);
     const { getWeekEvents } = require("./calendar");
     const { studentData, oneOnOneData } = await getWeekEvents(
       new Date(monday + "T00:00:00"),
@@ -368,20 +390,17 @@ app.get("/events", requireAuth, async (req, res) => {
 app.get("/employees", requireAuth, async (req,res) => {
   try{  
     await connectDB();
-    const centerId = process.env.CENTER_ID;
-    const result = await Employee.find({ centerId });
+    const result = await Employee.find({ centerId: req.centerId });
     res.json({data: result})
   } catch (err) {
     res.status(500).json({error: err.message});
   }
-
 });
 
 app.post("/employees", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const centerId = process.env.CENTER_ID;
-    const employee = new Employee({ ...req.body, centerId });
+    const employee = new Employee({ ...req.body, centerId: req.centerId });
     await employee.save();
     res.json({ data: employee });
   } catch (err) {
@@ -416,9 +435,8 @@ app.put("/employees/:id", requireAuth, async (req, res) => {
 app.get("/center-settings", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const centerId = process.env.CENTER_ID;
-    let doc = await CenterSettings.findOne({ centerId });
-    if (!doc) doc = { centerId, windowOpen: null, windowClose: null };
+    let doc = await CenterSettings.findOne({ centerId: req.centerId });
+    if (!doc) doc = { centerId: req.centerId, windowOpen: null, windowClose: null };
     res.json({ data: doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -428,12 +446,24 @@ app.get("/center-settings", requireAuth, async (req, res) => {
 app.put("/center-settings", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const centerId = process.env.CENTER_ID;
     const doc = await CenterSettings.findOneAndUpdate(
-      { centerId },
-      { ...req.body, centerId },
+      { centerId: req.centerId },
+      { ...req.body, centerId: req.centerId },
       { new: true, upsert: true }
     );
+    res.json({ data: doc });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public read-only center settings — used by the availability form (no auth)
+app.get("/center-settings/:centerId", async (req, res) => {
+  try {
+    await connectDB();
+    const { centerId } = req.params;
+    let doc = await CenterSettings.findOne({ centerId });
+    if (!doc) doc = { centerId, windowOpen: null, windowClose: null };
     res.json({ data: doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -448,8 +478,7 @@ app.put("/center-settings", requireAuth, async (req, res) => {
 app.get("/submissions", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const centerId = process.env.CENTER_ID;
-    const query = { centerId };
+    const query = { centerId: req.centerId };
     if (req.query.weekOf) query.weekOf = req.query.weekOf;
     const submissions = await Submission.find(query).sort({ submittedAt: 1 });
     res.json({ data: submissions });
@@ -462,10 +491,9 @@ app.get("/submissions", requireAuth, async (req, res) => {
 app.post("/submissions", async (req, res) => {
   try {
     await connectDB();
-    const centerId = process.env.CENTER_ID;
-    const { employeeId, employeeName, weekOf, days } = req.body;
+    const { centerId, employeeId, employeeName, weekOf, days } = req.body;
 
-    if (!employeeId || !weekOf || !days) {
+    if (!centerId || !employeeId || !weekOf || !days) {
       return res.status(400).json({ error: "Missing required fields." });
     }
 
@@ -503,22 +531,19 @@ app.delete("/submissions/:id", requireAuth, async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC AVAILABILITY FORM
-// Served at /availability — employees enter their PIN and submit availability.
-// This is intentionally public (no auth) — the PIN is the only gate.
+// Served at /availability/:centerId — employees enter their PIN and submit.
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.get("/availability", (req, res) => {
+app.get("/availability/:centerId", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "availability.html"));
 });
 
-// PIN lookup — given a PIN, returns the matching employee (name + id only)
-// so the form can show "Hi [name]" before submission.
+// PIN lookup — given a PIN and centerId, returns the matching employee
 app.post("/availability/lookup", async (req, res) => {
   try {
     await connectDB();
-    const centerId = process.env.CENTER_ID;
-    const { pin } = req.body;
-    if (!pin) return res.status(400).json({ error: "PIN required." });
+    const { pin, centerId } = req.body;
+    if (!pin || !centerId) return res.status(400).json({ error: "PIN and center ID required." });
 
     const employee = await Employee.findOne({ centerId, pin: pin.toString() });
     if (!employee) return res.status(404).json({ error: "No employee found with that PIN." });
@@ -591,6 +616,114 @@ app.post("/generate", requireAuth, (req, res) => {
   }));
 
   res.json({ schedule, text: "" });
+});
+
+// Returns the centerId for the currently logged-in manager — used by the
+// dashboard to construct the center-specific availability link.
+app.get("/api/me", requireAuth, (req, res) => {
+  res.json({ centerId: req.centerId });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — super-manager routes, protected by ADMIN_PASSWORD env var
+// Only used by you to create/manage centers. Centers cannot access these.
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get("/admin/login", (req, res) => {
+  const token = getTokenFromRequest(req);
+  if (token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      if (payload.admin) return res.redirect("/admin");
+    } catch {}
+  }
+  res.sendFile(path.join(__dirname, "public", "admin-login.html"));
+});
+
+app.get("/admin", requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.post("/api/admin/login", async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: "Password required." });
+    const match = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
+    if (!match) return res.status(401).json({ error: "Incorrect password." });
+    const token = jwt.sign({ admin: true }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    res.setHeader("Set-Cookie", `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("/api/admin/login:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+// List all centers
+app.get("/api/admin/centers", requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const centers = await Center.find({}, { passwordHash: 0 }); // never send hashes
+    res.json({ data: centers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create a new center
+app.post("/api/admin/centers", requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const { centerId, name, password } = req.body;
+    if (!centerId || !name || !password) {
+      return res.status(400).json({ error: "centerId, name, and password are required." });
+    }
+    const existing = await Center.findOne({ centerId: centerId.trim().toLowerCase() });
+    if (existing) return res.status(409).json({ error: "A center with that ID already exists." });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const center = new Center({ centerId: centerId.trim().toLowerCase(), name, passwordHash });
+    await center.save();
+    res.json({ data: { centerId: center.centerId, name: center.name } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a center's name or password
+app.put("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const { name, password } = req.body;
+    const update = {};
+    if (name) update.name = name;
+    if (password) update.passwordHash = await bcrypt.hash(password, 10);
+    const center = await Center.findOneAndUpdate(
+      { centerId: req.params.centerId },
+      update,
+      { new: true, projection: { passwordHash: 0 } }
+    );
+    if (!center) return res.status(404).json({ error: "Center not found." });
+    res.json({ data: center });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a center (and all its data)
+app.delete("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const { centerId } = req.params;
+    await Center.deleteOne({ centerId });
+    await Employee.deleteMany({ centerId });
+    await Submission.deleteMany({ centerId });
+    await CenterSettings.deleteOne({ centerId });
+    await OAuthToken.deleteOne({ centerId });
+    res.json({ deleted: centerId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Warm up auth client on startup
