@@ -620,8 +620,14 @@ app.post("/generate", requireAuth, (req, res) => {
 
 // Returns the centerId for the currently logged-in manager — used by the
 // dashboard to construct the center-specific availability link.
-app.get("/api/me", requireAuth, (req, res) => {
-  res.json({ centerId: req.centerId });
+app.get("/api/me", requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const center = await Center.findOne({ centerId: req.centerId }, { name: 1 });
+    res.json({ centerId: req.centerId, centerName: center ? center.name : req.centerId });
+  } catch {
+    res.json({ centerId: req.centerId, centerName: req.centerId });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
