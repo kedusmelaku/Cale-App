@@ -2002,11 +2002,11 @@ body.dark {
   color: var(--text-muted);
   margin-top: 2px;
 }
-.db-card-week {
-  font-size: 0.75rem;
+.db-card-week-inline {
+  font-size: 0.72rem;
+  font-weight: 400;
   color: var(--text-muted);
-  margin-top: 3px;
-  font-style: italic;
+  margin-left: 2px;
 }
 .db-card-actions {
   display: flex;
