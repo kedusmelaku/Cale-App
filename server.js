@@ -11,6 +11,7 @@ const SimplifiedDay = require("./SimplifiedDay");
 const Employee = require("./Employee");
 const CenterSettings = require("./CenterSettings");
 const Submission = require("./Submission");
+const OAuthToken = require("./OAuthToken");
 const mongoose = require("mongoose");
 
 if (!process.env.MANAGER_PASSWORD) {
@@ -95,7 +96,7 @@ app.post("/api/login", async (req, res) => {
     const match = await bcrypt.compare(password, PASSWORD_HASH);
     if (!match) return res.status(401).json({ error: "Incorrect password." });
     const token = jwt.sign({ auth: true }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.setHeader("Set-Cookie", `token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+    res.setHeader("Set-Cookie", `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
     res.json({ ok: true });
   } catch (err) {
     console.error("/api/login:", err.message);
@@ -104,7 +105,7 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.post("/api/logout", (req, res) => {
-  res.setHeader("Set-Cookie", "token=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0");
+  res.setHeader("Set-Cookie", "token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
   res.json({ ok: true });
 });
 
@@ -148,37 +149,36 @@ app.get("/oauth/callback", requireAuth, async (req, res) => {
       .send("Missing state parameter — possible CSRF attack.");
 
   try {
+    await connectDB();
     const { getAuth, applyTokens } = require("./auth");
     const auth = getAuth();
     const { tokens } = await auth.getToken(code);
-    applyTokens(tokens);
+    await applyTokens(tokens);
 
-    const tokenJson = JSON.stringify(tokens);
-
-    // Show a simple page — tells user to copy the token to Vercel, then close tab
+    // Connection is now persisted in MongoDB — no manual env var step needed.
     res.send(`<!doctype html><html><head><title>Connected</title>
 <style>
   body{font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto;background:#f5f5f2;}
   h2{color:#217a4a;}
-  pre{background:#fff;border:1px solid #ccc;padding:12px;border-radius:6px;word-break:break-all;white-space:pre-wrap;font-size:0.8rem;}
-  ol{line-height:2.2;}
-  .done{color:#217a4a;font-weight:bold;}
+  .done{color:#217a4a;font-weight:bold;margin-top:20px;}
+  .muted{color:#666;}
 </style></head><body>
 <h2>✅ Google Calendar connected!</h2>
-<p>The scheduler is connected and working. Close this tab and return to the app.</p>
-<hr>
-<h3>Save this token to Vercel (one-time setup)</h3>
-<p>This connection only lasts until the server restarts. To make it permanent:</p>
-<ol>
-  <li>Go to <strong>vercel.com</strong> → your service → <strong>Environment</strong></li>
-  <li>Find <code>GOOGLE_TOKEN</code> and replace its value with the text below</li>
-  <li>Click <strong>Save Changes</strong> — no redeploy needed</li>
-</ol>
-<p><strong>Copy this entire value:</strong></p>
-<pre id="t">${tokenJson}</pre>
-<p class="done">Done? Close this tab — the app is ready.</p>
+<p>The scheduler is connected and ready. This connection is saved and will
+persist automatically — there's nothing else you need to do.</p>
+<p class="done">You can close this tab and return to the app.</p>
+<p class="muted">This tab will try to close itself in a moment.</p>
 <script>
-  if(window.opener){ try{ window.opener.postMessage({type:'oauth_success'},'*'); }catch(e){} }
+  // Notify the original tab (dashboard/scheduler) that OAuth succeeded so it
+  // can refresh its calendar status, then try to close this tab automatically.
+  (function () {
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'oauth_success' }, '*');
+        setTimeout(function () { try { window.close(); } catch (e) {} }, 800);
+      }
+    } catch (e) {}
+  })();
 </script>
 </body></html>`);
   } catch (err) {
@@ -194,9 +194,11 @@ app.get("/oauth/callback", requireAuth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // CAL STATUS — used by the frontend to show connected/disconnected dot
 // ─────────────────────────────────────────────────────────────────────────────
-app.get("/cal-status", requireAuth, (req, res) => {
+app.get("/cal-status", requireAuth, async (req, res) => {
   try {
-    const { getAuth } = require("./auth");
+    await connectDB();
+    const { getAuth, loadTokensFromDB } = require("./auth");
+    await loadTokensFromDB();
     const auth = getAuth();
     const creds = auth.credentials;
     const connected = !!(creds && (creds.access_token || creds.refresh_token));
@@ -206,11 +208,12 @@ app.get("/cal-status", requireAuth, (req, res) => {
   }
 });
 
-// Disconnect: clear in-memory OAuth tokens so the app is no longer connected
-app.post("/oauth/disconnect", requireAuth, (req, res) => {
+// Disconnect: clear OAuth tokens from the database and memory.
+app.post("/oauth/disconnect", requireAuth, async (req, res) => {
   try {
+    await connectDB();
     const { clearTokens } = require("./auth");
-    clearTokens();
+    await clearTokens();
     res.json({ disconnected: true });
   } catch (err) {
     console.error("/oauth/disconnect:", err.message);
@@ -224,8 +227,10 @@ app.post("/oauth/disconnect", requireAuth, (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/calendars", requireAuth, async (req, res) => {
   try {
+    await connectDB();
     const { google } = require("googleapis");
-    const { getAuth } = require("./auth");
+    const { getAuth, loadTokensFromDB } = require("./auth");
+    await loadTokensFromDB();
     const auth = getAuth();
     const calendar = google.calendar({ version: "v3", auth });
 
@@ -330,6 +335,9 @@ app.get("/events", requireAuth, async (req, res) => {
   const { monday, calendarId } = req.query;
   if (!monday) return res.status(400).json({ error: "monday date required" });
   try {
+    await connectDB();
+    const { loadTokensFromDB } = require("./auth");
+    await loadTokensFromDB();
     const { getWeekEvents } = require("./calendar");
     const { studentData, oneOnOneData } = await getWeekEvents(
       new Date(monday + "T00:00:00"),
