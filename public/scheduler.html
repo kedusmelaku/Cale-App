@@ -595,10 +595,7 @@
       function exitDemo() {
         settings.demo = false;
         saveSettings();
-        document.getElementById("demo-toggle").checked = false;
-        document.body.classList.remove("demo-active");
-        deactivateDemo();
-        updateCalWarningBanner();
+        window.location.href = "/";
       }
 
       closeOnOverlayClick("settings-panel", closeSettings);
@@ -1010,6 +1007,7 @@
               <div class="av-color" style="background:${_getWorkerColor(w.name)}"></div>
               <span class="av-name">${w.name}</span>
               <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
+              <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
             </div>
             <div class="av-days">${daysHtml}</div>`;
           list.appendChild(section);

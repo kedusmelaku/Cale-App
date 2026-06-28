@@ -182,6 +182,23 @@
       .submit-btn:hover { background: var(--accent-hover); }
       .submit-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
 
+      .av-select-all-form {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+        cursor: pointer;
+      }
+      .av-select-all-form input[type="checkbox"] {
+        accent-color: var(--accent);
+        cursor: pointer;
+        width: 15px;
+        height: 15px;
+      }
+
       /* Confirmation modal */
       .confirm-overlay {
         display: none;
@@ -321,6 +338,10 @@
         <div class="av-form-card">
           <div id="greeting" class="greeting"></div>
           <div id="week-label" class="week-label"></div>
+          <label class="av-select-all-form" id="select-all-label">
+            <input type="checkbox" id="select-all-days" onchange="toggleAllDaysForm(this.checked)">
+            <span>Select all days</span>
+          </label>
           <div id="day-list"></div>
           <button class="submit-btn" id="submit-btn" onclick="showConfirm()">
             Submit Availability
@@ -608,6 +629,23 @@
             </div>` : ""}`;
           list.appendChild(block);
         });
+
+        // Sync the select-all checkbox
+        const allChecked = DAYS.every(d => dayState[d]?.selected);
+        const anyChecked = DAYS.some(d => dayState[d]?.selected);
+        const selectAll = document.getElementById("select-all-days");
+        if (selectAll) {
+          selectAll.checked = allChecked;
+          selectAll.indeterminate = !allChecked && anyChecked;
+        }
+      }
+
+      function toggleAllDaysForm(checked) {
+        DAYS.forEach((d) => {
+          if (!dayState[d]) dayState[d] = { selected: false, allDay: true, start: d === "saturday" ? 10 : (_employee?.priority === 2 ? 3 : 4), startMinute: 0, end: d === "saturday" ? 14 : 8, endMinute: 0 };
+          dayState[d].selected = checked;
+        });
+        renderDays();
       }
 
       function toggleDay(d, checked) {
