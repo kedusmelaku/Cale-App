@@ -112,9 +112,8 @@ body.cal-warning-active.demo-active .screen {
 
 .screen {
   display: none;
-  min-height: 100vh;
   flex-direction: column;
-  position: relative;   /* stays in normal flow */
+  position: fixed;
   inset: 0;
   overflow-y: auto;
   background: var(--bg);
