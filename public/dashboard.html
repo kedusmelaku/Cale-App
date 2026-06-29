@@ -697,68 +697,87 @@
         {
           global: 0, target: null, pos: "center",
           title: "Welcome to Scheduler",
-          body: "This quick tour walks you through the full app — the dashboard and the schedule builder — in one go. Demo mode has been enabled so everything is populated. Press <strong>→</strong> or click <strong>Next</strong> to advance, <strong>Escape</strong> to skip.",
+          body: "This quick tour walks you through the full app. Demo mode is on so everything is populated. You'll be asked to interact with parts of the UI as we go — it's the best way to learn. Press <strong>→</strong> or <strong>Next</strong> to advance, <strong>Escape</strong> to exit.",
           next: "Let's go →",
         },
         {
           global: 1, target: ".db-topbar", pos: "below",
           title: "Top Bar",
-          body: "Shows the app name and your <strong>center name</strong> beneath it. <strong>Build Schedule →</strong> takes you to the schedule builder when you're ready. The <strong>⚙ gear</strong> opens Settings.",
+          body: "Shows the app name and your <strong>center name</strong> beneath it. <strong>Build Schedule →</strong> takes you to the schedule builder. The <strong>⚙ gear</strong> opens Settings.",
         },
         {
           global: 2, target: ".db-rail", pos: "right",
           title: "Team Roster",
-          body: "Lists every employee at your center, sorted by priority then name. Each card shows a <strong>color stripe</strong>, their <strong>name</strong>, <strong>PIN</strong>, and <strong>priority level</strong>. Use <strong>Edit</strong> to update details or <strong>✕</strong> to remove.",
+          body: "Lists every employee sorted by priority then name. Each card shows a <strong>color stripe</strong> (used in the schedule), their <strong>name</strong>, <strong>PIN</strong>, and <strong>priority level</strong>.",
         },
         {
           global: 3, target: ".db-add-btn", pos: "right",
-          title: "Adding an Employee",
-          body: "Click <strong>+</strong> to add a new employee. Set their name and priority level — a unique 4-digit PIN is auto-generated. Employees enter that PIN on the availability form to identify themselves.",
+          title: "Try Adding an Employee",
+          body: "Click <strong>+</strong> to add a new employee. Set their name and priority — a 4-digit PIN is auto-generated. Employees use that PIN to log in to the availability form.",
+          hint: "Click the + button to open the Add Employee dialog",
+          waitFor: "#modal",
         },
         {
-          global: 4, target: ".db-status-row", pos: "below",
+          global: 4, target: "#modal .modal", pos: "right",
+          title: "Add Employee Dialog",
+          body: "Enter a name, choose a <strong>priority level</strong> (Normal for high schoolers, Priority or High Priority for adults with more availability), and note the auto-generated <strong>PIN</strong>. Close this dialog when you're done exploring.",
+          hint: "Close the dialog to continue",
+          waitFor: "#modal",
+          waitForGone: true,
+        },
+        {
+          global: 5, target: ".db-status-row", pos: "below",
           title: "Status Pills",
-          body: "Four live indicators for the week. <strong>Calendar</strong>: Google Calendar connection. <strong>Form</strong>: whether the availability window is open. <strong>Submissions</strong>: how many of your team have submitted. <strong>Schedule</strong>: whether submissions cover all student slots.",
+          body: "Four live indicators. <strong>Calendar</strong>: Google Calendar connection. <strong>Form</strong>: whether the availability window is open. <strong>Submissions</strong>: how many submitted. <strong>Schedule</strong>: whether coverage is adequate for all student slots.",
         },
         {
-          global: 5, target: "#status-cal", pos: "below",
-          title: "Calendar Status",
-          body: "Shows whether Google Calendar is connected. When connected, Scheduler reads student booking counts from it to know how many instructors are needed each slot. Connect or disconnect under <strong>Settings → Google Calendar</strong>.",
+          global: 6, target: "#db-window-card", pos: "left",
+          title: "Try Configuring the Form",
+          body: "The availability form card lets you share a link with employees and control when they can submit. Click <strong>Configure</strong> to set the form window.",
+          hint: "Click Configure to open the form settings",
+          waitFor: "#window-modal",
         },
         {
-          global: 6, target: "#status-window", pos: "below",
-          title: "Form Status",
-          body: "Tracks the availability form window. <strong>Not set</strong>: not configured yet. <strong>Scheduled</strong>: opens at a future time. <strong>Open</strong>: employees can submit now. <strong>Closed</strong>: the window has passed to submit or the form has been manually closed.",
-        },
-        {
-          global: 7, target: "#db-window-card", pos: "left",
-          title: "Availability Form Card",
-          body: "<strong>Configure</strong> sets when the form opens and closes. <strong>Copy Link</strong> copies the employee-facing URL to share in a group chat or message. <strong>Close Now</strong> appears while the form is open.",
+          global: 7, target: "#window-modal .modal", pos: "left",
+          title: "Form Window Settings",
+          body: "Set when the form <strong>opens</strong> and <strong>closes</strong>. Choose a close time or <strong>Closes Manually</strong> to control it yourself. <strong>Copy Link</strong> gives you the URL to share with your team. Close this when you're done.",
+          hint: "Close the dialog to continue",
+          waitFor: "#window-modal",
+          waitForGone: true,
         },
         {
           global: 8, target: "#db-submissions-card", pos: "left",
           title: "Submissions",
-          body: "Shows who submitted and in what order — earlier submissions get scheduling priority within the same priority tier. Greyed-out rows haven't submitted yet. <strong>Hover</strong> a submitted row and click <strong>View</strong> to see what they submitted.",
+          body: "Shows who submitted in order — earlier submissions get scheduling priority within the same tier. Greyed-out rows haven't submitted yet. <strong>Hover</strong> a submitted row to see a <strong>View</strong> button showing their exact availability.",
         },
         {
           global: 9, target: ".db-build-btn", pos: "above",
           title: "Build Schedule",
-          body: "Once the team has submitted, click <strong>Build Schedule →</strong> to head to the schedule builder. If the form is still open you'll be warned and can close it first.",
+          body: "Once your team has submitted, click <strong>Build Schedule →</strong> to go to the schedule builder. If the form is still open you'll be warned and can close it first.",
         },
         {
-          global: 10, target: "#settings-panel", pos: "center",
+          global: 10, target: "#btn-gear", pos: "left",
+          title: "Try Opening Settings",
+          body: "The <strong>⚙ gear</strong> opens Settings. Give it a click to explore.",
+          hint: "Click the ⚙ gear to open Settings",
+          waitFor: "#settings-panel",
+        },
+        {
+          global: 11, target: "#settings-panel .settings-modal", pos: "left",
           title: "Settings",
-          body: "The <strong>⚙ gear</strong> opens Settings. Switch <strong>Light / Dark</strong> mode, choose your <strong>Scheduling Mode</strong> (Normal = clean shift blocks; Ultra-efficient = slot-by-slot precision), toggle <strong>Demo Mode</strong> to explore with sample data, and manage your <strong>Google Calendar</strong> connection.",
-          before: function() { openSettings(); },
-          after:  function() { closeSettings(); },
+          body: "Switch <strong>Light / Dark</strong> mode, choose <strong>Scheduling Mode</strong> (Normal = clean shift blocks; Ultra-efficient = slot-by-slot), toggle <strong>Demo Mode</strong>, and manage your <strong>Google Calendar</strong> connection. Close Settings when you're done.",
+          hint: "Close Settings to continue",
+          waitFor: "#settings-panel",
+          waitForGone: true,
+          onExit: function() { closeSettings(); },
         },
         {
-          global: 11, target: null, pos: "center",
+          global: 12, target: null, pos: "center",
           title: "On to the Schedule Builder",
           body: "That covers the dashboard. Next up: the schedule builder, where you generate and edit the weekly schedule. The tour will continue there automatically.",
           next: "Continue →",
           after: function() {
-            localStorage.setItem(TUT_STORAGE_KEY, "12");
+            localStorage.setItem(TUT_STORAGE_KEY, "13");
             window.location.href = "/scheduler";
           },
         },
@@ -807,16 +826,59 @@
         card.style.left = Math.max(8, Math.min(left, W - cw - 8)) + "px";
       }
 
+      let _tutWaitTimer = null;
+
+      function tutRaisedModals(raise) {
+        document.querySelectorAll(".modal-overlay.open").forEach(el => {
+          el.classList.toggle("tut-raised", raise);
+        });
+      }
+
+      function tutWatchFor(step) {
+        if (_tutWaitTimer) clearInterval(_tutWaitTimer);
+        _tutWaitTimer = setInterval(function() {
+          const el = document.querySelector(step.waitFor);
+          if (!el) return;
+          const isOpen = el.classList.contains("open");
+          if (step.waitForGone ? !isOpen : isOpen) {
+            clearInterval(_tutWaitTimer);
+            _tutWaitTimer = null;
+            tutAdvanceStep();
+          }
+        }, 80);
+      }
+
       function tutRender() {
         const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
         if (li < 0) return;
         const step = TUT_DASHBOARD_STEPS[li];
+
+        if (step.onEnter) step.onEnter();
+        setTimeout(() => tutRaisedModals(true), 50);
+
         document.getElementById("tut-overlay").classList.add("active");
         document.getElementById("tut-badge").textContent = `Step ${tut.step + 1}`;
         document.getElementById("tut-title").textContent = step.title;
         document.getElementById("tut-body").innerHTML    = step.body;
-        const nb = document.getElementById("tut-next");
-        nb.textContent = step.next || "Next →"; nb.disabled = false;
+
+        const nb   = document.getElementById("tut-next");
+        const hint = document.getElementById("tut-hint");
+        const card = document.getElementById("tut-card");
+
+        if (step.waitFor) {
+          nb.style.display = "none";
+          hint.style.display = "flex";
+          hint.textContent = step.hint || "Interact to continue";
+          card.classList.add("waiting");
+          tutWatchFor(step);
+        } else {
+          nb.style.display = "";
+          hint.style.display = "none";
+          nb.textContent = step.next || "Next →";
+          nb.disabled = false;
+          card.classList.remove("waiting");
+        }
+
         document.getElementById("tut-dots").innerHTML = Array.from({length: TUT_TOTAL}, (_, i) => {
           const cls = i < tut.step ? "tut-dot done" : i === tut.step ? "tut-dot active" : "tut-dot";
           return `<div class="${cls}"></div>`;
@@ -824,6 +886,20 @@
         const rect = tutGetRect(step.target);
         tutSetDim(rect);
         requestAnimationFrame(() => tutPositionCard(rect, step.pos));
+      }
+
+      function tutAdvanceStep() {
+        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
+        if (li < 0) return;
+        const step = TUT_DASHBOARD_STEPS[li];
+        if (step.onExit) step.onExit();
+        tutRaisedModals(false);
+        if (step.after) { step.after(); return; }
+        tut.step++;
+        if (tut.step >= TUT_TOTAL) { tutEnd(); return; }
+        const next = TUT_DASHBOARD_STEPS.find(s => s.global === tut.step);
+        if (!next) { tutEnd(); return; }
+        tutRender();
       }
 
       function tutEnableDemo() {
@@ -855,30 +931,26 @@
       }
 
       function tutNext() {
-        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
-        if (li < 0) return;
-        const step = TUT_DASHBOARD_STEPS[li];
-        if (step.after) { step.after(); return; }
-        tut.step++;
-        if (tut.step >= TUT_TOTAL) { tutEnd(); return; }
-        const next = TUT_DASHBOARD_STEPS.find(s => s.global === tut.step);
-        if (!next) { tutEnd(); return; }
-        if (next.before) { next.before(); setTimeout(tutRender, 180); }
-        else tutRender();
+        tutAdvanceStep();
       }
 
       function tutSkip() {
-        localStorage.removeItem(TUT_STORAGE_KEY);
-        if (tut.step === 10) closeSettings();
+        if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
+        tutRaisedModals(false);
+        closeSettings();
+        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
+        if (li >= 0 && TUT_DASHBOARD_STEPS[li].onExit) TUT_DASHBOARD_STEPS[li].onExit();
         tutDisableDemo();
         tutEnd();
       }
 
       function tutEnd() {
         tut.active = false;
+        if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
         localStorage.removeItem(TUT_STORAGE_KEY);
         document.getElementById("tut-overlay").classList.remove("active");
         document.getElementById("tut-highlight-border").style.display = "none";
+        document.getElementById("tut-card").classList.remove("waiting");
       }
 
       document.addEventListener("keydown", function(e) {
