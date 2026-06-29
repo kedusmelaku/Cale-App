@@ -1996,7 +1996,7 @@
       const TUT_STORAGE_KEY   = "scheduler-tut-step";
       const TUT_DEMO_KEY      = "scheduler-tut-demo";
       const TUT_COMPLETED_KEY = "scheduler-tut-completed";
-      const TUT_TOTAL         = 20;
+      const TUT_TOTAL         = 22;
       const tut = { active: false, step: 0 };
 
       function tutMarkCompleted() {
@@ -2009,47 +2009,65 @@
         {
           global: 12, target: null, pos: "center",
           title: "The Schedule Builder",
-          body: "You're now on the schedule builder. Demo mode is still active so everything is populated with sample data. Let's walk through each part.",
+          body: "You're now on the schedule builder. Demo mode is still active. This page is more hands-on — you'll generate a real schedule and try editing it.",
         },
         {
           global: 13, target: ".availability-panel", pos: "right",
           title: "Availability Panel",
-          body: "The left panel shows each employee's availability for the week. Two tabs: <strong>Form</strong> shows what employees submitted via the availability form. <strong>Manual</strong> lets you set or override availability here before generating.",
+          body: "The left panel shows each employee's availability. <strong>Form</strong> tab shows what employees submitted. <strong>Manual</strong> tab lets you set or override it here before generating.",
         },
         {
           global: 14, target: ".av-tabs", pos: "right",
-          title: "Form vs Manual Tabs",
-          body: "<strong>Form tab</strong>: read-only view of submitted availability — each employee shows which days and hours they can work. <strong>Manual tab</strong>: full editing UI with day checkboxes, a default-hours toggle, and custom start/end time dropdowns per day.",
+          title: "Try the Manual Tab",
+          body: "Switch to the <strong>Manual</strong> tab to see the full editing UI — day checkboxes, default-hours toggle, and start/end time dropdowns. Switch back to Form when done.",
+          hint: "Click the Manual tab to explore it",
+          waitFor: ".av-tab-manual",
+          waitForClass: "active",
         },
         {
           global: 15, target: ".output-panel-header", pos: "left",
           title: "Schedule Panel",
-          body: "The right side is where the generated schedule appears. The <strong>Week of (Monday)</strong> date picker sets which week to schedule — it always snaps to the nearest Monday. Calendar connection status shows next to the heading.",
+          body: "The right side shows the generated schedule. The <strong>Week of</strong> date picker sets which Monday to schedule — it always snaps to the nearest Monday.",
         },
         {
           global: 16, target: "#btn-generate", pos: "below",
-          title: "Generate Schedule",
-          body: "Click <strong>Generate Schedule</strong> to run the algorithm. It reads student booking counts from Google Calendar for the selected week, then assigns employees to shifts based on availability and priority. <strong>Keyboard shortcut: press Enter</strong> while the date field is focused.",
+          title: "Try Generating a Schedule",
+          body: "Click <strong>Generate Schedule</strong> to run the algorithm. In demo mode it uses sample student data. Press <strong>Enter</strong> while the date field is focused as a shortcut.",
+          hint: "Click Generate Schedule",
+          waitFor: ".schedule-grid",
+          waitForClass: "has-schedule",
         },
         {
           global: 17, target: ".schedule-grid", pos: "left",
           title: "Reading the Timeline",
-          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. <strong>Hover any time slot label</strong> to see a tooltip showing student count, instructors needed, and who is assigned. <strong>Red hatching</strong> on a block means the shift falls outside that employee's submitted availability.",
+          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. <strong>Hover any time slot label</strong> to see a tooltip: student count, instructors needed, and who's assigned. <strong>Red hatching</strong> means a shift falls outside submitted availability.",
         },
         {
           global: 18, target: "#edit-btn", pos: "below",
-          title: "Editing the Schedule",
-          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. <strong>Drag blocks</strong> vertically to shift start times. <strong>Drag the bottom handle</strong> to resize the end time. Click <strong>✕</strong> on a block to remove a shift. Use <strong>+ Add Employee</strong> at the bottom of each day to manually add someone.",
+          title: "Try Editing the Schedule",
+          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. Drag blocks vertically to move start times, drag the bottom handle to resize, and click <strong>✕</strong> to remove a shift.",
+          hint: "Click Edit Schedule to open the editor",
+          waitFor: "#screen-edit",
+          waitForClass: "active",
         },
         {
-          global: 19, target: "#copy-btn", pos: "below",
+          global: 19, target: "#screen-edit .edit-body", pos: "left",
+          title: "Edit Mode",
+          body: "Each block is draggable. The <strong>bottom handle</strong> resizes the end time. <strong>✕</strong> removes the shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually. Click <strong>← Back</strong> when you're done.",
+          hint: "Click ← Back to return to the schedule",
+          waitFor: "#screen-edit",
+          waitForGone: true,
+          onExit: function() { showScreen("screen-schedule"); },
+        },
+        {
+          global: 20, target: "#copy-btn", pos: "below",
           title: "Copy & Finish",
-          body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. If any employee is scheduled outside their availability you'll see a warning first. <strong>Finish →</strong> returns you to the dashboard.",
+          body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. <strong>Finish →</strong> returns you to the dashboard.",
         },
         {
-          global: 20, target: null, pos: "center",
+          global: 21, target: null, pos: "center",
           title: "You're all set!",
-          body: "That's the full app. The weekly flow: <strong>1)</strong> Add your team on the dashboard. <strong>2)</strong> Configure the form and share the link. <strong>3)</strong> Once everyone submits, pick a Monday date here and generate. <strong>4)</strong> Edit if needed, copy, and share. Demo mode has been turned off.",
+          body: "That's the full app. The weekly flow: <strong>1)</strong> Add your team on the dashboard. <strong>2)</strong> Configure the form and share the link. <strong>3)</strong> Once everyone submits, pick a Monday date here and generate. <strong>4)</strong> Edit if needed, copy, and share.",
           next: "Done ✓",
           after: function() { tutDisableDemo(); tutMarkCompleted(); },
         },
@@ -2098,16 +2116,53 @@
         card.style.left = Math.max(8, Math.min(left, W - cw - 8)) + "px";
       }
 
+      let _tutWaitTimer = null;
+
+      function tutWatchFor(step) {
+        if (_tutWaitTimer) clearInterval(_tutWaitTimer);
+        _tutWaitTimer = setInterval(function() {
+          const el = document.querySelector(step.waitFor);
+          if (!el) return;
+          const cls = step.waitForClass || "open";
+          const hasClass = el.classList.contains(cls);
+          if (step.waitForGone ? !hasClass : hasClass) {
+            clearInterval(_tutWaitTimer);
+            _tutWaitTimer = null;
+            tutAdvanceStep();
+          }
+        }, 80);
+      }
+
       function tutRender() {
         const li = TUT_SCHEDULER_STEPS.findIndex(s => s.global === tut.step);
         if (li < 0) return;
         const step = TUT_SCHEDULER_STEPS[li];
+
+        if (step.onEnter) step.onEnter();
+
         document.getElementById("tut-overlay").classList.add("active");
-        document.getElementById("tut-badge").textContent = `Step ${tut.step + 1} of ${TUT_TOTAL}`;
+        document.getElementById("tut-badge").textContent = `Step ${tut.step + 1}`;
         document.getElementById("tut-title").textContent = step.title;
         document.getElementById("tut-body").innerHTML    = step.body;
-        const nb = document.getElementById("tut-next");
-        nb.textContent = step.next || "Next →"; nb.disabled = false;
+
+        const nb   = document.getElementById("tut-next");
+        const hint = document.getElementById("tut-hint");
+        const card = document.getElementById("tut-card");
+
+        if (step.waitFor) {
+          nb.style.display = "none";
+          hint.style.display = "flex";
+          hint.textContent = step.hint || "Interact to continue";
+          card.classList.add("waiting");
+          tutWatchFor(step);
+        } else {
+          nb.style.display = "";
+          hint.style.display = "none";
+          nb.textContent = step.next || "Next →";
+          nb.disabled = false;
+          card.classList.remove("waiting");
+        }
+
         document.getElementById("tut-dots").innerHTML = Array.from({length: TUT_TOTAL}, (_, i) => {
           const cls = i < tut.step ? "tut-dot done" : i === tut.step ? "tut-dot active" : "tut-dot";
           return `<div class="${cls}"></div>`;
@@ -2115,6 +2170,20 @@
         const rect = tutGetRect(step.target);
         tutSetDim(rect);
         requestAnimationFrame(() => tutPositionCard(rect, step.pos));
+      }
+
+      function tutAdvanceStep() {
+        const li = TUT_SCHEDULER_STEPS.findIndex(s => s.global === tut.step);
+        if (li < 0) return;
+        const step = TUT_SCHEDULER_STEPS[li];
+        if (step.onExit) step.onExit();
+        if (step.after) { step.after(); return; }
+        tut.step++;
+        localStorage.setItem(TUT_STORAGE_KEY, String(tut.step));
+        if (tut.step > 21) { tutEnd(); return; }
+        const next = TUT_SCHEDULER_STEPS.find(s => s.global === tut.step);
+        if (!next) { tutEnd(); return; }
+        tutRender();
       }
 
       function tutEnsureDemo() {
@@ -2144,29 +2213,24 @@
       }
 
       function tutNext() {
-        const li = TUT_SCHEDULER_STEPS.findIndex(s => s.global === tut.step);
-        if (li < 0) return;
-        const step = TUT_SCHEDULER_STEPS[li];
-        tut.step++;
-        localStorage.setItem(TUT_STORAGE_KEY, String(tut.step));
-        if (step.after) step.after();
-        if (tut.step > 20) { tutEnd(); return; }
-        const next = TUT_SCHEDULER_STEPS.find(s => s.global === tut.step);
-        if (!next) { tutEnd(); return; }
-        if (next.before) { next.before(); setTimeout(tutRender, 180); }
-        else tutRender();
+        tutAdvanceStep();
       }
 
       function tutSkip() {
+        if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
+        const li = TUT_SCHEDULER_STEPS.findIndex(s => s.global === tut.step);
+        if (li >= 0 && TUT_SCHEDULER_STEPS[li].onExit) TUT_SCHEDULER_STEPS[li].onExit();
         tutDisableDemo();
         tutEnd();
       }
 
       function tutEnd() {
         tut.active = false;
+        if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
         localStorage.removeItem(TUT_STORAGE_KEY);
         document.getElementById("tut-overlay").classList.remove("active");
         document.getElementById("tut-highlight-border").style.display = "none";
+        document.getElementById("tut-card").classList.remove("waiting");
       }
 
       document.addEventListener("keydown", function(e) {

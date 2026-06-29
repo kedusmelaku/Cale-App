@@ -359,6 +359,9 @@ header {
 }
 
 .modal-overlay.open { display: flex; }
+/* Lift open modals above the tutorial dim layer so they show through */
+#tut-overlay.active ~ .modal-overlay.open,
+.modal-overlay.open.tut-raised { z-index: 502; }
 
 .modal {
   background: var(--surface);
