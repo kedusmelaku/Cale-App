@@ -684,7 +684,7 @@
       const TUT_STORAGE_KEY   = "scheduler-tut-step";
       const TUT_DEMO_KEY      = "scheduler-tut-demo";
       const TUT_COMPLETED_KEY = "scheduler-tut-completed";
-      const TUT_TOTAL         = 20;
+      const TUT_TOTAL         = 22;
       const tut = { active: false, step: 0 };
 
       function tutMarkCompleted() {
@@ -812,7 +812,7 @@
         if (li < 0) return;
         const step = TUT_DASHBOARD_STEPS[li];
         document.getElementById("tut-overlay").classList.add("active");
-        document.getElementById("tut-badge").textContent = `Step ${tut.step + 1} of ${TUT_TOTAL}`;
+        document.getElementById("tut-badge").textContent = `Step ${tut.step + 1}`;
         document.getElementById("tut-title").textContent = step.title;
         document.getElementById("tut-body").innerHTML    = step.body;
         const nb = document.getElementById("tut-next");
