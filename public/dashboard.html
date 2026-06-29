@@ -648,8 +648,7 @@
       if (localStorage.getItem("scheduler-tut-completed") === "1") {
         document.body.classList.add("tut-completed");
       } else {
-        // Inject the screen-filling ripple div — erupts from the gear corner
-        // and floods the viewport, then fades. Afterwards the gear pulses.
+        // Big screen-filling ripple from gear corner, then continuous ring pulse
         const ripple = document.createElement("div");
         ripple.id = "tut-gear-ripple";
         document.body.appendChild(ripple);

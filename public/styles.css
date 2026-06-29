@@ -1587,26 +1587,48 @@ body.tut-completed .settings-tour-bottom { display: block; }
 
 /* ── Gear nudge: badge + ripple + pulse ── */
 
-/* Badge dot — top-right corner of gear button */
+/* The gear button needs position:relative for badge and ::before ring */
 .btn-gear {
-  position: relative; /* needed for ::after badge */
+  position: relative;
 }
+
+/* Badge dot */
 .btn-gear::after {
   content: "";
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 1px;
+  right: 1px;
   width: 8px;
   height: 8px;
   background: #3b82f6;
   border-radius: 50%;
   border: 1.5px solid var(--bg);
-  display: block;
+  pointer-events: none;
 }
 body.tut-completed .btn-gear::after { display: none; }
 
-/* Screen-filling ripple on dashboard load — fixed 1×1 point anchored
-   to the gear corner, expands via box-shadow to flood the viewport   */
+/* Pulse ring — ::before so it's independent of the button's own transition.
+   Sits behind the gear icon, scales out and fades. */
+.btn-gear.tut-gear-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 8px;
+  background: rgba(59,130,246,0.55);
+  animation: tut-ring-pulse 1.8s ease-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+body.tut-completed .btn-gear::before { display: none; }
+
+@keyframes tut-ring-pulse {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  70%  { transform: scale(2.8);  opacity: 0;   }
+  100% { transform: scale(2.8);  opacity: 0;   }
+}
+
+/* Screen-filling ripple on dashboard load only.
+   Fixed 1×1 point at gear position, box-shadow expands to cover viewport. */
 #tut-gear-ripple {
   position: fixed;
   top: 28px;
@@ -1616,30 +1638,14 @@ body.tut-completed .btn-gear::after { display: none; }
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
-  animation: tut-ripple-intro 1.5s cubic-bezier(0.1, 0.5, 0.3, 1) forwards;
+  animation: tut-ripple-intro 1.6s cubic-bezier(0.1, 0.5, 0.3, 1) forwards;
 }
 
 @keyframes tut-ripple-intro {
   0%   { box-shadow: 0 0 0 0     rgba(59,130,246,0.9); }
-  20%  { box-shadow: 0 0 0 12vw  rgba(59,130,246,0.6); }
-  50%  { box-shadow: 0 0 0 50vw  rgba(59,130,246,0.25);}
-  100% { box-shadow: 0 0 0 120vw rgba(59,130,246,0);   }
-}
-
-/* Continuous repeating pulse on gear after ripple finishes */
-@keyframes tut-gear-pulse {
-  0%   { box-shadow: 0 0 0 0    rgba(59,130,246,0.7); }
-  55%  { box-shadow: 0 0 0 10px rgba(59,130,246,0);   }
-  100% { box-shadow: 0 0 0 0    rgba(59,130,246,0);   }
-}
-
-.tut-gear-pulse {
-  border-radius: 6px;
-  animation: tut-gear-pulse 1.8s ease-in-out infinite;
-}
-body.tut-completed .tut-gear-pulse {
-  animation: none;
-  box-shadow: none;
+  20%  { box-shadow: 0 0 0 15vw  rgba(59,130,246,0.6); }
+  55%  { box-shadow: 0 0 0 55vw  rgba(59,130,246,0.25);}
+  100% { box-shadow: 0 0 0 130vw rgba(59,130,246,0);   }
 }
 
 /* ── Tutorial: locked settings links (steps 23-26) ── */
