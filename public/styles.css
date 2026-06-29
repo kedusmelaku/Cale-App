@@ -1624,8 +1624,9 @@ body.tut-completed .btn-gear::after { display: none; }
   100% { transform: scale(3);   opacity: 0;   }
 }
 
-/* Screen-filling ripple on dashboard load only.
-   Fixed 1×1 point at gear position, box-shadow expands to cover viewport. */
+/* Attention pulse on dashboard load only.
+   Erupts from gear corner, blooms to ~top-right quarter, then
+   contracts back to the gear — drawing the eye toward it.    */
 #tut-gear-ripple {
   position: fixed;
   top: 28px;
@@ -1635,14 +1636,15 @@ body.tut-completed .btn-gear::after { display: none; }
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
-  animation: tut-ripple-intro 1.6s cubic-bezier(0.1, 0.5, 0.3, 1) forwards;
+  animation: tut-ripple-intro 2s ease-in-out forwards;
 }
 
 @keyframes tut-ripple-intro {
-  0%   { box-shadow: 0 0 0 0     rgba(59,130,246,0.9); }
-  20%  { box-shadow: 0 0 0 15vw  rgba(59,130,246,0.6); }
-  55%  { box-shadow: 0 0 0 55vw  rgba(59,130,246,0.25);}
-  100% { box-shadow: 0 0 0 130vw rgba(59,130,246,0);   }
+  0%   { box-shadow: 0 0 0 0    rgba(59,130,246,0);    }
+  12%  { box-shadow: 0 0 0 0    rgba(59,130,246,0.9);  }
+  50%  { box-shadow: 0 0 0 45vw rgba(59,130,246,0.45); }
+  85%  { box-shadow: 0 0 0 4px  rgba(59,130,246,0.8);  }
+  100% { box-shadow: 0 0 0 4px  rgba(59,130,246,0);    }
 }
 
 /* ── Tutorial: locked settings links (steps 23-26) ── */
