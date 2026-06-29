@@ -60,7 +60,7 @@
         </div>
         <div class="db-topbar-actions">
           <button class="btn-primary" onclick="goToSchedule()">Build Schedule →</button>
-          <button class="btn-gear tut-gear-pulse" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
+          <button class="btn-gear tut-gear-intro" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
         </div>
       </div>
 
@@ -291,9 +291,8 @@
           <span class="settings-title">Settings</span>
           <button class="btn-back" onclick="closeSettings()" aria-label="Close settings">✕</button>
         </div>
-        <!-- Tour button: pinned top (pre-completion) -->
         <div class="settings-tour-top">
-          <button class="settings-tour-top-btn tut-btn-pulse" onclick="closeSettings(); tutStart();">✦ Take a tour of the app</button>
+          <button class="settings-tour-top-btn" onclick="closeSettings(); tutStart();">✦ Take a tour of the app</button>
         </div>
         <div class="settings-section">
           <h3 class="settings-section-title">Appearance</h3>
@@ -470,7 +469,6 @@
             >Sign out</a
           >
         </div>
-        <!-- Tour link: quiet bottom (post-completion) -->
         <div class="settings-tour-bottom">
           <button class="settings-tour-bottom-link" onclick="closeSettings(); tutStart();">↺ Replay tour</button>
         </div>
@@ -646,6 +644,22 @@
       const SLOT_H = 40;
 
 
+      // ── Gear nudge init ─────────────────────────────────────────────
+      // Apply completed state immediately so badge/pulse don't flash on load
+      if (localStorage.getItem("scheduler-tut-completed") === "1") {
+        document.body.classList.add("tut-completed");
+      } else {
+        // After the intro bloom finishes, switch to the continuous pulse
+        const gear = document.getElementById("btn-gear");
+        if (gear) {
+          gear.addEventListener("animationend", function onIntroEnd() {
+            gear.removeEventListener("animationend", onIntroEnd);
+            gear.classList.remove("tut-gear-intro");
+            gear.classList.add("tut-gear-pulse");
+          });
+        }
+      }
+
       // ══════════════════════════════════════════════════════════════════
       // TUTORIAL ENGINE — DASHBOARD (steps 1–12 of 20)
       // ══════════════════════════════════════════════════════════════════
@@ -655,17 +669,9 @@
       const TUT_TOTAL         = 20;
       const tut = { active: false, step: 0 };
 
-      function tutIsCompleted() {
-        return localStorage.getItem(TUT_COMPLETED_KEY) === "1";
-      }
-
       function tutMarkCompleted() {
         localStorage.setItem(TUT_COMPLETED_KEY, "1");
         document.body.classList.add("tut-completed");
-      }
-
-      function tutApplyCompletionState() {
-        if (tutIsCompleted()) document.body.classList.add("tut-completed");
       }
 
       const TUT_DASHBOARD_STEPS = [
@@ -683,7 +689,7 @@
         {
           global: 2, target: ".db-rail", pos: "right",
           title: "Team Roster",
-          body: "Lists every employee at your center, sorted by priority then name. Each card shows a <strong>color stripe</strong> (used in the schedule), their <strong>name</strong>, <strong>PIN</strong>, and <strong>priority level</strong>. Use <strong>Edit</strong> to update details or <strong>✕</strong> to remove.",
+          body: "Lists every employee at your center, sorted by priority then name. Each card shows a <strong>color stripe</strong>, their <strong>name</strong>, <strong>PIN</strong>, and <strong>priority level</strong>. Use <strong>Edit</strong> to update details or <strong>✕</strong> to remove.",
         },
         {
           global: 3, target: ".db-add-btn", pos: "right",
@@ -703,7 +709,7 @@
         {
           global: 6, target: "#status-window", pos: "below",
           title: "Form Status",
-          body: "Tracks the availability form window. <strong>Not set</strong>: not configured yet. <strong>Scheduled</strong>: will open at a future time. <strong>Open</strong>: employees can submit now. <strong>Closed</strong>: the window has passed.",
+          body: "Tracks the availability form window. <strong>Not set</strong>: not configured yet. <strong>Scheduled</strong>: opens at a future time. <strong>Open</strong>: employees can submit now. <strong>Closed</strong>: the window has passed.",
         },
         {
           global: 7, target: "#db-window-card", pos: "left",
@@ -739,7 +745,6 @@
         },
       ];
 
-      // ── Rendering helpers ────────────────────────────────────────────
       function tutGetRect(selector) {
         if (!selector) return null;
         const el = document.querySelector(selector);
@@ -802,7 +807,6 @@
         requestAnimationFrame(() => tutPositionCard(rect, step.pos));
       }
 
-      // ── Demo management ──────────────────────────────────────────────
       function tutEnableDemo() {
         localStorage.setItem(TUT_DEMO_KEY, settings.demo ? "1" : "0");
         if (!settings.demo) {
@@ -824,7 +828,6 @@
         }
       }
 
-      // ── Start / Next / Skip / End ────────────────────────────────────
       function tutStart() {
         tut.active = true; tut.step = 0;
         closeSettings();
@@ -846,7 +849,6 @@
       }
 
       function tutSkip() {
-        // Skip does NOT mark completed — nudging continues
         localStorage.removeItem(TUT_STORAGE_KEY);
         if (tut.step === 10) closeSettings();
         tutDisableDemo();
@@ -860,17 +862,12 @@
         document.getElementById("tut-highlight-border").style.display = "none";
       }
 
-      // Keyboard
       document.addEventListener("keydown", function(e) {
         if (!tut.active) return;
         if (e.key === "Escape")     { tutSkip(); return; }
         if (e.key === "ArrowRight") { tutNext(); return; }
       });
 
-      // Apply completed state on load
-      tutApplyCompletionState();
-
-      // Legacy stubs
       function tutAdvance() {}
       function tutLinkGuard(e) { if (!tut.active) return false; e && e.preventDefault(); return true; }
       function unlockSettingsLinks() {}

@@ -62,7 +62,7 @@
           <button class="btn-primary" id="btn-generate" onclick="generate()">
             Generate Schedule
           </button>
-          <button class="btn-gear tut-gear-pulse" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
+          <button class="btn-gear tut-gear-intro" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -303,9 +303,8 @@
           <span class="settings-title">Settings</span>
           <button class="btn-back" onclick="closeSettings()" aria-label="Close settings">✕</button>
         </div>
-        <!-- Tour button: pinned top (pre-completion) -->
         <div class="settings-tour-top">
-          <button class="settings-tour-top-btn tut-btn-pulse" onclick="closeSettings(); tutResumeAt(12);">✦ Take a tour of the app</button>
+          <button class="settings-tour-top-btn" onclick="closeSettings(); tutResumeAt(12);">✦ Take a tour of the app</button>
         </div>
         <div class="settings-section">
           <h3 class="settings-section-title">Appearance</h3>
@@ -480,7 +479,6 @@
             >Sign out</a
           >
         </div>
-        <!-- Tour link: quiet bottom (post-completion) -->
         <div class="settings-tour-bottom">
           <button class="settings-tour-bottom-link" onclick="closeSettings(); tutResumeAt(12);">↺ Replay tour</button>
         </div>
@@ -1964,6 +1962,20 @@
       }
 
 
+      // ── Gear nudge init ─────────────────────────────────────────────
+      if (localStorage.getItem("scheduler-tut-completed") === "1") {
+        document.body.classList.add("tut-completed");
+      } else {
+        const gear = document.getElementById("btn-gear");
+        if (gear) {
+          gear.addEventListener("animationend", function onIntroEnd() {
+            gear.removeEventListener("animationend", onIntroEnd);
+            gear.classList.remove("tut-gear-intro");
+            gear.classList.add("tut-gear-pulse");
+          });
+        }
+      }
+
       // ══════════════════════════════════════════════════════════════════
       // TUTORIAL ENGINE — SCHEDULER (steps 13–20 of 20)
       // ══════════════════════════════════════════════════════════════════
@@ -1973,13 +1985,9 @@
       const TUT_TOTAL         = 20;
       const tut = { active: false, step: 0 };
 
-      function tutIsCompleted() { return localStorage.getItem(TUT_COMPLETED_KEY) === "1"; }
       function tutMarkCompleted() {
         localStorage.setItem(TUT_COMPLETED_KEY, "1");
         document.body.classList.add("tut-completed");
-      }
-      function tutApplyCompletionState() {
-        if (tutIsCompleted()) document.body.classList.add("tut-completed");
       }
 
       const TUT_SCHEDULER_STEPS = [
@@ -2135,7 +2143,6 @@
       }
 
       function tutSkip() {
-        // Skip does NOT mark completed — nudging continues
         tutDisableDemo();
         tutEnd();
       }
@@ -2147,16 +2154,12 @@
         document.getElementById("tut-highlight-border").style.display = "none";
       }
 
-      // Keyboard
       document.addEventListener("keydown", function(e) {
         if (!tut.active) return;
         if (e.key === "Escape")     { tutSkip(); return; }
         if (e.key === "ArrowRight") { tutNext(); return; }
       });
 
-      tutApplyCompletionState();
-
-      // Auto-resume if dashboard handed off
       (function() {
         const saved = localStorage.getItem(TUT_STORAGE_KEY);
         if (saved !== null) {
