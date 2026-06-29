@@ -1585,26 +1585,54 @@ body.tut-completed .settings-tour-bottom { display: block; }
 }
 .settings-tour-bottom-link:hover { color: var(--accent); }
 
-/* ── Gear pulse (before tour completion) ── */
+/* ── Gear nudge: badge + pulse ── */
+
+/* Badge dot — top-right corner of gear button */
+.btn-gear {
+  position: relative; /* needed for ::after badge */
+}
+.btn-gear::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg);
+  display: block;
+  transition: opacity 0.2s;
+}
+body.tut-completed .btn-gear::after { display: none; }
+
+/* Initial attention pulse — one large bloom on page load */
+@keyframes tut-gear-intro {
+  0%   { box-shadow: 0 0 0 0   rgba(59,130,246,0.7); }
+  60%  { box-shadow: 0 0 0 14px rgba(59,130,246,0);   }
+  100% { box-shadow: 0 0 0 14px rgba(59,130,246,0);   }
+}
+
+/* Continuous repeating pulse after intro */
 @keyframes tut-gear-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
-  50%       { box-shadow: 0 0 0 5px rgba(59,130,246,0); }
+  0%   { box-shadow: 0 0 0 0   rgba(59,130,246,0.6); }
+  60%  { box-shadow: 0 0 0 8px rgba(59,130,246,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(59,130,246,0);   }
+}
+
+.tut-gear-intro {
+  border-radius: 6px;
+  animation: tut-gear-intro 0.7s ease-out forwards;
 }
 .tut-gear-pulse {
+  border-radius: 6px;
   animation: tut-gear-pulse 1.8s ease-in-out infinite;
-  border-radius: 50%;
 }
-body.tut-completed .tut-gear-pulse { animation: none; box-shadow: none; }
-
-/* ── Tour button pulse ── */
-@keyframes tut-btn-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.45); }
-  50%       { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+body.tut-completed .tut-gear-intro,
+body.tut-completed .tut-gear-pulse {
+  animation: none;
+  box-shadow: none;
 }
-.settings-tour-top-btn.tut-btn-pulse {
-  animation: tut-btn-pulse 1.8s ease-in-out infinite;
-}
-body.tut-completed .settings-tour-top-btn { animation: none; box-shadow: none; }
 
 /* ── Tutorial: locked settings links (steps 23-26) ── */
 .tut-link-disabled {
