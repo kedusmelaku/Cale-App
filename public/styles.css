@@ -1607,29 +1607,25 @@ body.tut-completed .settings-tour-bottom { display: block; }
 }
 body.tut-completed .btn-gear::after { display: none; }
 
-/* Pulse ring — ::before so it's independent of the button's own transition.
-   Sits behind the gear icon, scales out and fades. */
-.btn-gear.tut-gear-pulse::before {
-  content: "";
-  position: absolute;
-  inset: -4px;
+/* Pulse ring — body-level div injected by JS, positioned over the gear.
+   Lives outside the topbar so it isn't clipped by its background.   */
+#tut-gear-pulse-ring {
+  position: fixed;
   border-radius: 8px;
-  background: rgba(59,130,246,0.55);
-  animation: tut-ring-pulse 1.8s ease-out infinite;
+  background: rgba(59,130,246,0.6);
   pointer-events: none;
-  z-index: -1;
+  z-index: 9998;
+  animation: tut-ring-pulse 1.8s ease-out infinite;
 }
-body.tut-completed .btn-gear::before { display: none; }
 
 @keyframes tut-ring-pulse {
-  0%   { transform: scale(1);    opacity: 0.7; }
-  70%  { transform: scale(2.8);  opacity: 0;   }
-  100% { transform: scale(2.8);  opacity: 0;   }
+  0%   { transform: scale(1);   opacity: 0.7; }
+  65%  { transform: scale(3);   opacity: 0;   }
+  100% { transform: scale(3);   opacity: 0;   }
 }
 
-/* Attention pulse on dashboard load only.
-   Erupts from the gear corner, blooms to ~top-right quarter of screen,
-   then contracts back to the gear — drawing the eye toward it.       */
+/* Screen-filling ripple on dashboard load only.
+   Fixed 1×1 point at gear position, box-shadow expands to cover viewport. */
 #tut-gear-ripple {
   position: fixed;
   top: 28px;
@@ -1639,15 +1635,14 @@ body.tut-completed .btn-gear::before { display: none; }
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
-  animation: tut-ripple-intro 2s ease-in-out forwards;
+  animation: tut-ripple-intro 1.6s cubic-bezier(0.1, 0.5, 0.3, 1) forwards;
 }
 
 @keyframes tut-ripple-intro {
-  0%   { box-shadow: 0 0 0 0    rgba(59,130,246,0);    }
-  12%  { box-shadow: 0 0 0 0    rgba(59,130,246,0.9);  }
-  50%  { box-shadow: 0 0 0 45vw rgba(59,130,246,0.45); }
-  85%  { box-shadow: 0 0 0 4px  rgba(59,130,246,0.8);  }
-  100% { box-shadow: 0 0 0 4px  rgba(59,130,246,0);    }
+  0%   { box-shadow: 0 0 0 0     rgba(59,130,246,0.9); }
+  20%  { box-shadow: 0 0 0 15vw  rgba(59,130,246,0.6); }
+  55%  { box-shadow: 0 0 0 55vw  rgba(59,130,246,0.25);}
+  100% { box-shadow: 0 0 0 130vw rgba(59,130,246,0);   }
 }
 
 /* ── Tutorial: locked settings links (steps 23-26) ── */
