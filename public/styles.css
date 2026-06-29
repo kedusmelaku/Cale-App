@@ -1529,6 +1529,17 @@ body.dark {
   line-height: 1.6;
 }
 
+/* ── Tutorial highlight border ── */
+#tut-highlight-border {
+  position: fixed;
+  pointer-events: none;
+  z-index: 501;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.18);
+  transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
 /* ── Tutorial: locked settings links (steps 23-26) ── */
 .tut-link-disabled {
   opacity: 0.45;
@@ -2096,77 +2107,6 @@ body.dark {
 }
 .db-sub-row:hover .db-sub-remove { opacity: 1; }
 .db-sub-remove:hover { color: #c0392b; }
-
-.db-sub-view {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.12s, color 0.12s, background 0.12s;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-.db-sub-row:hover .db-sub-view { opacity: 1; }
-.db-sub-view:hover { color: var(--accent); background: var(--accent-light); }
-
-/* Submission availability popover */
-.sub-av-popover {
-  position: fixed;
-  z-index: 300;
-  background: var(--surface);
-  border: 1.5px solid var(--border-strong);
-  border-radius: 10px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.14);
-  padding: 14px 16px;
-  min-width: 220px;
-  max-width: 280px;
-  pointer-events: none;
-}
-.sub-av-popover-name {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.sub-av-popover-stripe {
-  width: 4px;
-  height: 14px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-.sub-av-popover-day {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.78rem;
-  padding: 3px 0;
-  border-bottom: 1px solid var(--border);
-  gap: 12px;
-}
-.sub-av-popover-day:last-child { border-bottom: none; }
-.sub-av-popover-dayname {
-  color: var(--text-mid);
-  font-weight: 500;
-}
-.sub-av-popover-hours {
-  color: var(--text);
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-align: right;
-}
-.sub-av-popover-empty {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  font-style: italic;
-}
 
 /* Build schedule button */
 .db-build-btn {
