@@ -1540,6 +1540,72 @@ body.dark {
   transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
+/* ── Tour button in settings panel ── */
+.settings-tour-top {
+  padding: 12px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: block;
+}
+body.tut-completed .settings-tour-top { display: none; }
+
+.settings-tour-top-btn {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: background 0.15s, color 0.15s;
+}
+.settings-tour-top-btn:hover { background: var(--accent); color: #fff; }
+
+.settings-tour-bottom {
+  display: none;
+  text-align: center;
+  margin-top: 6px;
+}
+body.tut-completed .settings-tour-bottom { display: block; }
+
+.settings-tour-bottom-link {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 0.12s;
+}
+.settings-tour-bottom-link:hover { color: var(--accent); }
+
+/* ── Gear pulse (before tour completion) ── */
+@keyframes tut-gear-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(59,130,246,0); }
+}
+.tut-gear-pulse {
+  animation: tut-gear-pulse 1.8s ease-in-out infinite;
+  border-radius: 50%;
+}
+body.tut-completed .tut-gear-pulse { animation: none; box-shadow: none; }
+
+/* ── Tour button pulse ── */
+@keyframes tut-btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.45); }
+  50%       { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+}
+.settings-tour-top-btn.tut-btn-pulse {
+  animation: tut-btn-pulse 1.8s ease-in-out infinite;
+}
+body.tut-completed .settings-tour-top-btn { animation: none; box-shadow: none; }
+
 /* ── Tutorial: locked settings links (steps 23-26) ── */
 .tut-link-disabled {
   opacity: 0.45;
