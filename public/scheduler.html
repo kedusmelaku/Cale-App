@@ -62,7 +62,7 @@
           <button class="btn-primary" id="btn-generate" onclick="generate()">
             Generate Schedule
           </button>
-          <button class="btn-gear tut-gear-intro" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
+          <button class="btn-gear" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -1966,14 +1966,9 @@
       if (localStorage.getItem("scheduler-tut-completed") === "1") {
         document.body.classList.add("tut-completed");
       } else {
+        // No ripple on scheduler — just start pulsing immediately
         const gear = document.getElementById("btn-gear");
-        if (gear) {
-          gear.addEventListener("animationend", function onIntroEnd() {
-            gear.removeEventListener("animationend", onIntroEnd);
-            gear.classList.remove("tut-gear-intro");
-            gear.classList.add("tut-gear-pulse");
-          });
-        }
+        if (gear) gear.classList.add("tut-gear-pulse");
       }
 
       // ══════════════════════════════════════════════════════════════════

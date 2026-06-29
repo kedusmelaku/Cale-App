@@ -1585,7 +1585,7 @@ body.tut-completed .settings-tour-bottom { display: block; }
 }
 .settings-tour-bottom-link:hover { color: var(--accent); }
 
-/* ── Gear nudge: badge + pulse ── */
+/* ── Gear nudge: badge + ripple + pulse ── */
 
 /* Badge dot — top-right corner of gear button */
 .btn-gear {
@@ -1602,33 +1602,41 @@ body.tut-completed .settings-tour-bottom { display: block; }
   border-radius: 50%;
   border: 1.5px solid var(--bg);
   display: block;
-  transition: opacity 0.2s;
 }
 body.tut-completed .btn-gear::after { display: none; }
 
-/* Initial attention pulse — one large bloom on page load */
-@keyframes tut-gear-intro {
-  0%   { box-shadow: 0 0 0 0   rgba(59,130,246,0.7); }
-  60%  { box-shadow: 0 0 0 14px rgba(59,130,246,0);   }
-  100% { box-shadow: 0 0 0 14px rgba(59,130,246,0);   }
+/* Screen-filling ripple on dashboard load — fixed 1×1 point anchored
+   to the gear corner, expands via box-shadow to flood the viewport   */
+#tut-gear-ripple {
+  position: fixed;
+  top: 28px;
+  right: 28px;
+  width: 1px;
+  height: 1px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  animation: tut-ripple-intro 1.5s cubic-bezier(0.1, 0.5, 0.3, 1) forwards;
 }
 
-/* Continuous repeating pulse after intro */
+@keyframes tut-ripple-intro {
+  0%   { box-shadow: 0 0 0 0     rgba(59,130,246,0.9); }
+  20%  { box-shadow: 0 0 0 12vw  rgba(59,130,246,0.6); }
+  50%  { box-shadow: 0 0 0 50vw  rgba(59,130,246,0.25);}
+  100% { box-shadow: 0 0 0 120vw rgba(59,130,246,0);   }
+}
+
+/* Continuous repeating pulse on gear after ripple finishes */
 @keyframes tut-gear-pulse {
-  0%   { box-shadow: 0 0 0 0   rgba(59,130,246,0.6); }
-  60%  { box-shadow: 0 0 0 8px rgba(59,130,246,0);   }
-  100% { box-shadow: 0 0 0 0   rgba(59,130,246,0);   }
+  0%   { box-shadow: 0 0 0 0    rgba(59,130,246,0.7); }
+  55%  { box-shadow: 0 0 0 10px rgba(59,130,246,0);   }
+  100% { box-shadow: 0 0 0 0    rgba(59,130,246,0);   }
 }
 
-.tut-gear-intro {
-  border-radius: 6px;
-  animation: tut-gear-intro 0.7s ease-out forwards;
-}
 .tut-gear-pulse {
   border-radius: 6px;
   animation: tut-gear-pulse 1.8s ease-in-out infinite;
 }
-body.tut-completed .tut-gear-intro,
 body.tut-completed .tut-gear-pulse {
   animation: none;
   box-shadow: none;
