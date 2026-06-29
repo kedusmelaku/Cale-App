@@ -60,7 +60,7 @@
         </div>
         <div class="db-topbar-actions">
           <button class="btn-primary" onclick="goToSchedule()">Build Schedule →</button>
-          <button class="btn-gear" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
+          <button class="btn-gear tut-gear-intro" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
         </div>
       </div>
 
@@ -644,18 +644,37 @@
       const SLOT_H = 40;
 
 
+
+      function tutStartPulseRing() {
+        if (document.getElementById("tut-gear-pulse-ring")) return;
+        const gear = document.getElementById("btn-gear");
+        if (!gear) return;
+        const r = gear.getBoundingClientRect();
+        const ring = document.createElement("div");
+        ring.id = "tut-gear-pulse-ring";
+        ring.style.top    = (r.top  - 4) + "px";
+        ring.style.left   = (r.left - 4) + "px";
+        ring.style.width  = (r.width  + 8) + "px";
+        ring.style.height = (r.height + 8) + "px";
+        document.body.appendChild(ring);
+      }
+
+      function tutStopPulseRing() {
+        const ring = document.getElementById("tut-gear-pulse-ring");
+        if (ring) ring.remove();
+      }
+
       // ── Gear nudge init ─────────────────────────────────────────────
       if (localStorage.getItem("scheduler-tut-completed") === "1") {
         document.body.classList.add("tut-completed");
       } else {
-        // Big screen-filling ripple from gear corner, then continuous ring pulse
+        // Big bloom-and-contract ripple, then start the continuous pulse ring
         const ripple = document.createElement("div");
         ripple.id = "tut-gear-ripple";
         document.body.appendChild(ripple);
         ripple.addEventListener("animationend", function() {
           ripple.remove();
-          const gear = document.getElementById("btn-gear");
-          if (gear) gear.classList.add("tut-gear-pulse");
+          tutStartPulseRing();
         });
       }
 
@@ -671,6 +690,7 @@
       function tutMarkCompleted() {
         localStorage.setItem(TUT_COMPLETED_KEY, "1");
         document.body.classList.add("tut-completed");
+        tutStopPulseRing();
       }
 
       const TUT_DASHBOARD_STEPS = [

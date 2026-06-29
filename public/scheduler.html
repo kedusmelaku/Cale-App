@@ -62,7 +62,7 @@
           <button class="btn-primary" id="btn-generate" onclick="generate()">
             Generate Schedule
           </button>
-          <button class="btn-gear" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
+          <button class="btn-gear tut-gear-intro" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -1962,13 +1962,32 @@
       }
 
 
+
+      function tutStartPulseRing() {
+        if (document.getElementById("tut-gear-pulse-ring")) return;
+        const gear = document.getElementById("btn-gear");
+        if (!gear) return;
+        const r = gear.getBoundingClientRect();
+        const ring = document.createElement("div");
+        ring.id = "tut-gear-pulse-ring";
+        ring.style.top    = (r.top  - 4) + "px";
+        ring.style.left   = (r.left - 4) + "px";
+        ring.style.width  = (r.width  + 8) + "px";
+        ring.style.height = (r.height + 8) + "px";
+        document.body.appendChild(ring);
+      }
+
+      function tutStopPulseRing() {
+        const ring = document.getElementById("tut-gear-pulse-ring");
+        if (ring) ring.remove();
+      }
+
       // ── Gear nudge init ─────────────────────────────────────────────
       if (localStorage.getItem("scheduler-tut-completed") === "1") {
         document.body.classList.add("tut-completed");
       } else {
-        // No ripple on scheduler — start pulsing immediately
-        const gear = document.getElementById("btn-gear");
-        if (gear) gear.classList.add("tut-gear-pulse");
+        // No ripple on scheduler — start pulse ring immediately
+        tutStartPulseRing();
       }
 
       // ══════════════════════════════════════════════════════════════════
@@ -1983,6 +2002,7 @@
       function tutMarkCompleted() {
         localStorage.setItem(TUT_COMPLETED_KEY, "1");
         document.body.classList.add("tut-completed");
+        tutStopPulseRing();
       }
 
       const TUT_SCHEDULER_STEPS = [
