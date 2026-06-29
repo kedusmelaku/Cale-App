@@ -15,6 +15,24 @@
     <script src="/utils.js"></script>
   </head>
   <body>
+    <!-- Tutorial overlay -->
+    <div id="tut-overlay">
+      <div id="tut-dim"></div>
+      <div id="tut-highlight-border" style="display:none;"></div>
+      <div id="tut-card">
+        <div class="tut-card-header">
+          <span class="tut-step-badge" id="tut-badge"></span>
+          <button class="tut-skip-btn" onclick="tutSkip()">Skip tutorial</button>
+        </div>
+        <div class="tut-title" id="tut-title"></div>
+        <div class="tut-body" id="tut-body"></div>
+        <div class="tut-footer">
+          <div class="tut-dots" id="tut-dots"></div>
+          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">Next →</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Demo banner -->
     <div id="demo-banner">
       <span>⚡ Demo Mode — changes are not saved</span>
@@ -597,6 +615,13 @@
       }
 
       function setDemo(checked) {
+        if (!checked && tut.active) {
+          localStorage.removeItem(TUT_STORAGE_KEY);
+          localStorage.removeItem(TUT_DEMO_KEY);
+          tut.active = false;
+          document.getElementById("tut-overlay").classList.remove("active");
+          document.getElementById("tut-highlight-border").style.display = "none";
+        }
         settings.demo = checked;
         saveSettings();
         document.body.classList.toggle("demo-active", checked);
@@ -606,6 +631,13 @@
       }
 
       function exitDemo() {
+        if (tut.active) {
+          localStorage.removeItem(TUT_STORAGE_KEY);
+          localStorage.removeItem(TUT_DEMO_KEY);
+          tut.active = false;
+          document.getElementById("tut-overlay").classList.remove("active");
+          document.getElementById("tut-highlight-border").style.display = "none";
+        }
         settings.demo = false;
         saveSettings();
         document.getElementById("demo-toggle").checked = false;
@@ -1923,10 +1955,216 @@
         }, 0);
       }
 
+
+      // ══════════════════════════════════════════════════════════════════
+      // TUTORIAL ENGINE — SCHEDULER (steps 13–20 of 20)
+      // Resumes from localStorage set by dashboard. Demo mode stays active
+      // for the whole scheduler portion and is deactivated on tutEnd/tutSkip.
+      // ══════════════════════════════════════════════════════════════════
+      const TUT_STORAGE_KEY = "scheduler-tut-step";
+      const TUT_DEMO_KEY    = "scheduler-tut-demo";
+      const TUT_TOTAL       = 20;
+      const tut = { active: false, step: 0 };
+
+      const TUT_SCHEDULER_STEPS = [
+        {
+          global: 12, target: null, pos: "center",
+          title: "The Schedule Builder",
+          body: "You're now on the schedule builder. Demo mode is still active so everything is populated with sample data. Let's walk through each part.",
+        },
+        {
+          global: 13, target: ".availability-panel", pos: "right",
+          title: "Availability Panel",
+          body: "The left panel shows each employee's availability for the week. It has two tabs: <strong>Form</strong> shows what employees submitted via the availability form. <strong>Manual</strong> lets you set or override availability here before generating.",
+        },
+        {
+          global: 14, target: ".av-tabs", pos: "right",
+          title: "Form vs Manual Tabs",
+          body: "<strong>Form tab</strong>: read-only view of submitted availability — each employee shows which days and hours they can work. <strong>Manual tab</strong>: full editing UI with day checkboxes, a default-hours toggle, and custom start/end time dropdowns per day.",
+        },
+        {
+          global: 15, target: ".output-panel-header", pos: "left",
+          title: "Schedule Panel",
+          body: "The right side is where the generated schedule appears. The <strong>Week of (Monday)</strong> date picker sets which week to schedule — it always snaps to the nearest Monday. The calendar connection status shows next to the heading.",
+        },
+        {
+          global: 16, target: "#btn-generate", pos: "below",
+          title: "Generate Schedule",
+          body: "Click <strong>Generate Schedule</strong> to run the algorithm. It reads student booking counts from Google Calendar for the selected week, then assigns employees to shifts based on availability and priority. <strong>Keyboard: press Enter</strong> while the date field is focused.",
+        },
+        {
+          global: 17, target: ".schedule-grid", pos: "left",
+          title: "Reading the Timeline",
+          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. <strong>Hover any time slot label</strong> to see a tooltip showing student count, instructors needed, and who is assigned. <strong>Red hatching</strong> on a block means the shift falls outside that employee's submitted availability.",
+        },
+        {
+          global: 18, target: "#edit-btn", pos: "below",
+          title: "Editing the Schedule",
+          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. <strong>Drag blocks</strong> vertically to shift start times. <strong>Drag the bottom handle</strong> to resize the end time. Click <strong>✕</strong> on a block to remove that shift. Use <strong>+ Add Employee</strong> at the bottom of each day to manually add someone.",
+        },
+        {
+          global: 19, target: "#copy-btn", pos: "below",
+          title: "Copy & Finish",
+          body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. If any employee is scheduled outside their availability you'll see a warning first. <strong>Finish →</strong> returns you to the dashboard.",
+        },
+        {
+          global: 20, target: null, pos: "center",
+          title: "You're all set!",
+          body: "That's the full app. The weekly flow: <strong>1)</strong> Add your team on the dashboard. <strong>2)</strong> Configure the form and share the link. <strong>3)</strong> Once everyone submits, pick a Monday date here and generate. <strong>4)</strong> Edit if needed, copy, and share. Demo mode has been turned off.",
+          next: "Done ✓",
+          after: function() { tutDisableDemo(); },
+        },
+      ];
+
+      // ── Helpers ──────────────────────────────────────────────────────
+      function tutGetRect(selector) {
+        if (!selector) return null;
+        const el = document.querySelector(selector);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: r.top, left: r.left, width: r.width, height: r.height };
+      }
+
+      function tutSetDim(rect) {
+        const dim = document.getElementById("tut-dim");
+        const border = document.getElementById("tut-highlight-border");
+        const PAD = 6;
+        if (!rect) { dim.style.clipPath = ""; border.style.display = "none"; return; }
+        const t = rect.top - PAD, l = rect.left - PAD;
+        const b = rect.top + rect.height + PAD, r = rect.left + rect.width + PAD;
+        const W = window.innerWidth, H = window.innerHeight;
+        dim.style.clipPath =
+          `polygon(evenodd, 0 0, ${W}px 0, ${W}px ${H}px, 0 ${H}px, 0 0, ` +
+          `${l}px ${t}px, ${l}px ${b}px, ${r}px ${b}px, ${r}px ${t}px, ${l}px ${t}px)`;
+        border.style.display = "block";
+        border.style.top = t + "px"; border.style.left = l + "px";
+        border.style.width = (r - l) + "px"; border.style.height = (b - t) + "px";
+      }
+
+      function tutPositionCard(rect, pos) {
+        const card = document.getElementById("tut-card");
+        const MARGIN = 16;
+        const cw = card.offsetWidth || 320, ch = card.offsetHeight || 220;
+        const W = window.innerWidth, H = window.innerHeight;
+        card.classList.remove("tut-card-centered"); card.style.transform = "";
+        if (!rect || pos === "center") { card.classList.add("tut-card-centered"); return; }
+        const PAD = 6;
+        const hT = rect.top - PAD, hB = rect.top + rect.height + PAD;
+        const hL = rect.left - PAD, hR = rect.left + rect.width + PAD;
+        const mY = (hT + hB) / 2, mX = (hL + hR) / 2;
+        let top, left;
+        if (pos === "right")  { left = hR + MARGIN; top = mY - ch/2; if (left + cw > W - 8) pos = "left"; }
+        if (pos === "left")   { left = hL - MARGIN - cw; top = mY - ch/2; if (left < 8) pos = "below"; }
+        if (pos === "below")  { top = hB + MARGIN; left = mX - cw/2; if (top + ch > H - 8) pos = "above"; }
+        if (pos === "above")  { top = hT - MARGIN - ch; left = mX - cw/2; }
+        card.style.top  = Math.max(8, Math.min(top,  H - ch - 8)) + "px";
+        card.style.left = Math.max(8, Math.min(left, W - cw - 8)) + "px";
+      }
+
+      function tutRender() {
+        const li = TUT_SCHEDULER_STEPS.findIndex(s => s.global === tut.step);
+        if (li < 0) return;
+        const step = TUT_SCHEDULER_STEPS[li];
+        document.getElementById("tut-overlay").classList.add("active");
+        document.getElementById("tut-badge").textContent = `Step ${tut.step + 1} of ${TUT_TOTAL}`;
+        document.getElementById("tut-title").textContent = step.title;
+        document.getElementById("tut-body").innerHTML    = step.body;
+        const nb = document.getElementById("tut-next");
+        nb.textContent = step.next || "Next →"; nb.disabled = false;
+        document.getElementById("tut-dots").innerHTML = Array.from({length: TUT_TOTAL}, (_, i) => {
+          const cls = i < tut.step ? "tut-dot done" : i === tut.step ? "tut-dot active" : "tut-dot";
+          return `<div class="${cls}"></div>`;
+        }).join("");
+        const rect = tutGetRect(step.target);
+        tutSetDim(rect);
+        requestAnimationFrame(() => tutPositionCard(rect, step.pos));
+      }
+
+      // ── Demo management ──────────────────────────────────────────────
+      function tutEnsureDemo() {
+        if (!settings.demo) {
+          settings.demo = true;
+          saveSettings();
+          document.body.classList.add("demo-active");
+          document.getElementById("demo-toggle").checked = true;
+          activateDemo();
+          updateCalWarningBanner();
+        }
+      }
+
+      function tutDisableDemo() {
+        const wasDemo = localStorage.getItem(TUT_DEMO_KEY) === "1";
+        localStorage.removeItem(TUT_DEMO_KEY);
+        if (!wasDemo && settings.demo) {
+          settings.demo = false;
+          saveSettings();
+          document.getElementById("demo-toggle").checked = false;
+          document.body.classList.remove("demo-active");
+          deactivateDemo();
+          updateCalWarningBanner();
+        }
+      }
+
+      // ── Start / Next / Skip / End ────────────────────────────────────
+      function tutResumeAt(globalStep) {
+        tut.active = true;
+        tut.step   = globalStep;
+        tutEnsureDemo();
+        tutRender();
+      }
+
+      function tutNext() {
+        const li = TUT_SCHEDULER_STEPS.findIndex(s => s.global === tut.step);
+        if (li < 0) return;
+        const step = TUT_SCHEDULER_STEPS[li];
+        tut.step++;
+        localStorage.setItem(TUT_STORAGE_KEY, String(tut.step));
+        // Run after hook (e.g. disable demo on last step)
+        if (step.after) step.after();
+        if (tut.step > 20) { tutEnd(); return; }
+        const next = TUT_SCHEDULER_STEPS.find(s => s.global === tut.step);
+        if (!next) { tutEnd(); return; }
+        if (next.before) { next.before(); setTimeout(tutRender, 180); }
+        else tutRender();
+      }
+
+      function tutSkip() {
+        tutDisableDemo();
+        tutEnd();
+      }
+
+      function tutEnd() {
+        tut.active = false;
+        localStorage.removeItem(TUT_STORAGE_KEY);
+        document.getElementById("tut-overlay").classList.remove("active");
+        document.getElementById("tut-highlight-border").style.display = "none";
+      }
+
+      // Keyboard
+      document.addEventListener("keydown", function(e) {
+        if (!tut.active) return;
+        if (e.key === "Escape")     { tutSkip(); return; }
+        if (e.key === "ArrowRight") { tutNext(); return; }
+      });
+
+      // Auto-resume on page load if dashboard handed off
+      (function() {
+        const saved = localStorage.getItem(TUT_STORAGE_KEY);
+        if (saved !== null) {
+          const n = parseInt(saved);
+          if (TUT_SCHEDULER_STEPS.some(s => s.global === n)) {
+            setTimeout(() => tutResumeAt(n), 400);
+          }
+        }
+      })();
+
       closeOnOverlayClick("add-shift-modal", closeAddShiftModal);
 
       // ── Global keyboard shortcuts ───────────────────────────
       document.addEventListener("keydown", function (e) {
+        // Tutorial engine handles Escape and → when active
+        if (tut.active && (e.key === "Escape" || e.key === "ArrowRight")) return;
+
         const tag = document.activeElement?.tagName;
         const typing = tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
 

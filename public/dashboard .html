@@ -20,6 +20,24 @@
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
+    <!-- Tutorial overlay -->
+    <div id="tut-overlay">
+      <div id="tut-dim"></div>
+      <div id="tut-highlight-border" style="display:none;"></div>
+      <div id="tut-card">
+        <div class="tut-card-header">
+          <span class="tut-step-badge" id="tut-badge"></span>
+          <button class="tut-skip-btn" onclick="tutSkip()">Skip tutorial</button>
+        </div>
+        <div class="tut-title" id="tut-title"></div>
+        <div class="tut-body" id="tut-body"></div>
+        <div class="tut-footer">
+          <div class="tut-dots" id="tut-dots"></div>
+          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">Next →</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Demo banner -->
     <div id="demo-banner">
       <span>⚡ Demo Mode — changes are not saved</span>
@@ -42,6 +60,7 @@
         </div>
         <div class="db-topbar-actions">
           <button class="btn-primary" onclick="goToSchedule()">Build Schedule →</button>
+          <button class="btn-tutorial" id="btn-start-tutorial" onclick="tutStart()" title="Take a tour of the app">✦ Tour</button>
           <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
         </div>
       </div>
@@ -619,11 +638,227 @@
       ];
       const SLOT_H = 40;
 
-      // ── Tutorial stubs (tutorial removed, kept for call-site safety) ──
-      const tut = { active: false };
-      let tutWaiting = null;
+
+      // ══════════════════════════════════════════════════════════════════
+      // TUTORIAL ENGINE — DASHBOARD (steps 1–12 of 20)
+      // - Activates demo mode on start, deactivates on end/skip
+      // - Persists step in localStorage to resume on scheduler page
+      // ══════════════════════════════════════════════════════════════════
+      const TUT_STORAGE_KEY  = "scheduler-tut-step";
+      const TUT_DEMO_KEY     = "scheduler-tut-demo"; // was demo active before tutorial?
+      const TUT_TOTAL        = 20;
+      const tut = { active: false, step: 0 };
+
+      const TUT_DASHBOARD_STEPS = [
+        {
+          global: 0, target: null, pos: "center",
+          title: "Welcome to Scheduler",
+          body: "This quick tour walks you through the entire app — the dashboard and the schedule builder — in one go. Demo mode has been enabled so everything is populated. Press <strong>→</strong> or click <strong>Next</strong> to advance, <strong>Escape</strong> to exit.",
+          next: "Let's go →",
+        },
+        {
+          global: 1, target: ".db-topbar", pos: "below",
+          title: "Top Bar",
+          body: "Shows the app name and your <strong>center name</strong> beneath it. <strong>Build Schedule →</strong> takes you to the schedule builder when you're ready. The <strong>⚙ gear</strong> opens Settings. The <strong>✦ Tour</strong> button restarts this tour at any time.",
+        },
+        {
+          global: 2, target: ".db-rail", pos: "right",
+          title: "Team Roster",
+          body: "Lists every employee at your center, sorted by priority then name. Each card shows a <strong>color stripe</strong> (used in the schedule), their <strong>name</strong>, <strong>PIN</strong>, and <strong>priority level</strong>. Use <strong>Edit</strong> to update details or <strong>✕</strong> to remove an employee.",
+        },
+        {
+          global: 3, target: ".db-add-btn", pos: "right",
+          title: "Adding an Employee",
+          body: "Click <strong>+</strong> to add a new employee. Set their name and priority level — a unique 4-digit PIN is auto-generated. Employees enter that PIN on the availability form to identify themselves.",
+        },
+        {
+          global: 4, target: ".db-status-row", pos: "below",
+          title: "Status Pills",
+          body: "Four live indicators for the week. <strong>Calendar</strong>: Google Calendar connection status. <strong>Form</strong>: whether the availability window is open. <strong>Submissions</strong>: how many of your team have submitted. <strong>Schedule</strong>: whether submitted availability covers all student slots.",
+        },
+        {
+          global: 5, target: "#status-cal", pos: "below",
+          title: "Calendar Status",
+          body: "Shows whether Google Calendar is connected. When connected, Scheduler reads student booking counts from it to know how many instructors are needed each slot. Connect or disconnect under <strong>Settings → Google Calendar</strong>.",
+        },
+        {
+          global: 6, target: "#status-window", pos: "below",
+          title: "Form Status",
+          body: "Tracks the availability form window. <strong>Not set</strong>: not configured yet. <strong>Scheduled</strong>: will open at a future time. <strong>Open</strong>: employees can submit now. <strong>Closed</strong>: the window has passed.",
+        },
+        {
+          global: 7, target: "#db-window-card", pos: "left",
+          title: "Availability Form Card",
+          body: "<strong>Configure</strong> sets when the form opens and closes — pick an open time and either an auto close time or close it manually. <strong>Copy Link</strong> copies the employee-facing URL so you can paste it into a group chat. <strong>Close Now</strong> appears while the form is open.",
+        },
+        {
+          global: 8, target: "#db-submissions-card", pos: "left",
+          title: "Submissions",
+          body: "Shows who submitted and in what order — earlier submissions get scheduling priority within the same priority tier. Employees who haven't submitted yet appear greyed out. <strong>Hover</strong> a submitted row and click <strong>View</strong> to see exactly what days and hours they submitted.",
+        },
+        {
+          global: 9, target: ".db-build-btn", pos: "above",
+          title: "Build Schedule",
+          body: "Once the team has submitted, click <strong>Build Schedule →</strong> to head to the schedule builder. If the availability form is still open you'll be warned and can close it first.",
+        },
+        {
+          global: 10, target: "#settings-panel", pos: "center",
+          title: "Settings",
+          body: "The <strong>⚙ gear</strong> opens Settings. Switch <strong>Light / Dark</strong> mode, choose your <strong>Scheduling Mode</strong> (Normal = clean shift blocks; Ultra-efficient = slot-by-slot precision), toggle <strong>Demo Mode</strong> to explore with fake data, and manage your <strong>Google Calendar</strong> connection.",
+          before: function() { openSettings(); },
+          after:  function() { closeSettings(); },
+        },
+        {
+          global: 11, target: null, pos: "center",
+          title: "On to the Schedule Builder",
+          body: "That covers the dashboard. Next up: the schedule builder, where you generate and edit the actual weekly schedule. The tour will continue there automatically.",
+          next: "Continue →",
+          after: function() {
+            // Persist state and navigate — tutorial + demo resume on scheduler
+            localStorage.setItem(TUT_STORAGE_KEY, "12");
+            window.location.href = "/scheduler";
+          },
+        },
+      ];
+
+      // ── Shared rendering helpers ─────────────────────────────────────
+      function tutGetRect(selector) {
+        if (!selector) return null;
+        const el = document.querySelector(selector);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: r.top, left: r.left, width: r.width, height: r.height };
+      }
+
+      function tutSetDim(rect) {
+        const dim = document.getElementById("tut-dim");
+        const border = document.getElementById("tut-highlight-border");
+        const PAD = 6;
+        if (!rect) { dim.style.clipPath = ""; border.style.display = "none"; return; }
+        const t = rect.top - PAD, l = rect.left - PAD;
+        const b = rect.top + rect.height + PAD, r = rect.left + rect.width + PAD;
+        const W = window.innerWidth, H = window.innerHeight;
+        dim.style.clipPath =
+          `polygon(evenodd, 0 0, ${W}px 0, ${W}px ${H}px, 0 ${H}px, 0 0, ` +
+          `${l}px ${t}px, ${l}px ${b}px, ${r}px ${b}px, ${r}px ${t}px, ${l}px ${t}px)`;
+        border.style.display = "block";
+        border.style.top = t + "px"; border.style.left = l + "px";
+        border.style.width = (r - l) + "px"; border.style.height = (b - t) + "px";
+      }
+
+      function tutPositionCard(rect, pos) {
+        const card = document.getElementById("tut-card");
+        const MARGIN = 16;
+        const cw = card.offsetWidth || 320, ch = card.offsetHeight || 220;
+        const W = window.innerWidth, H = window.innerHeight;
+        card.classList.remove("tut-card-centered"); card.style.transform = "";
+        if (!rect || pos === "center") { card.classList.add("tut-card-centered"); return; }
+        const PAD = 6;
+        const hT = rect.top - PAD, hB = rect.top + rect.height + PAD;
+        const hL = rect.left - PAD, hR = rect.left + rect.width + PAD;
+        const mY = (hT + hB) / 2, mX = (hL + hR) / 2;
+        let top, left;
+        if (pos === "right")  { left = hR + MARGIN; top = mY - ch/2; if (left + cw > W - 8) pos = "left"; }
+        if (pos === "left")   { left = hL - MARGIN - cw; top = mY - ch/2; if (left < 8) pos = "below"; }
+        if (pos === "below")  { top = hB + MARGIN; left = mX - cw/2; if (top + ch > H - 8) pos = "above"; }
+        if (pos === "above")  { top = hT - MARGIN - ch; left = mX - cw/2; }
+        card.style.top  = Math.max(8, Math.min(top,  H - ch - 8)) + "px";
+        card.style.left = Math.max(8, Math.min(left, W - cw - 8)) + "px";
+      }
+
+      function tutRender() {
+        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
+        if (li < 0) return;
+        const step = TUT_DASHBOARD_STEPS[li];
+        document.getElementById("tut-overlay").classList.add("active");
+        document.getElementById("tut-badge").textContent = `Step ${tut.step + 1} of ${TUT_TOTAL}`;
+        document.getElementById("tut-title").textContent = step.title;
+        document.getElementById("tut-body").innerHTML    = step.body;
+        const nb = document.getElementById("tut-next");
+        nb.textContent = step.next || "Next →"; nb.disabled = false;
+        document.getElementById("tut-dots").innerHTML = Array.from({length: TUT_TOTAL}, (_, i) => {
+          const cls = i < tut.step ? "tut-dot done" : i === tut.step ? "tut-dot active" : "tut-dot";
+          return `<div class="${cls}"></div>`;
+        }).join("");
+        const rect = tutGetRect(step.target);
+        tutSetDim(rect);
+        requestAnimationFrame(() => tutPositionCard(rect, step.pos));
+      }
+
+      // ── Tutorial demo management ─────────────────────────────────────
+      function tutEnableDemo() {
+        // Record whether demo was already on before we started
+        localStorage.setItem(TUT_DEMO_KEY, settings.demo ? "1" : "0");
+        if (!settings.demo) {
+          settings.demo = true;
+          saveSettings();
+          document.body.classList.add("demo-active");
+          document.getElementById("demo-toggle").checked = true;
+          activateDemo();
+          updateCalWarningBanner();
+        }
+      }
+
+      function tutDisableDemo() {
+        const wasDemo = localStorage.getItem(TUT_DEMO_KEY) === "1";
+        localStorage.removeItem(TUT_DEMO_KEY);
+        // Only turn off demo if the tutorial turned it on
+        if (!wasDemo && settings.demo) {
+          settings.demo = false;
+          saveSettings();
+          document.getElementById("demo-toggle").checked = false;
+          document.body.classList.remove("demo-active");
+          deactivateDemo();
+          updateCalWarningBanner();
+        }
+      }
+
+      // ── Start / Next / Skip / End ────────────────────────────────────
+      function tutStart() {
+        tut.active = true; tut.step = 0;
+        closeSettings();
+        tutEnableDemo();
+        tutRender();
+      }
+
+      function tutNext() {
+        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
+        if (li < 0) return;
+        const step = TUT_DASHBOARD_STEPS[li];
+        if (step.after) { step.after(); return; } // after hook handles navigation or cleanup
+        tut.step++;
+        if (tut.step >= TUT_TOTAL) { tutEnd(); return; }
+        const next = TUT_DASHBOARD_STEPS.find(s => s.global === tut.step);
+        if (!next) { tutEnd(); return; }
+        if (next.before) { next.before(); setTimeout(tutRender, 180); }
+        else tutRender();
+      }
+
+      function tutSkip() {
+        localStorage.removeItem(TUT_STORAGE_KEY);
+        // Close settings if it was open from step 10
+        if (tut.step === 10) closeSettings();
+        tutDisableDemo();
+        tutEnd();
+      }
+
+      function tutEnd() {
+        tut.active = false;
+        localStorage.removeItem(TUT_STORAGE_KEY);
+        document.getElementById("tut-overlay").classList.remove("active");
+        document.getElementById("tut-highlight-border").style.display = "none";
+      }
+
+      // Keyboard
+      document.addEventListener("keydown", function(e) {
+        if (!tut.active) return;
+        if (e.key === "Escape")     { tutSkip(); return; }
+        if (e.key === "ArrowRight") { tutNext(); return; }
+      });
+
+      // Legacy stubs for call-site compatibility
       function tutAdvance() {}
-      function tutLinkGuard() { return false; }
+      function tutLinkGuard(e) { if (!tut.active) return false; e && e.preventDefault(); return true; }
       function unlockSettingsLinks() {}
       function lockSettingsLinks() {}
       function showTutLinkBlockedMsg() {}
@@ -781,6 +1016,15 @@
       }
 
       function setDemo(checked) {
+        // If the tutorial is running and the user manually turns demo off, end tutorial
+        if (!checked && tut.active) {
+          localStorage.removeItem(TUT_STORAGE_KEY);
+          localStorage.removeItem(TUT_DEMO_KEY);
+          tut.active = false;
+          document.getElementById("tut-overlay").classList.remove("active");
+          document.getElementById("tut-highlight-border").style.display = "none";
+          closeSettings();
+        }
         settings.demo = checked;
         saveSettings();
         document.body.classList.toggle("demo-active", checked);
@@ -790,6 +1034,15 @@
       }
 
       function exitDemo() {
+        // If the tutorial activated demo, end the tutorial first
+        if (tut.active) {
+          localStorage.removeItem(TUT_STORAGE_KEY);
+          localStorage.removeItem(TUT_DEMO_KEY);
+          tut.active = false;
+          document.getElementById("tut-overlay").classList.remove("active");
+          document.getElementById("tut-highlight-border").style.display = "none";
+          closeSettings();
+        }
         settings.demo = false;
         saveSettings();
         document.getElementById("demo-toggle").checked = false;
@@ -1892,75 +2145,10 @@
         return `${y}-${m}-${d}`;
       }
 
-      // ── Submission availability popover ───────────────────
-      let _subPopover = null;
-
-      function formatSubHour(h, min, isSat) {
-        const displayH = h > 12 ? h - 12 : h;
-        const displayM = (min || 0) === 30 ? ":30" : "";
-        const ampm = isSat ? (h >= 12 ? " PM" : " AM") : " PM";
-        return `${displayH}${displayM}${ampm}`;
-      }
-
-      function showSubPopover(btn, sub) {
-        hideSubPopover();
-        const color = getWorkerColor(sub.employeeName);
-        const selectedDays = (sub.days || []).filter(d => d.selected);
-
-        const el = document.createElement("div");
-        el.className = "sub-av-popover";
-
-        const worker = workers.find(w => w._id?.toString() === sub.employeeId?.toString());
-
-        const daysHtml = selectedDays.length === 0
-          ? `<div class="sub-av-popover-empty">No days selected</div>`
-          : selectedDays.map(d => {
-              const isSat = d.day === "saturday";
-              let hoursStr;
-              if (d.allDay) {
-                hoursStr = isSat ? "10 AM – 2 PM"
-                  : (worker && worker.priority === 2 ? "3 – 8 PM" : "4 – 8 PM");
-              } else {
-                hoursStr = `${formatSubHour(d.start, d.startMinute, isSat)} – ${formatSubHour(d.end, d.endMinute, isSat)}`;
-              }
-              const dayLabel = DAY_FULL[d.day] || d.day;
-              return `<div class="sub-av-popover-day">
-                <span class="sub-av-popover-dayname">${dayLabel}</span>
-                <span class="sub-av-popover-hours">${hoursStr}</span>
-              </div>`;
-            }).join("");
-
-        el.innerHTML = `
-          <div class="sub-av-popover-name">
-            <span class="sub-av-popover-stripe" style="background:${color}"></span>
-            ${sub.employeeName}
-          </div>
-          ${daysHtml}`;
-
-        document.body.appendChild(el);
-        _subPopover = el;
-
-        // Position: prefer left of the button, fall back to right
-        const btnRect = btn.getBoundingClientRect();
-        const pw = el.offsetWidth;
-        const ph = el.offsetHeight;
-        let left = btnRect.left - pw - 8;
-        if (left < 8) left = btnRect.right + 8;
-        let top = btnRect.top + btnRect.height / 2 - ph / 2;
-        top = Math.max(8, Math.min(top, window.innerHeight - ph - 8));
-        el.style.left = left + "px";
-        el.style.top = top + "px";
-      }
-
-      function hideSubPopover() {
-        if (_subPopover) { _subPopover.remove(); _subPopover = null; }
-      }
-
       function renderSubmissions() {
         const list = document.getElementById("av-submissions-list");
         if (!list) return;
         list.innerHTML = "";
-        hideSubPopover();
 
         const submittedIds = new Set(_submissions.map(s => s.employeeId));
         const submittedWorkers = _submissions.map((s, i) => ({ ...s, order: i + 1 }));
@@ -1979,13 +2167,7 @@
             <span class="db-sub-stripe" style="background:${color}"></span>
             <span class="db-sub-name">${s.employeeName}</span>
             <span class="db-sub-time">${time}</span>
-            <button class="db-sub-view" title="View availability">View</button>
             ${settings.demo ? "" : `<button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`}`;
-
-          const viewBtn = row.querySelector(".db-sub-view");
-          viewBtn.addEventListener("mouseenter", () => showSubPopover(viewBtn, s));
-          viewBtn.addEventListener("mouseleave", hideSubPopover);
-
           list.appendChild(row);
         });
 
@@ -2185,9 +2367,6 @@
           });
       }
       startSubmissionPolling();
-      // Hide the submission popover on scroll or resize so it never gets stranded
-      document.addEventListener("scroll", hideSubPopover, true);
-      window.addEventListener("resize", hideSubPopover);
 
       // Refresh submissions immediately when the tab regains focus, so
       // returning to the dashboard shows up-to-date submissions right away.
