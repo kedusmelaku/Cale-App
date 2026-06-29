@@ -62,7 +62,7 @@
           <button class="btn-primary" id="btn-generate" onclick="generate()">
             Generate Schedule
           </button>
-          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
+          <button class="btn-gear tut-gear-pulse" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -303,6 +303,10 @@
           <span class="settings-title">Settings</span>
           <button class="btn-back" onclick="closeSettings()" aria-label="Close settings">✕</button>
         </div>
+        <!-- Tour button: pinned top (pre-completion) -->
+        <div class="settings-tour-top">
+          <button class="settings-tour-top-btn tut-btn-pulse" onclick="closeSettings(); tutResumeAt(12);">✦ Take a tour of the app</button>
+        </div>
         <div class="settings-section">
           <h3 class="settings-section-title">Appearance</h3>
           <div class="settings-row">
@@ -475,6 +479,10 @@
             style="color: inherit; text-decoration: none; opacity: 0.7"
             >Sign out</a
           >
+        </div>
+        <!-- Tour link: quiet bottom (post-completion) -->
+        <div class="settings-tour-bottom">
+          <button class="settings-tour-bottom-link" onclick="closeSettings(); tutResumeAt(12);">↺ Replay tour</button>
         </div>
       </div>
     </div>
@@ -1958,13 +1966,21 @@
 
       // ══════════════════════════════════════════════════════════════════
       // TUTORIAL ENGINE — SCHEDULER (steps 13–20 of 20)
-      // Resumes from localStorage set by dashboard. Demo mode stays active
-      // for the whole scheduler portion and is deactivated on tutEnd/tutSkip.
       // ══════════════════════════════════════════════════════════════════
-      const TUT_STORAGE_KEY = "scheduler-tut-step";
-      const TUT_DEMO_KEY    = "scheduler-tut-demo";
-      const TUT_TOTAL       = 20;
+      const TUT_STORAGE_KEY   = "scheduler-tut-step";
+      const TUT_DEMO_KEY      = "scheduler-tut-demo";
+      const TUT_COMPLETED_KEY = "scheduler-tut-completed";
+      const TUT_TOTAL         = 20;
       const tut = { active: false, step: 0 };
+
+      function tutIsCompleted() { return localStorage.getItem(TUT_COMPLETED_KEY) === "1"; }
+      function tutMarkCompleted() {
+        localStorage.setItem(TUT_COMPLETED_KEY, "1");
+        document.body.classList.add("tut-completed");
+      }
+      function tutApplyCompletionState() {
+        if (tutIsCompleted()) document.body.classList.add("tut-completed");
+      }
 
       const TUT_SCHEDULER_STEPS = [
         {
@@ -1975,7 +1991,7 @@
         {
           global: 13, target: ".availability-panel", pos: "right",
           title: "Availability Panel",
-          body: "The left panel shows each employee's availability for the week. It has two tabs: <strong>Form</strong> shows what employees submitted via the availability form. <strong>Manual</strong> lets you set or override availability here before generating.",
+          body: "The left panel shows each employee's availability for the week. Two tabs: <strong>Form</strong> shows what employees submitted via the availability form. <strong>Manual</strong> lets you set or override availability here before generating.",
         },
         {
           global: 14, target: ".av-tabs", pos: "right",
@@ -1985,12 +2001,12 @@
         {
           global: 15, target: ".output-panel-header", pos: "left",
           title: "Schedule Panel",
-          body: "The right side is where the generated schedule appears. The <strong>Week of (Monday)</strong> date picker sets which week to schedule — it always snaps to the nearest Monday. The calendar connection status shows next to the heading.",
+          body: "The right side is where the generated schedule appears. The <strong>Week of (Monday)</strong> date picker sets which week to schedule — it always snaps to the nearest Monday. Calendar connection status shows next to the heading.",
         },
         {
           global: 16, target: "#btn-generate", pos: "below",
           title: "Generate Schedule",
-          body: "Click <strong>Generate Schedule</strong> to run the algorithm. It reads student booking counts from Google Calendar for the selected week, then assigns employees to shifts based on availability and priority. <strong>Keyboard: press Enter</strong> while the date field is focused.",
+          body: "Click <strong>Generate Schedule</strong> to run the algorithm. It reads student booking counts from Google Calendar for the selected week, then assigns employees to shifts based on availability and priority. <strong>Keyboard shortcut: press Enter</strong> while the date field is focused.",
         },
         {
           global: 17, target: ".schedule-grid", pos: "left",
@@ -2000,7 +2016,7 @@
         {
           global: 18, target: "#edit-btn", pos: "below",
           title: "Editing the Schedule",
-          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. <strong>Drag blocks</strong> vertically to shift start times. <strong>Drag the bottom handle</strong> to resize the end time. Click <strong>✕</strong> on a block to remove that shift. Use <strong>+ Add Employee</strong> at the bottom of each day to manually add someone.",
+          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. <strong>Drag blocks</strong> vertically to shift start times. <strong>Drag the bottom handle</strong> to resize the end time. Click <strong>✕</strong> on a block to remove a shift. Use <strong>+ Add Employee</strong> at the bottom of each day to manually add someone.",
         },
         {
           global: 19, target: "#copy-btn", pos: "below",
@@ -2012,11 +2028,10 @@
           title: "You're all set!",
           body: "That's the full app. The weekly flow: <strong>1)</strong> Add your team on the dashboard. <strong>2)</strong> Configure the form and share the link. <strong>3)</strong> Once everyone submits, pick a Monday date here and generate. <strong>4)</strong> Edit if needed, copy, and share. Demo mode has been turned off.",
           next: "Done ✓",
-          after: function() { tutDisableDemo(); },
+          after: function() { tutDisableDemo(); tutMarkCompleted(); },
         },
       ];
 
-      // ── Helpers ──────────────────────────────────────────────────────
       function tutGetRect(selector) {
         if (!selector) return null;
         const el = document.querySelector(selector);
@@ -2043,8 +2058,7 @@
 
       function tutPositionCard(rect, pos) {
         const card = document.getElementById("tut-card");
-        const MARGIN = 16;
-        const cw = card.offsetWidth || 320, ch = card.offsetHeight || 220;
+        const MARGIN = 16, cw = card.offsetWidth || 320, ch = card.offsetHeight || 220;
         const W = window.innerWidth, H = window.innerHeight;
         card.classList.remove("tut-card-centered"); card.style.transform = "";
         if (!rect || pos === "center") { card.classList.add("tut-card-centered"); return; }
@@ -2080,15 +2094,12 @@
         requestAnimationFrame(() => tutPositionCard(rect, step.pos));
       }
 
-      // ── Demo management ──────────────────────────────────────────────
       function tutEnsureDemo() {
         if (!settings.demo) {
-          settings.demo = true;
-          saveSettings();
+          settings.demo = true; saveSettings();
           document.body.classList.add("demo-active");
           document.getElementById("demo-toggle").checked = true;
-          activateDemo();
-          updateCalWarningBanner();
+          activateDemo(); updateCalWarningBanner();
         }
       }
 
@@ -2096,19 +2107,15 @@
         const wasDemo = localStorage.getItem(TUT_DEMO_KEY) === "1";
         localStorage.removeItem(TUT_DEMO_KEY);
         if (!wasDemo && settings.demo) {
-          settings.demo = false;
-          saveSettings();
+          settings.demo = false; saveSettings();
           document.getElementById("demo-toggle").checked = false;
           document.body.classList.remove("demo-active");
-          deactivateDemo();
-          updateCalWarningBanner();
+          deactivateDemo(); updateCalWarningBanner();
         }
       }
 
-      // ── Start / Next / Skip / End ────────────────────────────────────
       function tutResumeAt(globalStep) {
-        tut.active = true;
-        tut.step   = globalStep;
+        tut.active = true; tut.step = globalStep;
         tutEnsureDemo();
         tutRender();
       }
@@ -2119,7 +2126,6 @@
         const step = TUT_SCHEDULER_STEPS[li];
         tut.step++;
         localStorage.setItem(TUT_STORAGE_KEY, String(tut.step));
-        // Run after hook (e.g. disable demo on last step)
         if (step.after) step.after();
         if (tut.step > 20) { tutEnd(); return; }
         const next = TUT_SCHEDULER_STEPS.find(s => s.global === tut.step);
@@ -2129,6 +2135,7 @@
       }
 
       function tutSkip() {
+        // Skip does NOT mark completed — nudging continues
         tutDisableDemo();
         tutEnd();
       }
@@ -2147,7 +2154,9 @@
         if (e.key === "ArrowRight") { tutNext(); return; }
       });
 
-      // Auto-resume on page load if dashboard handed off
+      tutApplyCompletionState();
+
+      // Auto-resume if dashboard handed off
       (function() {
         const saved = localStorage.getItem(TUT_STORAGE_KEY);
         if (saved !== null) {
@@ -2162,7 +2171,6 @@
 
       // ── Global keyboard shortcuts ───────────────────────────
       document.addEventListener("keydown", function (e) {
-        // Tutorial engine handles Escape and → when active
         if (tut.active && (e.key === "Escape" || e.key === "ArrowRight")) return;
 
         const tag = document.activeElement?.tagName;
