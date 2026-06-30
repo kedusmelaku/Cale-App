@@ -19,18 +19,19 @@
     <div id="tut-overlay">
       <div id="tut-dim"></div>
       <div id="tut-highlight-border" style="display:none;"></div>
-      <div id="tut-card">
-        <div class="tut-card-header">
-          <span class="tut-step-badge" id="tut-badge"></span>
-          <button class="tut-skip-btn" onclick="tutSkip()">Skip tutorial</button>
-        </div>
-        <div class="tut-title" id="tut-title"></div>
-        <div class="tut-body" id="tut-body"></div>
-        <div class="tut-action-hint" id="tut-hint"></div>
-        <div class="tut-footer">
-          <div class="tut-dots" id="tut-dots"></div>
-          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">Next →</button>
-        </div>
+    </div>
+    <!-- Tutorial card lives at body level so its z-index isn't trapped by the overlay's stacking context -->
+    <div id="tut-card">
+      <div class="tut-card-header">
+        <span class="tut-step-badge" id="tut-badge"></span>
+        <button class="tut-skip-btn" onclick="tutSkip()">Skip tutorial</button>
+      </div>
+      <div class="tut-title" id="tut-title"></div>
+      <div class="tut-body" id="tut-body"></div>
+      <div class="tut-action-hint" id="tut-hint"></div>
+      <div class="tut-footer">
+        <div class="tut-dots" id="tut-dots"></div>
+        <button class="tut-next-btn" id="tut-next" onclick="tutNext()">Next →</button>
       </div>
     </div>
 
@@ -623,9 +624,11 @@
 
       function setDemo(checked) {
         if (!checked && tut.active) {
+          if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
           localStorage.removeItem(TUT_STORAGE_KEY);
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
+          document.body.classList.remove("tut-active");
           document.getElementById("tut-overlay").classList.remove("active");
           document.getElementById("tut-highlight-border").style.display = "none";
         }
@@ -639,9 +642,11 @@
 
       function exitDemo() {
         if (tut.active) {
+          if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
           localStorage.removeItem(TUT_STORAGE_KEY);
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
+          document.body.classList.remove("tut-active");
           document.getElementById("tut-overlay").classList.remove("active");
           document.getElementById("tut-highlight-border").style.display = "none";
         }
@@ -1193,6 +1198,8 @@
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         document.getElementById("finish-btn").style.display = "none";
+        const grid = document.querySelector(".schedule-grid");
+        if (grid) grid.classList.remove("has-schedule");
         hideAllEmptyStates();
         const map = {
           default: "empty-state",
@@ -1549,6 +1556,8 @@
         output.style.display = "block";
         output.innerHTML = buildTimelineHTML(scheduleData, false);
         renderHoursSummary();
+        const grid = document.querySelector(".schedule-grid");
+        if (grid) grid.classList.add("has-schedule");
       }
 
       function computeWorkerHours() {
@@ -2076,6 +2085,7 @@
           body: "Each block is draggable. The <strong>bottom handle</strong> resizes the end time. <strong>✕</strong> removes the shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually. Click <strong>← Back</strong> when you're done.",
           hint: "Click ← Back to return to the schedule",
           waitFor: "#screen-edit",
+          waitForClass: "active",
           waitForGone: true,
           onExit: function() { showScreen("screen-schedule"); },
         },
@@ -2176,12 +2186,12 @@
         const hint = document.getElementById("tut-hint");
         const card = document.getElementById("tut-card");
 
-        if (step.waitFor) {
+        if (step.waitFor || step.interactive) {
           nb.style.display = "none";
           hint.style.display = "flex";
           hint.textContent = step.hint || "Interact to continue";
           card.classList.add("waiting");
-          tutWatchFor(step);
+          if (step.waitFor) tutWatchFor(step);
         } else {
           nb.style.display = "";
           hint.style.display = "none";
@@ -2243,6 +2253,9 @@
       }
 
       function tutNext() {
+        const li = TUT_SCHEDULER_STEPS.findIndex(s => s.global === tut.step);
+        const step = li >= 0 ? TUT_SCHEDULER_STEPS[li] : null;
+        if (step && (step.waitFor || step.interactive)) return; // must interact
         tutAdvanceStep();
       }
 

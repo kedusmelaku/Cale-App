@@ -1360,9 +1360,10 @@ body.dark {
   transition: clip-path 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* ── Step card ── */
+/* ── Step card — body-level, fixed, above the dim/modals/everything ── */
 #tut-card {
-  position: absolute;
+  display: none;
+  position: fixed;
   width: 320px;
   background: var(--surface);
   border: 1.5px solid var(--accent);
@@ -1372,8 +1373,9 @@ body.dark {
   pointer-events: all;
   transition: top 0.35s cubic-bezier(0.4,0,0.2,1),
               left 0.35s cubic-bezier(0.4,0,0.2,1);
-  z-index: 503;
+  z-index: 10001;
 }
+body.tut-active #tut-card { display: block; }
 
 /* Centered variant for intro/outro steps */
 #tut-card.tut-card-centered {
@@ -2241,26 +2243,27 @@ body.tut-completed .btn-gear::after { display: none; }
 .db-sub-row:hover .db-sub-remove { opacity: 1; }
 .db-sub-remove:hover { color: #c0392b; }
 
-/* View availability button (hover-revealed) */
+/* View availability button (hover-revealed, neutral styling) */
 .db-sub-view {
-  background: var(--accent-light);
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border-strong, var(--border));
+  color: var(--text-muted);
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 5px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s, background 0.12s;
+  transition: opacity 0.12s, color 0.12s, border-color 0.12s, background 0.12s;
   flex-shrink: 0;
   font-family: "Noto Sans", sans-serif;
 }
 .db-sub-row:hover .db-sub-view { opacity: 1; }
-.db-sub-view:hover { background: var(--accent); color: #fff; }
-
-/* During tutorial, keep View button always visible on submitted rows so it's discoverable */
-body.tut-active .db-sub-row-done .db-sub-view { opacity: 1; }
+.db-sub-view:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+  background: var(--hover-bg, rgba(0,0,0,0.04));
+}
 
 /* Availability popover */
 .db-sub-pop {
@@ -2274,8 +2277,8 @@ body.tut-active .db-sub-row-done .db-sub-view { opacity: 1; }
   min-width: 160px;
   pointer-events: none;
 }
-/* During the tutorial, raise the popover into the cutout band (above dim, below card) */
-body.tut-active .db-sub-pop { z-index: 502; }
+/* During the tutorial, raise the popover above the dim (card stays on top at 10001) */
+body.tut-active .db-sub-pop { z-index: 9000; }
 .db-sub-pop-title {
   font-size: 0.7rem;
   font-weight: 700;
