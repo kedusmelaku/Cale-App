@@ -22,22 +22,23 @@
     <div id="tut-overlay">
       <div id="tut-dim"></div>
       <div id="tut-highlight-border" style="display: none"></div>
-      <div id="tut-card">
-        <div class="tut-card-header">
-          <span class="tut-step-badge" id="tut-badge"></span>
-          <button class="tut-skip-btn" onclick="tutSkip()">
-            Skip tutorial
-          </button>
-        </div>
-        <div class="tut-title" id="tut-title"></div>
-        <div class="tut-body" id="tut-body"></div>
-        <div class="tut-action-hint" id="tut-hint"></div>
-        <div class="tut-footer">
-          <div class="tut-dots" id="tut-dots"></div>
-          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">
-            Next →
-          </button>
-        </div>
+    </div>
+    <!-- Tutorial card lives at body level so its z-index isn't trapped by the overlay's stacking context -->
+    <div id="tut-card">
+      <div class="tut-card-header">
+        <span class="tut-step-badge" id="tut-badge"></span>
+        <button class="tut-skip-btn" onclick="tutSkip()">
+          Skip tutorial
+        </button>
+      </div>
+      <div class="tut-title" id="tut-title"></div>
+      <div class="tut-body" id="tut-body"></div>
+      <div class="tut-action-hint" id="tut-hint"></div>
+      <div class="tut-footer">
+        <div class="tut-dots" id="tut-dots"></div>
+        <button class="tut-next-btn" id="tut-next" onclick="tutNext()">
+          Next →
+        </button>
       </div>
     </div>
 
@@ -993,24 +994,12 @@
           target: ".db-build-btn",
           pos: "above",
           title: "Build Schedule",
-          body: "Once your team has submitted, click <strong>Build Schedule →</strong> to go to the schedule builder. If the form is still open you'll be warned and can close it first.",
+          body: "Once your team has submitted, click <strong>Build Schedule →</strong> to head into the schedule builder. The tour continues there automatically.",
+          hint: "Click Build Schedule → to continue",
+          interactive: true,
           onEnter: function () {
-            tutLockNavigation();
-          },
-          onExit: function () {
             tutUnlockNavigation();
-          },
-        },
-        {
-          global: 12,
-          target: null,
-          pos: "center",
-          title: "On to the Schedule Builder",
-          body: "That covers the dashboard. Next up: the schedule builder, where you generate and edit the weekly schedule. The tour will continue there automatically.",
-          next: "Continue →",
-          after: function () {
-            localStorage.setItem(TUT_STORAGE_KEY, "13");
-            window.location.href = "/scheduler";
+            localStorage.setItem(TUT_STORAGE_KEY, "12");
           },
         },
       ];
@@ -1132,12 +1121,12 @@
         const hint = document.getElementById("tut-hint");
         const card = document.getElementById("tut-card");
 
-        if (step.waitFor) {
+        if (step.waitFor || step.interactive) {
           nb.style.display = "none";
           hint.style.display = "flex";
           hint.textContent = step.hint || "Interact to continue";
           card.classList.add("waiting");
-          tutWatchFor(step);
+          if (step.waitFor) tutWatchFor(step);
         } else {
           nb.style.display = "";
           hint.style.display = "none";
@@ -1246,10 +1235,14 @@
         closeSettings();
         tutEnableDemo();
         tutHidePulseRing();
+        tutLockNavigation();
         tutRender();
       }
 
       function tutNext() {
+        const li = TUT_DASHBOARD_STEPS.findIndex((s) => s.global === tut.step);
+        const step = li >= 0 ? TUT_DASHBOARD_STEPS[li] : null;
+        if (step && (step.waitFor || step.interactive)) return; // must interact
         tutAdvanceStep();
       }
 
@@ -1517,9 +1510,12 @@
 
       function setDemo(checked) {
         if (!checked && tut.active) {
+          if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
           localStorage.removeItem(TUT_STORAGE_KEY);
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
+          document.body.classList.remove("tut-active");
+          tutUnlockNavigation();
           document.getElementById("tut-overlay").classList.remove("active");
           document.getElementById("tut-highlight-border").style.display =
             "none";
@@ -1535,9 +1531,12 @@
 
       function exitDemo() {
         if (tut.active) {
+          if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
           localStorage.removeItem(TUT_STORAGE_KEY);
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
+          document.body.classList.remove("tut-active");
+          tutUnlockNavigation();
           document.getElementById("tut-overlay").classList.remove("active");
           document.getElementById("tut-highlight-border").style.display =
             "none";
@@ -1698,6 +1697,13 @@
       async function goToSchedule() {
         if (workers.length === 0)
           return alert("Add at least one employee first.");
+        // During the tour, this click is the intended transition — skip the
+        // form-open warning and store the resume step before navigating.
+        if (tut.active) {
+          localStorage.setItem(TUT_STORAGE_KEY, "12");
+          await _doGoToSchedule();
+          return;
+        }
         // If form is still open, show custom warning instead of proceeding
         if (_centerSettings && isFormOpen(_centerSettings)) {
           showBuildWarning();
@@ -2727,8 +2733,8 @@
             <span class="db-sub-order">#${s.order}</span>
             <span class="db-sub-stripe" style="background:${color}"></span>
             <span class="db-sub-name">${s.employeeName}</span>
-            <span class="db-sub-time">${time}</span>
             <button class="db-sub-view" type="button" title="View availability">View</button>
+            <span class="db-sub-time">${time}</span>
             ${settings.demo ? "" : `<button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`}`;
           const viewBtn = row.querySelector(".db-sub-view");
           if (viewBtn) {
