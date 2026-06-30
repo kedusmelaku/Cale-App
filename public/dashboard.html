@@ -6,13 +6,11 @@
     <title>Scheduler — Dashboard</title>
     <meta
       name="google-site-verification"
-      content="uzaK7zMwyeu8dhhMth8YUM2HL6VfXjCt52LQLcNIbhU"
-    />
+      content="uzaK7zMwyeu8dhhMth8YUM2HL6VfXjCt52LQLcNIbhU" />
     <meta name="og:title" content="Scheduler" />
     <meta
       name="description"
-      content="A scheduling tool for tutoring centers- generates weekly staff schedules based on availability and student bookings from Google Calendar"
-    />
+      content="A scheduling tool for tutoring centers- generates weekly staff schedules based on availability and student bookings from Google Calendar" />
     <link rel="stylesheet" href="styles.css" />
     <!-- Tutorial styles are in styles.css -->
     <!-- Vercel Web Analytics -->
@@ -23,18 +21,22 @@
     <!-- Tutorial overlay -->
     <div id="tut-overlay">
       <div id="tut-dim"></div>
-      <div id="tut-highlight-border" style="display:none;"></div>
+      <div id="tut-highlight-border" style="display: none"></div>
       <div id="tut-card">
         <div class="tut-card-header">
           <span class="tut-step-badge" id="tut-badge"></span>
-          <button class="tut-skip-btn" onclick="tutSkip()">Skip tutorial</button>
+          <button class="tut-skip-btn" onclick="tutSkip()">
+            Skip tutorial
+          </button>
         </div>
         <div class="tut-title" id="tut-title"></div>
         <div class="tut-body" id="tut-body"></div>
         <div class="tut-action-hint" id="tut-hint"></div>
         <div class="tut-footer">
           <div class="tut-dots" id="tut-dots"></div>
-          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">Next →</button>
+          <button class="tut-next-btn" id="tut-next" onclick="tutNext()">
+            Next →
+          </button>
         </div>
       </div>
     </div>
@@ -55,56 +57,131 @@
     <div id="screen-workers" class="screen active">
       <!-- ── Top bar ── -->
       <div class="db-topbar">
-        <div style="display:flex; flex-direction:column; justify-content:center; gap:1px;">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1px;
+          ">
           <span class="db-topbar-title">Scheduler</span>
-          <span id="db-center-name" style="font-size:0.75rem; color:var(--text-muted); font-weight:500; letter-spacing:0;"></span>
+          <span
+            id="db-center-name"
+            style="
+              font-size: 0.75rem;
+              color: var(--text-muted);
+              font-weight: 500;
+              letter-spacing: 0;
+            "></span>
         </div>
         <div class="db-topbar-actions">
-          <button class="btn-primary" onclick="goToSchedule()">Build Schedule →</button>
-          <button class="btn-gear tut-gear-intro" id="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">⚙</button>
+          <button class="btn-primary" onclick="goToSchedule()">
+            Build Schedule →
+          </button>
+          <button
+            class="btn-gear tut-gear-intro"
+            id="btn-gear"
+            onclick="openSettings()"
+            title="Settings"
+            aria-label="Settings">
+            ⚙
+          </button>
         </div>
       </div>
 
       <!-- ── Two-panel body ── -->
       <div class="db-body">
-
         <!-- ── Left rail: Team roster ── -->
         <aside class="db-rail">
           <div class="db-rail-header">
             <span class="db-rail-title">Team</span>
-            <button class="db-add-btn" onclick="openModal()" title="Add employee">+</button>
+            <button
+              class="db-add-btn"
+              onclick="openModal()"
+              title="Add employee">
+              +
+            </button>
           </div>
           <div class="db-roster" id="worker-grid"></div>
         </aside>
 
         <!-- ── Right panel: Weekly workflow ── -->
         <main class="db-main">
-
           <!-- Status pills row -->
           <div class="db-status-row">
             <div class="db-status-pill" id="status-cal">
-              <span class="db-status-label">Calendar <span class="info-tag" tabindex="0" aria-label="Whether Google Calendar is connected. When connected, Scheduler reads your student bookings to check schedule coverage.">i<span class="info-tooltip">Whether your Google Calendar is connected. When connected, Scheduler reads student bookings from it to check coverage.</span></span></span>
+              <span class="db-status-label"
+                >Calendar
+                <span
+                  class="info-tag"
+                  tabindex="0"
+                  aria-label="Whether Google Calendar is connected. When connected, Scheduler reads your student bookings to check schedule coverage."
+                  >i<span class="info-tooltip"
+                    >Whether your Google Calendar is connected. When connected,
+                    Scheduler reads student bookings from it to check
+                    coverage.</span
+                  ></span
+                ></span
+              >
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-cal-dot"></span>
                 <span class="db-status-val" id="status-cal-val">Checking…</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-window">
-              <span class="db-status-label">Form <span class="info-tag" tabindex="0" aria-label="Availability form status: Not set, Scheduled (opens later), Open (employees can submit now), or Closed.">i<span class="info-tooltip">Status of the availability form. <b>Not set</b> means no window is configured. <b>Scheduled</b> means it will open later. <b>Open</b> means employees can submit now. <b>Closed</b> means the window has passed.</span></span></span>
+              <span class="db-status-label"
+                >Form
+                <span
+                  class="info-tag"
+                  tabindex="0"
+                  aria-label="Availability form status: Not set, Scheduled (opens later), Open (employees can submit now), or Closed."
+                  >i<span class="info-tooltip"
+                    >Status of the availability form. <b>Not set</b> means no
+                    window is configured. <b>Scheduled</b> means it will open
+                    later. <b>Open</b> means employees can submit now.
+                    <b>Closed</b> means the window has passed.</span
+                  ></span
+                ></span
+              >
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-window-dot"></span>
                 <span class="db-status-val" id="status-window-val">—</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-subs">
-              <span class="db-status-label">Submissions <span class="info-tag" tabindex="0" aria-label="How many employees have submitted their availability out of your total team.">i<span class="info-tooltip">How many employees have submitted their availability for the upcoming week, out of your whole team.</span></span></span>
+              <span class="db-status-label"
+                >Submissions
+                <span
+                  class="info-tag"
+                  tabindex="0"
+                  aria-label="How many employees have submitted their availability out of your total team."
+                  >i<span class="info-tooltip"
+                    >How many employees have submitted their availability for
+                    the upcoming week, out of your whole team.</span
+                  ></span
+                ></span
+              >
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-subs-dot"></span>
                 <span class="db-status-val" id="status-subs-val">—</span>
               </span>
             </div>
             <div class="db-status-pill" id="status-readiness">
-              <span class="db-status-label">Schedule <span class="info-tag" tabindex="0" aria-label="Whether submissions cover all student slots this week. Ready means full coverage, Gaps lists days that are short, No bookings means no students are booked this week.">i<span class="info-tooltip">Whether the submitted availability covers every time slot that has students this week.<br><b>Ready</b>: all student slots are covered.<br><b>Gaps</b>: some slots have no available employee.<br><b>No bookings</b>: no student sessions found for this week.</span></span></span>
+              <span class="db-status-label"
+                >Schedule
+                <span
+                  class="info-tag"
+                  tabindex="0"
+                  aria-label="Whether submissions cover all student slots this week. Ready means full coverage, Gaps lists days that are short, No bookings means no students are booked this week."
+                  >i<span class="info-tooltip"
+                    >Whether the submitted availability covers every time slot
+                    that has students this week.<br /><b>Ready</b>: all student
+                    slots are covered.<br /><b>Gaps</b>: some slots have no
+                    available employee.<br /><b>No bookings</b>: no student
+                    sessions found for this week.</span
+                  ></span
+                ></span
+              >
               <span class="db-status-valwrap">
                 <span class="db-status-dot" id="status-readiness-dot"></span>
                 <span class="db-status-val" id="status-readiness-val">—</span>
@@ -116,13 +193,45 @@
           <div class="db-card" id="db-window-card">
             <div class="db-card-header">
               <div>
-                <div class="db-card-title">Availability Form<span class="db-card-week-inline" id="db-week-target"></span> <span class="info-tag" tabindex="0" aria-label="Set when employees can submit availability. Configure sets the open and close times. Copy Link copies the link to send to employees.">i<span class="info-tooltip">Controls the availability form employees use to submit their hours. <b>Configure</b> sets when it opens and closes. <b>Copy Link</b> copies the link to send to employees.</span></span></div>
-                <div class="db-card-sub" id="db-window-summary">Not configured</div>
+                <div class="db-card-title">
+                  Availability Form<span
+                    class="db-card-week-inline"
+                    id="db-week-target"></span>
+                  <span
+                    class="info-tag"
+                    tabindex="0"
+                    aria-label="Set when employees can submit availability. Configure sets the open and close times. Copy Link copies the link to send to employees."
+                    >i<span class="info-tooltip"
+                      >Controls the availability form employees use to submit
+                      their hours. <b>Configure</b> sets when it opens and
+                      closes. <b>Copy Link</b> copies the link to send to
+                      employees.</span
+                    ></span
+                  >
+                </div>
+                <div class="db-card-sub" id="db-window-summary">
+                  Not configured
+                </div>
               </div>
               <div class="db-card-actions">
-                <button class="db-chip-btn db-chip-btn-green" onclick="copyAvLink()" title="Copy form link">Copy Link</button>
-                <button class="db-chip-btn db-chip-btn-danger" id="db-close-now-btn" style="display:none;" onclick="closeFormNow()">Close Now</button>
-                <button class="db-chip-btn db-chip-btn-primary" onclick="openFormModal()">Configure</button>
+                <button
+                  class="db-chip-btn db-chip-btn-green"
+                  onclick="copyAvLink()"
+                  title="Copy form link">
+                  Copy Link
+                </button>
+                <button
+                  class="db-chip-btn db-chip-btn-danger"
+                  id="db-close-now-btn"
+                  style="display: none"
+                  onclick="closeFormNow()">
+                  Close Now
+                </button>
+                <button
+                  class="db-chip-btn db-chip-btn-primary"
+                  onclick="openFormModal()">
+                  Configure
+                </button>
               </div>
             </div>
           </div>
@@ -131,16 +240,31 @@
           <div class="db-card" id="db-submissions-card">
             <div class="db-card-header">
               <div>
-                <div class="db-card-title">Submissions <span class="info-tag" tabindex="0" aria-label="Live list of who has submitted availability and in what order. Employees who haven't submitted appear greyed out at the bottom.">i<span class="info-tooltip">Live list of who has submitted availability for the week, in the order they submitted. Employees who haven't submitted yet appear greyed out at the bottom.</span></span></div>
-                <div class="db-card-sub" id="db-subs-summary">No submissions yet</div>
+                <div class="db-card-title">
+                  Submissions
+                  <span
+                    class="info-tag"
+                    tabindex="0"
+                    aria-label="Live list of who has submitted availability and in what order. Employees who haven't submitted appear greyed out at the bottom."
+                    >i<span class="info-tooltip"
+                      >Live list of who has submitted availability for the week,
+                      in the order they submitted. Employees who haven't
+                      submitted yet appear greyed out at the bottom.</span
+                    ></span
+                  >
+                </div>
+                <div class="db-card-sub" id="db-subs-summary">
+                  No submissions yet
+                </div>
               </div>
             </div>
             <div class="db-submissions-list" id="av-submissions-list"></div>
           </div>
 
           <!-- Build schedule button -->
-          <button class="db-build-btn" onclick="goToSchedule()">Build Schedule →</button>
-
+          <button class="db-build-btn" onclick="goToSchedule()">
+            Build Schedule →
+          </button>
         </main>
       </div>
     </div>
@@ -150,7 +274,9 @@
       <div class="modal modal-window">
         <div class="modal-titlebar">
           <h3>Configure Availability Form</h3>
-          <button class="btn-cancel modal-close-x" onclick="closeFormModal()">✕</button>
+          <button class="btn-cancel modal-close-x" onclick="closeFormModal()">
+            ✕
+          </button>
         </div>
 
         <div class="wm-row">
@@ -166,18 +292,35 @@
         <div class="wm-row">
           <label class="field-label">Closes</label>
           <div class="toggle-group wm-close-toggle">
-            <button class="toggle-opt active" id="wm-close-manual-btn" onclick="setCloseMode('manual')">Manually</button>
-            <button class="toggle-opt" id="wm-close-auto-btn" onclick="setCloseMode('auto')">At a time</button>
+            <button
+              class="toggle-opt active"
+              id="wm-close-manual-btn"
+              onclick="setCloseMode('manual')">
+              Manually
+            </button>
+            <button
+              class="toggle-opt"
+              id="wm-close-auto-btn"
+              onclick="setCloseMode('auto')">
+              At a time
+            </button>
           </div>
         </div>
-        <div class="wm-row" id="wm-close-row" style="display:none;">
+        <div class="wm-row" id="wm-close-row" style="display: none">
           <label class="field-label" for="wm-close">Close at</label>
-          <input type="datetime-local" id="wm-close" class="av-datetime-input" />
+          <input
+            type="datetime-local"
+            id="wm-close"
+            class="av-datetime-input" />
         </div>
 
         <div class="wm-activate-wrap">
-          <button class="btn-primary wm-activate-btn" onclick="activateForm()">Activate &amp; Copy Link</button>
-          <div class="wm-copied-msg" id="wm-copied-msg" style="display:none;">✓ Link copied to clipboard</div>
+          <button class="btn-primary wm-activate-btn" onclick="activateForm()">
+            Activate &amp; Copy Link
+          </button>
+          <div class="wm-copied-msg" id="wm-copied-msg" style="display: none">
+            ✓ Link copied to clipboard
+          </div>
         </div>
       </div>
     </div>
@@ -187,11 +330,17 @@
       <div class="modal">
         <div class="build-warning-icon">⚠️</div>
         <h3>Availability form is still open</h3>
-        <p class="build-warning-sub">The following employees haven't submitted yet:</p>
+        <p class="build-warning-sub">
+          The following employees haven't submitted yet:
+        </p>
         <ul class="build-warning-list" id="build-warning-list"></ul>
         <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeBuildWarning()">Go back</button>
-          <button class="btn-confirm" onclick="closeFormAndContinue()">Close form &amp; continue</button>
+          <button class="btn-cancel" onclick="closeBuildWarning()">
+            Go back
+          </button>
+          <button class="btn-confirm" onclick="closeFormAndContinue()">
+            Close form &amp; continue
+          </button>
         </div>
       </div>
     </div>
@@ -203,13 +352,16 @@
           class="btn-back"
           id="auth-back-btn"
           onclick="showScreen('screen-workers')"
-          style="visibility: hidden"
-        >
+          style="visibility: hidden">
           ← Back
         </button>
         <span class="header-title">Scheduler</span>
         <div class="header-actions">
-          <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
+          <button
+            class="btn-gear"
+            onclick="openSettings()"
+            title="Settings"
+            aria-label="Settings">
             ⚙
           </button>
         </div>
@@ -226,8 +378,7 @@
           <button
             class="btn-primary"
             style="width: 100%; padding: 14px"
-            onclick="startOAuth()"
-          >
+            onclick="startOAuth()">
             Sign in with Google →
           </button>
         </div>
@@ -236,8 +387,7 @@
           <button
             class="btn-secondary"
             style="margin-top: 12px"
-            onclick="startOAuth()"
-          >
+            onclick="startOAuth()">
             Open sign-in again
           </button>
         </div>
@@ -248,16 +398,14 @@
           <button
             class="btn-primary"
             style="margin-top: 12px"
-            onclick="showScreen('screen-workers')"
-          >
+            onclick="showScreen('screen-workers')">
             ← Back to Dashboard
           </button>
         </div>
         <div
           id="auth-state-disconnected"
           class="auth-state"
-          style="display: none"
-        >
+          style="display: none">
           <p>
             ✅ <strong>Disconnected</strong> — Google Calendar access has been
             successfully disconnected from Scheduler
@@ -265,8 +413,7 @@
           <button
             class="btn-primary"
             style="margin-top: 12px"
-            onclick="showScreen('screen-workers')"
-          >
+            onclick="showScreen('screen-workers')">
             ← Back to Dashboard
           </button>
         </div>
@@ -278,8 +425,7 @@
               font-size: 0.85rem;
               color: var(--text-muted);
               margin: 8px 0 12px;
-            "
-          ></p>
+            "></p>
           <button class="btn-primary" onclick="startOAuth()">Try again</button>
         </div>
       </div>
@@ -290,10 +436,22 @@
       <div class="settings-modal">
         <div class="settings-header">
           <span class="settings-title">Settings</span>
-          <button class="btn-back" onclick="closeSettings()" aria-label="Close settings">✕</button>
+          <button
+            class="btn-back"
+            onclick="closeSettings()"
+            aria-label="Close settings">
+            ✕
+          </button>
         </div>
         <div class="settings-tour-top">
-          <button class="settings-tour-top-btn" onclick="closeSettings(); tutStart();">✦ Take a tour of the app</button>
+          <button
+            class="settings-tour-top-btn"
+            onclick="
+              closeSettings();
+              tutStart();
+            ">
+            ✦ Take a tour of the app
+          </button>
         </div>
         <div class="settings-section">
           <h3 class="settings-section-title">Appearance</h3>
@@ -308,15 +466,13 @@
               <button
                 class="toggle-opt active"
                 id="theme-light"
-                onclick="setTheme('light')"
-              >
+                onclick="setTheme('light')">
                 Light
               </button>
               <button
                 class="toggle-opt"
                 id="theme-dark"
-                onclick="setTheme('dark')"
-              >
+                onclick="setTheme('dark')">
                 Dark
               </button>
             </div>
@@ -328,18 +484,18 @@
             <div>
               <div
                 class="settings-label"
-                style="display: flex; align-items: center; gap: 6px"
-              >
+                style="display: flex; align-items: center; gap: 6px">
                 Scheduling Mode
                 <span
                   class="info-tag"
                   tabindex="0"
                   aria-label="Scheduling mode: Normal builds clean shift blocks (like 4–8 or 4–6). Ultra-efficient assigns workers slot by slot based on exact student counts — more precise but may produce irregular shift times."
                   >i<span class="info-tooltip" style="width: 260px"
-                    ><strong>Normal:</strong> Builds clean shift blocks (e.g. 4–8, 4–6, 6–8). Faster and easier to read — best for most weeks.<br /><br /><strong
-                      >Ultra-efficient:</strong
-                    >
-                    Assigns workers every 30 minutes based on exact student counts. More precise but may produce shorter or irregular shifts.</span
+                    ><strong>Normal:</strong> Builds clean shift blocks (e.g.
+                    4–8, 4–6, 6–8). Faster and easier to read — best for most
+                    weeks.<br /><br /><strong>Ultra-efficient:</strong> Assigns
+                    workers every 30 minutes based on exact student counts. More
+                    precise but may produce shorter or irregular shifts.</span
                   ></span
                 >
               </div>
@@ -351,15 +507,13 @@
               <button
                 class="toggle-opt active"
                 id="mode-simplified"
-                onclick="setMode('simplified')"
-              >
+                onclick="setMode('simplified')">
                 Normal
               </button>
               <button
                 class="toggle-opt"
                 id="mode-ultra"
-                onclick="setMode('ultra')"
-              >
+                onclick="setMode('ultra')">
                 Ultra-efficient
               </button>
             </div>
@@ -379,8 +533,7 @@
                 type="checkbox"
                 id="demo-toggle"
                 aria-label="Demo Mode"
-                onchange="setDemo(this.checked)"
-              />
+                onchange="setDemo(this.checked)" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -417,8 +570,7 @@
           <div
             class="settings-row"
             id="cal-picker-row"
-            style="margin-top: 14px; display: none"
-          >
+            style="margin-top: 14px; display: none">
             <div>
               <div class="settings-label">Calendar to Read</div>
               <div class="settings-sublabel">
@@ -430,8 +582,7 @@
               id="cal-picker-select"
               class="field-select cal-picker-select"
               aria-label="Calendar to Read"
-              onchange="onCalendarPicked(this.value)"
-            >
+              onchange="onCalendarPicked(this.value)">
               <option value="">Loading…</option>
             </select>
           </div>
@@ -442,8 +593,7 @@
             margin-top: 10px;
             font-size: 0.85rem;
             color: var(--text-muted);
-          "
-        >
+          ">
           <a
             id="privacy-link"
             href="/privacy.html"
@@ -471,11 +621,17 @@
           >
         </div>
         <div class="settings-tour-bottom">
-          <button class="settings-tour-bottom-link" onclick="closeSettings(); tutStart();">↺ Replay tour</button>
+          <button
+            class="settings-tour-bottom-link"
+            onclick="
+              closeSettings();
+              tutStart();
+            ">
+            ↺ Replay tour
+          </button>
         </div>
       </div>
     </div>
-
 
     <!-- ── About Modal (inline popup) ── -->
     <div class="modal-overlay" id="about-modal">
@@ -486,8 +642,7 @@
             font-size: 0.95rem;
             line-height: 1.4;
             color: var(--text-default);
-          "
-        >
+          ">
           <p>
             Scheduler is an internal operational management tool designed to
             streamline workforce scheduling. This application connects with the
@@ -515,9 +670,11 @@
             aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
               ><strong>Normal:</strong> High schoolers or people with limited
-              availability. Default hours: 4–8.<br /><strong>Priority:</strong> Adults with moderate
-              availability. Default hours: 4–8.<br /><strong>High Priority:</strong> Adults who are
-              usually fully available. Default hours: 3–8.</span
+              availability. Default hours: 4–8.<br /><strong>Priority:</strong>
+              Adults with moderate availability. Default hours: 4–8.<br /><strong
+                >High Priority:</strong
+              >
+              Adults who are usually fully available. Default hours: 3–8.</span
             ></span
           >
         </label>
@@ -525,8 +682,7 @@
           <button
             class="priority-opt active"
             data-val="0"
-            onclick="selectPriority(0)"
-          >
+            onclick="selectPriority(0)">
             Normal
           </button>
           <button class="priority-opt" data-val="1" onclick="selectPriority(1)">
@@ -536,18 +692,25 @@
             High Priority
           </button>
         </div>
-        <label class="field-label" style="margin-top:14px;"
+        <label class="field-label" style="margin-top: 14px"
           >PIN
           <span
             class="info-tag"
             tabindex="0"
             aria-label="The PIN is auto-generated. Employees enter it on the availability form to identify themselves. You can view or change it by editing the employee."
             >i<span class="info-tooltip"
-              >A unique PIN is auto-generated for each employee. They enter it on the availability form to identify themselves. You can view or change it anytime by editing the employee.</span
+              >A unique PIN is auto-generated for each employee. They enter it
+              on the availability form to identify themselves. You can view or
+              change it anytime by editing the employee.</span
             ></span
           >
         </label>
-        <input type="text" id="new-worker-pin" class="pin-readonly" readonly tabindex="-1" />
+        <input
+          type="text"
+          id="new-worker-pin"
+          class="pin-readonly"
+          readonly
+          tabindex="-1" />
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeModal()">Cancel</button>
           <button class="btn-confirm" onclick="addWorker()">
@@ -563,8 +726,19 @@
         <h3>Edit Employee</h3>
         <label class="field-label" for="edit-employee-name">Name</label>
         <input type="text" id="edit-employee-name" placeholder="Full name" />
-        <label class="field-label" style="margin-top:14px;" for="edit-employee-pin">PIN</label>
-        <input type="text" id="edit-employee-pin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <label
+          class="field-label"
+          style="margin-top: 14px"
+          for="edit-employee-pin"
+          >PIN</label
+        >
+        <input
+          type="text"
+          id="edit-employee-pin"
+          placeholder="e.g. 1234"
+          maxlength="4"
+          inputmode="numeric"
+          pattern="[0-9]*" />
         <label class="field-label"
           >Priority
           <span
@@ -573,9 +747,11 @@
             aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
               ><strong>Normal:</strong> High schoolers or people with limited
-              availability. Default hours: 4–8.<br /><strong>Priority:</strong> Adults with moderate
-              availability. Default hours: 4–8.<br /><strong>High Priority:</strong> Adults who are
-              usually fully available. Default hours: 3–8.</span
+              availability. Default hours: 4–8.<br /><strong>Priority:</strong>
+              Adults with moderate availability. Default hours: 4–8.<br /><strong
+                >High Priority:</strong
+              >
+              Adults who are usually fully available. Default hours: 3–8.</span
             ></span
           >
         </label>
@@ -583,22 +759,19 @@
           <button
             class="priority-opt active"
             data-val="0"
-            onclick="selectEditPriority(0)"
-          >
+            onclick="selectEditPriority(0)">
             Normal
           </button>
           <button
             class="priority-opt"
             data-val="1"
-            onclick="selectEditPriority(1)"
-          >
+            onclick="selectEditPriority(1)">
             Priority
           </button>
           <button
             class="priority-opt"
             data-val="2"
-            onclick="selectEditPriority(2)"
-          >
+            onclick="selectEditPriority(2)">
             High Priority
           </button>
         </div>
@@ -614,7 +787,6 @@
     </div>
 
     <script>
-
       // ── Shared constants (mirrored from utils.js; dashboard keeps them
       //    inline rather than loading utils.js to avoid redeclaration
       //    conflicts with its own inline helper functions) ──
@@ -629,22 +801,45 @@
       const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
       const PRIORITY_CLASSES = ["", "p1", "p2"];
       const PRIORITY_TOOLTIP_HTML =
-        '<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.';
+        "<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.";
       const PRIORITY_TOOLTIP_ARIA_LABEL =
         "Priority level info: Normal is for high schoolers or people with limited availability, default hours 4 to 8. Priority is for adults with moderate availability, default hours 4 to 8. High Priority is for adults who are usually fully available, default hours 3 to 8.";
       const WORKER_COLORS = [
-        "#4f86c6", "#e05c5c", "#3aaa72", "#e08c2a", "#8a6bbf",
-        "#2aaab4", "#c47a2a", "#5a8a5a", "#c45a8a", "#2a7ac4", "#7aaa3a",
+        "#4f86c6",
+        "#e05c5c",
+        "#3aaa72",
+        "#e08c2a",
+        "#8a6bbf",
+        "#2aaab4",
+        "#c47a2a",
+        "#5a8a5a",
+        "#c45a8a",
+        "#2a7ac4",
+        "#7aaa3a",
       ];
       const WEEKDAY_SLOTS = [
-        "3", "3:30", "4", "4:30", "5", "5:30", "6", "6:30", "7", "7:30",
+        "3",
+        "3:30",
+        "4",
+        "4:30",
+        "5",
+        "5:30",
+        "6",
+        "6:30",
+        "7",
+        "7:30",
       ];
       const SAT_SLOTS = [
-        "10", "10:30", "11", "11:30", "12", "12:30", "1", "1:30",
+        "10",
+        "10:30",
+        "11",
+        "11:30",
+        "12",
+        "12:30",
+        "1",
+        "1:30",
       ];
       const SLOT_H = 40;
-
-
 
       function tutStartPulseRing() {
         if (document.getElementById("tut-gear-pulse-ring")) return;
@@ -653,10 +848,12 @@
         const r = gear.getBoundingClientRect();
         const ring = document.createElement("div");
         ring.id = "tut-gear-pulse-ring";
-        ring.style.top    = (r.top  - 4) + "px";
-        ring.style.left   = (r.left - 4) + "px";
-        ring.style.width  = (r.width  + 8) + "px";
-        ring.style.height = (r.height + 8) + "px";
+        ring.style.top = r.top - 4 + "px";
+        ring.style.left = r.left - 4 + "px";
+        ring.style.width = r.width + 8 + "px";
+        ring.style.height = r.height + 8 + "px";
+        if (typeof tut !== "undefined" && tut.active)
+          ring.style.display = "none";
         document.body.appendChild(ring);
       }
 
@@ -673,7 +870,7 @@
         const ripple = document.createElement("div");
         ripple.id = "tut-gear-ripple";
         document.body.appendChild(ripple);
-        ripple.addEventListener("animationend", function() {
+        ripple.addEventListener("animationend", function () {
           ripple.remove();
           tutStartPulseRing();
         });
@@ -682,10 +879,10 @@
       // ══════════════════════════════════════════════════════════════════
       // TUTORIAL ENGINE — DASHBOARD (steps 1–12 of 20)
       // ══════════════════════════════════════════════════════════════════
-      const TUT_STORAGE_KEY   = "scheduler-tut-step";
-      const TUT_DEMO_KEY      = "scheduler-tut-demo";
+      const TUT_STORAGE_KEY = "scheduler-tut-step";
+      const TUT_DEMO_KEY = "scheduler-tut-demo";
       const TUT_COMPLETED_KEY = "scheduler-tut-completed";
-      const TUT_TOTAL         = 22;
+      const TUT_TOTAL = 23;
       const tut = { active: false, step: 0 };
 
       function tutMarkCompleted() {
@@ -696,30 +893,40 @@
 
       const TUT_DASHBOARD_STEPS = [
         {
-          global: 0, target: null, pos: "center",
+          global: 0,
+          target: null,
+          pos: "center",
           title: "Welcome to Scheduler",
-          body: "This quick tour walks you through the full app. Demo mode is on so everything is populated. You'll be asked to interact with parts of the UI as we go — it's the best way to learn. Press <strong>→</strong> or <strong>Next</strong> to advance, <strong>Escape</strong> to exit.",
+          body: "This quick tour walks you through the full app. Demo mode is on so everything is populated. Your going to learn about all the features of this app by <strong>actually using them.</strong> Press <strong>→</strong> or <strong>Next</strong> to advance, <strong>Esc</strong> key to exit.",
           next: "Let's go →",
         },
         {
-          global: 1, target: ".db-topbar", pos: "below",
+          global: 1,
+          target: ".db-topbar",
+          pos: "below",
           title: "Top Bar",
-          body: "Shows the app name and your <strong>center name</strong> beneath it. <strong>Build Schedule →</strong> takes you to the schedule builder. The <strong>⚙ gear</strong> opens Settings.",
+          body: "Shows your <strong>center name</strong> beneath the app name. <strong>Build Schedule →</strong> takes you to the schedule builder. The <strong>⚙ gear</strong> opens Settings.",
         },
         {
-          global: 2, target: ".db-rail", pos: "right",
-          title: "Team Roster",
-          body: "Lists every employee sorted by priority then name. Each card shows a <strong>color stripe</strong> (used in the schedule), their <strong>name</strong>, <strong>PIN</strong>, and <strong>priority level</strong>.",
+          global: 2,
+          target: ".db-rail",
+          pos: "right",
+          title: "Your Team",
+          body: "Lists every employee sorted by priority then name. Each card shows a <strong>colored stripe</strong> associated with the employee <strong>throughout the app</strong>, along with their <strong>name</strong>, <strong>PIN</strong>, and <strong>priority level</strong>.",
         },
         {
-          global: 3, target: ".db-add-btn", pos: "right",
+          global: 3,
+          target: ".db-add-btn",
+          pos: "right",
           title: "Try Adding an Employee",
-          body: "Click <strong>+</strong> to add a new employee. Set their name and priority — a 4-digit PIN is auto-generated. Employees use that PIN to log in to the availability form.",
+          body: "Click <strong>+</strong> to add a new employee. Set their name and priority — a 4-digit PIN is auto-generated. Employees use that PIN to log in to the availability form. More on this form later.",
           hint: "Click the + button to open the Add Employee dialog",
           waitFor: "#modal",
         },
         {
-          global: 4, target: "#modal .modal", pos: "right",
+          global: 4,
+          target: "#modal .modal",
+          pos: "right",
           title: "Add Employee Dialog",
           body: "Enter a name, choose a <strong>priority level</strong> (Normal for high schoolers, Priority or High Priority for adults with more availability), and note the auto-generated <strong>PIN</strong>. Close this dialog when you're done exploring.",
           hint: "Close the dialog to continue",
@@ -727,19 +934,25 @@
           waitForGone: true,
         },
         {
-          global: 5, target: ".db-status-row", pos: "below",
+          global: 5,
+          target: ".db-status-row",
+          pos: "below",
           title: "Status Pills",
-          body: "Four live indicators. <strong>Calendar</strong>: Google Calendar connection. <strong>Form</strong>: whether the availability window is open. <strong>Submissions</strong>: how many submitted. <strong>Schedule</strong>: whether coverage is adequate for all student slots.",
+          body: "Four live indicators. <strong>Calendar</strong>: Google Calendar connection. <strong>Form</strong>: whether the availability window is open. <strong>Submissions</strong>: how many submitted. <strong>Schedule</strong>: whether there is adequate availability to cover all students.",
         },
         {
-          global: 6, target: "#db-window-card", pos: "left",
+          global: 6,
+          target: "#db-window-card",
+          pos: "left",
           title: "Try Configuring the Form",
-          body: "The availability form card lets you share a link with employees and control when they can submit. Click <strong>Configure</strong> to set the form window.",
+          body: "The availability form card lets you share a link with employees to the form and control when they can submit. This form collects employee availability hassle-free. You <strong>send</strong> it out, they <strong>fill</strong> it out, and your ready to go. Click <strong>Configure</strong> to set the form window.",
           hint: "Click Configure to open the form settings",
           waitFor: "#window-modal",
         },
         {
-          global: 7, target: "#window-modal .modal", pos: "left",
+          global: 7,
+          target: "#window-modal .modal",
+          pos: "left",
           title: "Form Window Settings",
           body: "Set when the form <strong>opens</strong> and <strong>closes</strong>. Choose a close time or <strong>Closes Manually</strong> to control it yourself. <strong>Copy Link</strong> gives you the URL to share with your team. Close this when you're done.",
           hint: "Close the dialog to continue",
@@ -747,37 +960,55 @@
           waitForGone: true,
         },
         {
-          global: 8, target: "#db-submissions-card", pos: "left",
+          global: 8,
+          target: "#db-submissions-card",
+          pos: "left",
           title: "Submissions",
           body: "Shows who submitted in order — earlier submissions get scheduling priority within the same tier. Greyed-out rows haven't submitted yet. <strong>Hover</strong> a submitted row to see a <strong>View</strong> button showing their exact availability.",
         },
         {
-          global: 9, target: ".db-build-btn", pos: "above",
-          title: "Build Schedule",
-          body: "Once your team has submitted, click <strong>Build Schedule →</strong> to go to the schedule builder. If the form is still open you'll be warned and can close it first.",
-        },
-        {
-          global: 10, target: "#btn-gear", pos: "left",
+          global: 9,
+          target: "#btn-gear",
+          pos: "left",
           title: "Try Opening Settings",
           body: "The <strong>⚙ gear</strong> opens Settings. Give it a click to explore.",
           hint: "Click the ⚙ gear to open Settings",
           waitFor: "#settings-panel",
         },
         {
-          global: 11, target: "#settings-panel .settings-modal", pos: "left",
+          global: 10,
+          target: "#settings-panel .settings-modal",
+          pos: "left",
           title: "Settings",
           body: "Switch <strong>Light / Dark</strong> mode, choose <strong>Scheduling Mode</strong> (Normal = clean shift blocks; Ultra-efficient = slot-by-slot), toggle <strong>Demo Mode</strong>, and manage your <strong>Google Calendar</strong> connection. Close Settings when you're done.",
           hint: "Close Settings to continue",
           waitFor: "#settings-panel",
           waitForGone: true,
-          onExit: function() { closeSettings(); },
+          onExit: function () {
+            closeSettings();
+          },
         },
         {
-          global: 12, target: null, pos: "center",
+          global: 11,
+          target: ".db-build-btn",
+          pos: "above",
+          title: "Build Schedule",
+          body: "Once your team has submitted, click <strong>Build Schedule →</strong> to go to the schedule builder. If the form is still open you'll be warned and can close it first.",
+          onEnter: function () {
+            tutLockNavigation();
+          },
+          onExit: function () {
+            tutUnlockNavigation();
+          },
+        },
+        {
+          global: 12,
+          target: null,
+          pos: "center",
           title: "On to the Schedule Builder",
           body: "That covers the dashboard. Next up: the schedule builder, where you generate and edit the weekly schedule. The tour will continue there automatically.",
           next: "Continue →",
-          after: function() {
+          after: function () {
             localStorage.setItem(TUT_STORAGE_KEY, "13");
             window.location.href = "/scheduler";
           },
@@ -796,48 +1027,82 @@
         const dim = document.getElementById("tut-dim");
         const border = document.getElementById("tut-highlight-border");
         const PAD = 6;
-        if (!rect) { dim.style.clipPath = ""; border.style.display = "none"; return; }
-        const t = rect.top - PAD, l = rect.left - PAD;
-        const b = rect.top + rect.height + PAD, r = rect.left + rect.width + PAD;
-        const W = window.innerWidth, H = window.innerHeight;
+        if (!rect) {
+          dim.style.clipPath = "";
+          border.style.display = "none";
+          return;
+        }
+        const t = rect.top - PAD,
+          l = rect.left - PAD;
+        const b = rect.top + rect.height + PAD,
+          r = rect.left + rect.width + PAD;
+        const W = window.innerWidth,
+          H = window.innerHeight;
         dim.style.clipPath =
           `polygon(evenodd, 0 0, ${W}px 0, ${W}px ${H}px, 0 ${H}px, 0 0, ` +
           `${l}px ${t}px, ${l}px ${b}px, ${r}px ${b}px, ${r}px ${t}px, ${l}px ${t}px)`;
         border.style.display = "block";
-        border.style.top = t + "px"; border.style.left = l + "px";
-        border.style.width = (r - l) + "px"; border.style.height = (b - t) + "px";
+        border.style.top = t + "px";
+        border.style.left = l + "px";
+        border.style.width = r - l + "px";
+        border.style.height = b - t + "px";
       }
 
       function tutPositionCard(rect, pos) {
         const card = document.getElementById("tut-card");
-        const MARGIN = 16, cw = card.offsetWidth || 320, ch = card.offsetHeight || 220;
-        const W = window.innerWidth, H = window.innerHeight;
-        card.classList.remove("tut-card-centered"); card.style.transform = "";
-        if (!rect || pos === "center") { card.classList.add("tut-card-centered"); return; }
+        const MARGIN = 16,
+          cw = card.offsetWidth || 320,
+          ch = card.offsetHeight || 220;
+        const W = window.innerWidth,
+          H = window.innerHeight;
+        card.classList.remove("tut-card-centered");
+        card.style.transform = "";
+        if (!rect || pos === "center") {
+          card.classList.add("tut-card-centered");
+          return;
+        }
         const PAD = 6;
-        const hT = rect.top - PAD, hB = rect.top + rect.height + PAD;
-        const hL = rect.left - PAD, hR = rect.left + rect.width + PAD;
-        const mY = (hT + hB) / 2, mX = (hL + hR) / 2;
+        const hT = rect.top - PAD,
+          hB = rect.top + rect.height + PAD;
+        const hL = rect.left - PAD,
+          hR = rect.left + rect.width + PAD;
+        const mY = (hT + hB) / 2,
+          mX = (hL + hR) / 2;
         let top, left;
-        if (pos === "right")  { left = hR + MARGIN; top = mY - ch/2; if (left + cw > W - 8) pos = "left"; }
-        if (pos === "left")   { left = hL - MARGIN - cw; top = mY - ch/2; if (left < 8) pos = "below"; }
-        if (pos === "below")  { top = hB + MARGIN; left = mX - cw/2; if (top + ch > H - 8) pos = "above"; }
-        if (pos === "above")  { top = hT - MARGIN - ch; left = mX - cw/2; }
-        card.style.top  = Math.max(8, Math.min(top,  H - ch - 8)) + "px";
+        if (pos === "right") {
+          left = hR + MARGIN;
+          top = mY - ch / 2;
+          if (left + cw > W - 8) pos = "left";
+        }
+        if (pos === "left") {
+          left = hL - MARGIN - cw;
+          top = mY - ch / 2;
+          if (left < 8) pos = "below";
+        }
+        if (pos === "below") {
+          top = hB + MARGIN;
+          left = mX - cw / 2;
+          if (top + ch > H - 8) pos = "above";
+        }
+        if (pos === "above") {
+          top = hT - MARGIN - ch;
+          left = mX - cw / 2;
+        }
+        card.style.top = Math.max(8, Math.min(top, H - ch - 8)) + "px";
         card.style.left = Math.max(8, Math.min(left, W - cw - 8)) + "px";
       }
 
       let _tutWaitTimer = null;
 
       function tutRaisedModals(raise) {
-        document.querySelectorAll(".modal-overlay.open").forEach(el => {
+        document.querySelectorAll(".modal-overlay.open").forEach((el) => {
           el.classList.toggle("tut-raised", raise);
         });
       }
 
       function tutWatchFor(step) {
         if (_tutWaitTimer) clearInterval(_tutWaitTimer);
-        _tutWaitTimer = setInterval(function() {
+        _tutWaitTimer = setInterval(function () {
           const el = document.querySelector(step.waitFor);
           if (!el) return;
           const isOpen = el.classList.contains("open");
@@ -850,7 +1115,7 @@
       }
 
       function tutRender() {
-        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
+        const li = TUT_DASHBOARD_STEPS.findIndex((s) => s.global === tut.step);
         if (li < 0) return;
         const step = TUT_DASHBOARD_STEPS[li];
 
@@ -858,11 +1123,12 @@
         setTimeout(() => tutRaisedModals(true), 50);
 
         document.getElementById("tut-overlay").classList.add("active");
-        document.getElementById("tut-badge").textContent = `Step ${tut.step + 1}`;
+        document.getElementById("tut-badge").textContent =
+          `Step ${tut.step + 1}`;
         document.getElementById("tut-title").textContent = step.title;
-        document.getElementById("tut-body").innerHTML    = step.body;
+        document.getElementById("tut-body").innerHTML = step.body;
 
-        const nb   = document.getElementById("tut-next");
+        const nb = document.getElementById("tut-next");
         const hint = document.getElementById("tut-hint");
         const card = document.getElementById("tut-card");
 
@@ -880,36 +1146,55 @@
           card.classList.remove("waiting");
         }
 
-        document.getElementById("tut-dots").innerHTML = Array.from({length: TUT_TOTAL}, (_, i) => {
-          const cls = i < tut.step ? "tut-dot done" : i === tut.step ? "tut-dot active" : "tut-dot";
-          return `<div class="${cls}"></div>`;
-        }).join("");
+        document.getElementById("tut-dots").innerHTML = Array.from(
+          { length: TUT_TOTAL },
+          (_, i) => {
+            const cls =
+              i < tut.step
+                ? "tut-dot done"
+                : i === tut.step
+                  ? "tut-dot active"
+                  : "tut-dot";
+            return `<div class="${cls}"></div>`;
+          },
+        ).join("");
         const rect = tutGetRect(step.target);
         tutSetDim(rect);
         requestAnimationFrame(() => tutPositionCard(rect, step.pos));
       }
 
       function tutAdvanceStep() {
-        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
+        const li = TUT_DASHBOARD_STEPS.findIndex((s) => s.global === tut.step);
         if (li < 0) return;
         const step = TUT_DASHBOARD_STEPS[li];
         if (step.onExit) step.onExit();
         tutRaisedModals(false);
-        if (step.after) { step.after(); return; }
+        if (step.after) {
+          step.after();
+          return;
+        }
         tut.step++;
-        if (tut.step >= TUT_TOTAL) { tutEnd(); return; }
-        const next = TUT_DASHBOARD_STEPS.find(s => s.global === tut.step);
-        if (!next) { tutEnd(); return; }
+        if (tut.step >= TUT_TOTAL) {
+          tutEnd();
+          return;
+        }
+        const next = TUT_DASHBOARD_STEPS.find((s) => s.global === tut.step);
+        if (!next) {
+          tutEnd();
+          return;
+        }
         tutRender();
       }
 
       function tutEnableDemo() {
         localStorage.setItem(TUT_DEMO_KEY, settings.demo ? "1" : "0");
         if (!settings.demo) {
-          settings.demo = true; saveSettings();
+          settings.demo = true;
+          saveSettings();
           document.body.classList.add("demo-active");
           document.getElementById("demo-toggle").checked = true;
-          activateDemo(); updateCalWarningBanner();
+          activateDemo();
+          updateCalWarningBanner();
         }
       }
 
@@ -917,17 +1202,50 @@
         const wasDemo = localStorage.getItem(TUT_DEMO_KEY) === "1";
         localStorage.removeItem(TUT_DEMO_KEY);
         if (!wasDemo && settings.demo) {
-          settings.demo = false; saveSettings();
+          settings.demo = false;
+          saveSettings();
           document.getElementById("demo-toggle").checked = false;
           document.body.classList.remove("demo-active");
-          deactivateDemo(); updateCalWarningBanner();
+          deactivateDemo();
+          updateCalWarningBanner();
         }
       }
 
+      function tutLockNavigation() {
+        document
+          .querySelectorAll(".db-build-btn, .db-topbar-actions .btn-primary")
+          .forEach((el) => {
+            el.setAttribute("data-tut-locked", "1");
+            el.setAttribute(
+              "data-orig-onclick",
+              el.getAttribute("onclick") || "",
+            );
+            el.setAttribute(
+              "onclick",
+              "event.stopPropagation(); event.preventDefault();",
+            );
+            el.classList.add("tut-nav-locked");
+          });
+      }
+
+      function tutUnlockNavigation() {
+        document.querySelectorAll("[data-tut-locked]").forEach((el) => {
+          const orig = el.getAttribute("data-orig-onclick");
+          if (orig) el.setAttribute("onclick", orig);
+          else el.removeAttribute("onclick");
+          el.removeAttribute("data-tut-locked");
+          el.removeAttribute("data-orig-onclick");
+          el.classList.remove("tut-nav-locked");
+        });
+      }
+
       function tutStart() {
-        tut.active = true; tut.step = 0;
+        tut.active = true;
+        tut.step = 0;
+        document.body.classList.add("tut-active");
         closeSettings();
         tutEnableDemo();
+        tutHidePulseRing();
         tutRender();
       }
 
@@ -936,43 +1254,116 @@
       }
 
       function tutSkip() {
-        if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
+        if (_tutWaitTimer) {
+          clearInterval(_tutWaitTimer);
+          _tutWaitTimer = null;
+        }
         tutRaisedModals(false);
+        tutUnlockNavigation();
         closeSettings();
-        const li = TUT_DASHBOARD_STEPS.findIndex(s => s.global === tut.step);
-        if (li >= 0 && TUT_DASHBOARD_STEPS[li].onExit) TUT_DASHBOARD_STEPS[li].onExit();
+        const li = TUT_DASHBOARD_STEPS.findIndex((s) => s.global === tut.step);
+        if (li >= 0 && TUT_DASHBOARD_STEPS[li].onExit)
+          TUT_DASHBOARD_STEPS[li].onExit();
         tutDisableDemo();
         tutEnd();
       }
 
+      function tutHidePulseRing() {
+        const ring = document.getElementById("tut-gear-pulse-ring");
+        if (ring) ring.style.display = "none";
+        const ripple = document.getElementById("tut-gear-ripple");
+        if (ripple) ripple.remove();
+      }
+
       function tutEnd() {
         tut.active = false;
-        if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
+        document.body.classList.remove("tut-active");
+        if (_tutWaitTimer) {
+          clearInterval(_tutWaitTimer);
+          _tutWaitTimer = null;
+        }
         localStorage.removeItem(TUT_STORAGE_KEY);
         document.getElementById("tut-overlay").classList.remove("active");
         document.getElementById("tut-highlight-border").style.display = "none";
         document.getElementById("tut-card").classList.remove("waiting");
+        if (localStorage.getItem(TUT_COMPLETED_KEY) !== "1") {
+          tutStartPulseRing();
+          const ring = document.getElementById("tut-gear-pulse-ring");
+          if (ring) ring.style.display = "";
+        }
       }
 
-      document.addEventListener("keydown", function(e) {
+      document.addEventListener("keydown", function (e) {
         if (!tut.active) return;
-        if (e.key === "Escape")     { tutSkip(); return; }
-        if (e.key === "ArrowRight") { tutNext(); return; }
+        if (e.key === "Escape") {
+          tutSkip();
+          return;
+        }
+        if (e.key === "ArrowRight") {
+          tutNext();
+          return;
+        }
       });
 
       function tutAdvance() {}
-      function tutLinkGuard(e) { if (!tut.active) return false; e && e.preventDefault(); return true; }
+      function tutLinkGuard(e) {
+        if (!tut.active) return false;
+        e && e.preventDefault();
+        return true;
+      }
       function unlockSettingsLinks() {}
       function lockSettingsLinks() {}
       function showTutLinkBlockedMsg() {}
 
       const DEMO_WORKERS = [
-        { _id: "demo-1", name: "Alex",   priority: 2, defaultStart: 3, defaultEnd: 8, pin: "1001" },
-        { _id: "demo-2", name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8, pin: "1002" },
-        { _id: "demo-3", name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1003" },
-        { _id: "demo-4", name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1004" },
-        { _id: "demo-5", name: "Casey",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1005" },
-        { _id: "demo-6", name: "Riley",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1006" },
+        {
+          _id: "demo-1",
+          name: "Alex",
+          priority: 2,
+          defaultStart: 3,
+          defaultEnd: 8,
+          pin: "1001",
+        },
+        {
+          _id: "demo-2",
+          name: "Jordan",
+          priority: 1,
+          defaultStart: 4,
+          defaultEnd: 8,
+          pin: "1002",
+        },
+        {
+          _id: "demo-3",
+          name: "Taylor",
+          priority: 0,
+          defaultStart: 4,
+          defaultEnd: 8,
+          pin: "1003",
+        },
+        {
+          _id: "demo-4",
+          name: "Morgan",
+          priority: 0,
+          defaultStart: 4,
+          defaultEnd: 8,
+          pin: "1004",
+        },
+        {
+          _id: "demo-5",
+          name: "Casey",
+          priority: 0,
+          defaultStart: 4,
+          defaultEnd: 8,
+          pin: "1005",
+        },
+        {
+          _id: "demo-6",
+          name: "Riley",
+          priority: 0,
+          defaultStart: 4,
+          defaultEnd: 8,
+          pin: "1006",
+        },
       ];
 
       function buildDemoSubmissions() {
@@ -990,22 +1381,27 @@
       }
 
       function buildDemoAvailability() {
-        const mk = (sel, start, end) => DAYS.map((d) => ({
-          day: d,
-          selected: typeof sel === "function" ? sel(d) : sel,
-          allDay: true,
-          start: d === "saturday" ? 10 : start,
-          end: d === "saturday" ? 14 : end,
-          startMinute: 0,
-          endMinute: 0,
-        }));
+        const mk = (sel, start, end) =>
+          DAYS.map((d) => ({
+            day: d,
+            selected: typeof sel === "function" ? sel(d) : sel,
+            allDay: true,
+            start: d === "saturday" ? 10 : start,
+            end: d === "saturday" ? 14 : end,
+            startMinute: 0,
+            endMinute: 0,
+          }));
         return {
-          Alex:   mk(true, 3, 8),
+          Alex: mk(true, 3, 8),
           Jordan: mk((d) => d !== "wednesday", 4, 8),
           Taylor: mk((d) => d !== "thursday", 4, 8),
-          Morgan: mk((d) => ["monday", "wednesday", "saturday"].includes(d), 4, 8),
-          Casey:  mk((d) => ["tuesday", "thursday"].includes(d), 4, 8),
-          Riley:  mk((d) => ["monday", "tuesday", "saturday"].includes(d), 4, 8),
+          Morgan: mk(
+            (d) => ["monday", "wednesday", "saturday"].includes(d),
+            4,
+            8,
+          ),
+          Casey: mk((d) => ["tuesday", "thursday"].includes(d), 4, 8),
+          Riley: mk((d) => ["monday", "tuesday", "saturday"].includes(d), 4, 8),
         };
       }
 
@@ -1039,7 +1435,8 @@
           .getElementById("mode-simplified")
           .classList.toggle("active", settings.mode === "simplified");
         const ultraBtn = document.getElementById("mode-ultra");
-        if (ultraBtn) ultraBtn.classList.toggle("active", settings.mode === "ultra");
+        if (ultraBtn)
+          ultraBtn.classList.toggle("active", settings.mode === "ultra");
       }
 
       function openSettings() {
@@ -1124,7 +1521,8 @@
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
           document.getElementById("tut-overlay").classList.remove("active");
-          document.getElementById("tut-highlight-border").style.display = "none";
+          document.getElementById("tut-highlight-border").style.display =
+            "none";
           closeSettings();
         }
         settings.demo = checked;
@@ -1141,7 +1539,8 @@
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
           document.getElementById("tut-overlay").classList.remove("active");
-          document.getElementById("tut-highlight-border").style.display = "none";
+          document.getElementById("tut-highlight-border").style.display =
+            "none";
           closeSettings();
         }
         settings.demo = false;
@@ -1246,22 +1645,12 @@
         });
       }
 
-
-
-
-
-
       // Returns the Monday on/before the given YYYY-MM-DD date string,
       // computed in local time to match how the <input type="date"> value
       // is interpreted elsewhere in this file (new Date(str + "T00:00:00")).
 
-
       // Guards the Monday-only week-date field: if a non-Monday date is
       // picked, snap it to the nearest preceding Monday and let the user know.
-
-
-
-
 
       // ── Navigation ─────────────────────────────────────────
       const SCREEN_ORDER = ["screen-workers", "screen-auth"];
@@ -1328,19 +1717,20 @@
           for (const w of workers) {
             w.days = availability[w.name] || [];
             const saved = await updateEmployee(w._id, w);
-            if (!saved) return alert("Something went wrong while saving. Please try again.");
+            if (!saved)
+              return alert(
+                "Something went wrong while saving. Please try again.",
+              );
           }
         }
         window.location.href = "/scheduler";
       }
-
 
       // Shared by finishEdit() and finishFromSchedule(): warns about any
       // out-of-bounds workers, confirms with the user, then clears the
       // schedule/availability/date and returns to the Employees screen.
       // Returns true if the finish actually happened (user confirmed),
       // false if they cancelled.
-
 
       // Lets the user finish directly from the Schedule screen, without
       // having to open the drag-and-drop Edit screen first. Blocked while
@@ -1398,7 +1788,9 @@
           if (orphan) {
             _submissions = _submissions.filter((s) => s !== orphan);
             if (!settings.demo) {
-              try { await fetch(`/submissions/${orphan._id}`, { method: "DELETE" }); } catch (e) {}
+              try {
+                await fetch(`/submissions/${orphan._id}`, { method: "DELETE" });
+              } catch (e) {}
             }
           }
         }
@@ -1445,23 +1837,28 @@
       }
 
       async function addWorker() {
-  const name = document.getElementById("new-worker-name").value.trim();
-  if (!name) return alert("Enter a name.");
-  if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
-    return alert("An employee with that name already exists.");
-  const pin = document.getElementById("new-worker-pin").value || generateUniquePin();
-  const newWorker = { name, priority: newWorkerPriority, pin };
-  if (!settings.demo) {
-    const saved = await addEmployee(newWorker);
-    if (!saved) return alert("Something went wrong while saving. Please try again.");
-    workers.push(saved);
-  } else {
-    workers.push(newWorker);
-  }
-  renderWorkers();
-  closeModal();
-  tutAdvance("worker-added");
-}
+        const name = document.getElementById("new-worker-name").value.trim();
+        if (!name) return alert("Enter a name.");
+        if (workers.find((w) => w.name.toLowerCase() === name.toLowerCase()))
+          return alert("An employee with that name already exists.");
+        const pin =
+          document.getElementById("new-worker-pin").value ||
+          generateUniquePin();
+        const newWorker = { name, priority: newWorkerPriority, pin };
+        if (!settings.demo) {
+          const saved = await addEmployee(newWorker);
+          if (!saved)
+            return alert(
+              "Something went wrong while saving. Please try again.",
+            );
+          workers.push(saved);
+        } else {
+          workers.push(newWorker);
+        }
+        renderWorkers();
+        closeModal();
+        tutAdvance("worker-added");
+      }
 
       // Submit Add Employee on Enter when modal is open
       document
@@ -1514,13 +1911,20 @@
         );
         if (existing)
           return alert("Another employee with that name already exists.");
-        const pinRaw = document.getElementById("edit-employee-pin").value.trim();
-        const pin = pinRaw ? pinRaw.padStart(4, "0").slice(0, 4) : (workers[editEmployeeIndex].pin || "");
+        const pinRaw = document
+          .getElementById("edit-employee-pin")
+          .value.trim();
+        const pin = pinRaw
+          ? pinRaw.padStart(4, "0").slice(0, 4)
+          : workers[editEmployeeIndex].pin || "";
         workers[editEmployeeIndex].name = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
         workers[editEmployeeIndex].pin = pin;
         if (!settings.demo) {
-          const saved = await updateEmployee(workers[editEmployeeIndex]._id, workers[editEmployeeIndex]);
+          const saved = await updateEmployee(
+            workers[editEmployeeIndex]._id,
+            workers[editEmployeeIndex],
+          );
           workers[editEmployeeIndex] = saved;
         }
         renderWorkers();
@@ -1551,13 +1955,13 @@
         });
       }
 
-
-
-
       // ── Empty state management ─────────────────────────────
-      const EMPTY_STATE_SUFFIXES = ["", "-no-calendar", "-calendar-error", "-no-students"];
-
-
+      const EMPTY_STATE_SUFFIXES = [
+        "",
+        "-no-calendar",
+        "-calendar-error",
+        "-no-students",
+      ];
 
       // ── Stale schedule tracking ────────────────────────────
 
@@ -1620,7 +2024,6 @@
           checkScheduleReadiness();
         }
       }
-
 
       function updateCalWarningBanner() {
         // Show warning banner only when disconnected AND not in demo mode
@@ -1734,9 +2137,6 @@
       slotTooltip.style.display = "none";
       document.body.appendChild(slotTooltip);
 
-
-
-
       let lastStudentData = null;
       let lastOneOnOneData = null;
 
@@ -1744,23 +2144,11 @@
 
       // ── Schedule View ──────────────────────────────────────
 
-
-
-
       // Returns the out-of-bounds overlay rectangles (as {top, height} in px) for a shift
       // that runs from si to ei (slot indices) given the worker's available start/end.
       // Used both for the static timeline render and the live drag preview.
 
-
       // ── Edit Screen ────────────────────────────────────────
-
-
-
-
-
-
-
-
 
       // ── Add Shift Modal ────────────────────────────────────
       // Computes the default start/end time strings (matching slotList()
@@ -1772,10 +2160,6 @@
 
       // Sets the Start/End dropdowns in the Add Shift modal to the right
       // default times for whichever worker is currently selected.
-
-
-
-
 
       // ── Clipboard ──────────────────────────────────────────
 
@@ -1840,7 +2224,7 @@
         if (!date) return "";
         const d = new Date(date);
         const pad = (n) => String(n).padStart(2, "0");
-        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
 
       function toSameTimeNextWeek(datetimeLocalValue) {
@@ -1928,12 +2312,19 @@
       function formatFormSummary(s) {
         if (!s || !s.windowOpen) return "Not configured";
         const state = getFormState(s);
-        const fmt = (d) => new Date(d).toLocaleString("en-US", {
-          weekday: "short", month: "short", day: "numeric",
-          hour: "numeric", minute: "2-digit"
-        });
+        const fmt = (d) =>
+          new Date(d).toLocaleString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          });
         if (state === "scheduled") return `Opens ${fmt(s.windowOpen)}`;
-        if (state === "open") return s.windowClose ? `Open · closes ${fmt(s.windowClose)}` : "Open · closes manually";
+        if (state === "open")
+          return s.windowClose
+            ? `Open · closes ${fmt(s.windowClose)}`
+            : "Open · closes manually";
         if (state === "closed") return `Closed ${fmt(s.windowClose)}`;
         return "Not configured";
       }
@@ -1945,9 +2336,15 @@
         if (summary) summary.textContent = formatFormSummary(_centerSettings);
         if (weekTarget) {
           if (_centerSettings?.windowOpen) {
-            const monday = getMondayStrictlyAfter(new Date(_centerSettings.windowOpen));
+            const monday = getMondayStrictlyAfter(
+              new Date(_centerSettings.windowOpen),
+            );
             const d = new Date(monday + "T00:00:00");
-            const label = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+            const label = d.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            });
             weekTarget.textContent = ` — for week of ${label}`;
           } else {
             weekTarget.textContent = "";
@@ -1973,11 +2370,27 @@
         const wVal = document.getElementById("status-window-val");
         if (wDot && wVal && _centerSettings) {
           const state = getFormState(_centerSettings);
-          const labels = { unset: "Not set", scheduled: "Scheduled", open: "Open", closed: "Closed" };
-          const dotClass = { unset: "dot-neutral", scheduled: "dot-warn", open: "dot-green", closed: "dot-neutral" };
-          const pillState = { unset: "neutral", scheduled: "warn", open: "green", closed: "neutral" };
+          const labels = {
+            unset: "Not set",
+            scheduled: "Scheduled",
+            open: "Open",
+            closed: "Closed",
+          };
+          const dotClass = {
+            unset: "dot-neutral",
+            scheduled: "dot-warn",
+            open: "dot-green",
+            closed: "dot-neutral",
+          };
+          const pillState = {
+            unset: "neutral",
+            scheduled: "warn",
+            open: "green",
+            closed: "neutral",
+          };
           wVal.textContent = labels[state];
-          wDot.className = "db-status-dot " + (dotClass[state] || "dot-neutral");
+          wDot.className =
+            "db-status-dot " + (dotClass[state] || "dot-neutral");
           setPillState("status-window", pillState[state] || "neutral");
         }
         // Submissions pill
@@ -1992,7 +2405,12 @@
             setPillState("status-subs", "neutral");
           } else {
             sVal.textContent = `${submitted} / ${total}`;
-            const st = submitted === total ? "green" : submitted > 0 ? "warn" : "neutral";
+            const st =
+              submitted === total
+                ? "green"
+                : submitted > 0
+                  ? "warn"
+                  : "neutral";
             sDot.className = "db-status-dot dot-" + st;
             setPillState("status-subs", st);
           }
@@ -2002,9 +2420,12 @@
         if (subSummary) {
           const submitted = _submissions.length;
           const total = workers.length;
-          subSummary.textContent = total === 0 ? "No employees added" :
-            submitted === 0 ? "No submissions yet" :
-            `${submitted} of ${total} submitted`;
+          subSummary.textContent =
+            total === 0
+              ? "No employees added"
+              : submitted === 0
+                ? "No submissions yet"
+                : `${submitted} of ${total} submitted`;
         }
       }
 
@@ -2041,7 +2462,11 @@
           const diff = day === 1 ? 0 : (8 - day) % 7;
           const mon = new Date(d);
           mon.setDate(d.getDate() + diff);
-          return mon.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+          return mon.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          });
         })();
 
         const now = new Date();
@@ -2054,9 +2479,14 @@
         // - Otherwise (closed / not set), roll the last saved open time forward
         //   to the same weekday+time before the upcoming week, so the boss
         //   doesn't re-enter it each week. Falls back to "now" if never set.
-        if (_centerSettings && _centerSettings.windowOpen &&
-            (state === "scheduled" || state === "open")) {
-          openEl.value = toLocalDatetimeValue(new Date(_centerSettings.windowOpen));
+        if (
+          _centerSettings &&
+          _centerSettings.windowOpen &&
+          (state === "scheduled" || state === "open")
+        ) {
+          openEl.value = toLocalDatetimeValue(
+            new Date(_centerSettings.windowOpen),
+          );
         } else if (_centerSettings && _centerSettings.windowOpen) {
           // Roll the saved pattern forward; if that lands in the past (the boss
           // is configuring after this week's usual open day), default to now so
@@ -2072,10 +2502,15 @@
         // - Otherwise, if a close time was ever saved, roll it forward too and
         //   switch to "close at a time" mode. If none was saved, default to
         //   "close manually".
-        if (_centerSettings && _centerSettings.windowClose &&
-            (state === "scheduled" || state === "open") &&
-            new Date(_centerSettings.windowClose) > now) {
-          closeEl.value = toLocalDatetimeValue(new Date(_centerSettings.windowClose));
+        if (
+          _centerSettings &&
+          _centerSettings.windowClose &&
+          (state === "scheduled" || state === "open") &&
+          new Date(_centerSettings.windowClose) > now
+        ) {
+          closeEl.value = toLocalDatetimeValue(
+            new Date(_centerSettings.windowClose),
+          );
           setCloseMode("auto");
         } else if (_centerSettings && _centerSettings.windowClose) {
           const rolledClose = rollSavedTimeForward(_centerSettings.windowClose);
@@ -2103,15 +2538,23 @@
 
       function setCloseMode(mode) {
         _wmCloseMode = mode;
-        document.getElementById("wm-close-manual-btn").classList.toggle("active", mode === "manual");
-        document.getElementById("wm-close-auto-btn").classList.toggle("active", mode === "auto");
-        document.getElementById("wm-close-row").style.display = mode === "auto" ? "flex" : "none";
+        document
+          .getElementById("wm-close-manual-btn")
+          .classList.toggle("active", mode === "manual");
+        document
+          .getElementById("wm-close-auto-btn")
+          .classList.toggle("active", mode === "auto");
+        document.getElementById("wm-close-row").style.display =
+          mode === "auto" ? "flex" : "none";
       }
 
       async function activateForm() {
         const openVal = document.getElementById("wm-open").value;
         if (!openVal) return alert("Please set an open time.");
-        const closeVal = _wmCloseMode === "auto" ? document.getElementById("wm-close").value : null;
+        const closeVal =
+          _wmCloseMode === "auto"
+            ? document.getElementById("wm-close").value
+            : null;
         if (closeVal && new Date(openVal) >= new Date(closeVal)) {
           return alert("Close time must be after open time.");
         }
@@ -2139,25 +2582,33 @@
 
       function copyAvLink() {
         const link = window.location.origin + "/availability/" + _centerId;
-        navigator.clipboard.writeText(link).then(() => {
-          const btn = document.querySelector("[onclick=\"copyAvLink()\"]");
-          if (!btn) return;
-          btn.textContent = "Copied!";
-          setTimeout(() => (btn.textContent = "Copy Link"), 2000);
-        }).catch(() => {});
+        navigator.clipboard
+          .writeText(link)
+          .then(() => {
+            const btn = document.querySelector('[onclick="copyAvLink()"]');
+            if (!btn) return;
+            btn.textContent = "Copied!";
+            setTimeout(() => (btn.textContent = "Copy Link"), 2000);
+          })
+          .catch(() => {});
       }
 
       // ── Build warning modal ────────────────────────────────
       function showBuildWarning() {
-        const submittedIds = new Set(_submissions.map(s => s.employeeId));
-        const pending = workers.filter(w => !submittedIds.has(w._id?.toString()));
+        const submittedIds = new Set(_submissions.map((s) => s.employeeId));
+        const pending = workers.filter(
+          (w) => !submittedIds.has(w._id?.toString()),
+        );
         const list = document.getElementById("build-warning-list");
-        list.innerHTML = pending.length > 0
-          ? pending.map(w => {
-              const color = getWorkerColor(w.name);
-              return `<li><span class="bw-stripe" style="background:${color}"></span>${w.name}</li>`;
-            }).join("")
-          : "<li><em>Everyone has submitted</em></li>";
+        list.innerHTML =
+          pending.length > 0
+            ? pending
+                .map((w) => {
+                  const color = getWorkerColor(w.name);
+                  return `<li><span class="bw-stripe" style="background:${color}"></span>${w.name}</li>`;
+                })
+                .join("")
+            : "<li><em>Everyone has submitted</em></li>";
         document.getElementById("build-warning-modal").classList.add("open");
       }
 
@@ -2186,8 +2637,9 @@
           // Re-render if forced (initial load / explicit refresh) or if the
           // data actually changed. The change check is only an optimization
           // for background polling to avoid flicker.
-          const changed = JSON.stringify(incoming.map((s) => s._id + s.submittedAt)) !==
-                          JSON.stringify(_submissions.map((s) => s._id + s.submittedAt));
+          const changed =
+            JSON.stringify(incoming.map((s) => s._id + s.submittedAt)) !==
+            JSON.stringify(_submissions.map((s) => s._id + s.submittedAt));
           _submissions = incoming;
           if (force || changed) {
             renderSubmissions();
@@ -2218,7 +2670,7 @@
         const diff = day === 0 ? 6 : day - 1;
         d.setDate(d.getDate() - diff);
         const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2, "0");
+        const m = String(d.getMonth() + 1).padStart(2, "0");
         const dd = String(d.getDate()).padStart(2, "0");
         return `${y}-${m}-${dd}`;
       }
@@ -2229,7 +2681,7 @@
         const daysUntil = day === 1 ? 7 : (8 - day) % 7;
         d.setDate(d.getDate() + daysUntil);
         const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2, "0");
+        const m = String(d.getMonth() + 1).padStart(2, "0");
         const dd = String(d.getDate()).padStart(2, "0");
         return `${y}-${m}-${dd}`;
       }
@@ -2241,7 +2693,7 @@
         const monday = new Date(today);
         monday.setDate(today.getDate() + daysUntil);
         const y = monday.getFullYear();
-        const m = String(monday.getMonth()+1).padStart(2, "0");
+        const m = String(monday.getMonth() + 1).padStart(2, "0");
         const d = String(monday.getDate()).padStart(2, "0");
         return `${y}-${m}-${d}`;
       }
@@ -2251,15 +2703,23 @@
         if (!list) return;
         list.innerHTML = "";
 
-        const submittedIds = new Set(_submissions.map(s => s.employeeId));
-        const submittedWorkers = _submissions.map((s, i) => ({ ...s, order: i + 1 }));
-        const pendingWorkers = workers.filter(w => !submittedIds.has(w._id?.toString()));
+        const submittedIds = new Set(_submissions.map((s) => s.employeeId));
+        const submittedWorkers = _submissions.map((s, i) => ({
+          ...s,
+          order: i + 1,
+        }));
+        const pendingWorkers = workers.filter(
+          (w) => !submittedIds.has(w._id?.toString()),
+        );
 
         submittedWorkers.forEach((s) => {
           const color = getWorkerColor(s.employeeName);
           const time = new Date(s.submittedAt).toLocaleString("en-US", {
-            weekday: "short", month: "short", day: "numeric",
-            hour: "numeric", minute: "2-digit",
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
           });
           const row = document.createElement("div");
           row.className = "db-sub-row db-sub-row-done";
@@ -2268,7 +2728,15 @@
             <span class="db-sub-stripe" style="background:${color}"></span>
             <span class="db-sub-name">${s.employeeName}</span>
             <span class="db-sub-time">${time}</span>
+            <button class="db-sub-view" type="button" title="View availability">View</button>
             ${settings.demo ? "" : `<button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`}`;
+          const viewBtn = row.querySelector(".db-sub-view");
+          if (viewBtn) {
+            viewBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              toggleSubAvailPopover(viewBtn, s);
+            });
+          }
           list.appendChild(row);
         });
 
@@ -2287,6 +2755,73 @@
         updateStatusPills();
         updateReadinessPill();
       }
+
+      function fmtSubHour(h) {
+        const hr = ((h + 11) % 12) + 1;
+        const ampm = h >= 12 ? "pm" : "am";
+        return `${hr}${ampm}`;
+      }
+
+      const DAY_LABELS = {
+        monday: "Mon",
+        tuesday: "Tue",
+        wednesday: "Wed",
+        thursday: "Thu",
+        friday: "Fri",
+        saturday: "Sat",
+        sunday: "Sun",
+      };
+
+      let _openSubPopover = null;
+
+      function closeSubAvailPopover() {
+        if (_openSubPopover) {
+          _openSubPopover.remove();
+          _openSubPopover = null;
+        }
+      }
+
+      function toggleSubAvailPopover(btn, submission) {
+        if (_openSubPopover) {
+          const wasForThisBtn =
+            _openSubPopover.dataset.forBtn === btn.dataset.subId;
+          closeSubAvailPopover();
+          if (wasForThisBtn) return;
+        }
+        const days = submission.days || [];
+        const rows = days
+          .filter((d) => d.selected)
+          .map(
+            (d) =>
+              `<div class="db-sub-pop-row"><span class="db-sub-pop-day">${DAY_LABELS[d.day] || d.day}</span><span class="db-sub-pop-time">${fmtSubHour(d.start)}–${fmtSubHour(d.end)}</span></div>`,
+          )
+          .join("");
+        const pop = document.createElement("div");
+        pop.className = "db-sub-pop";
+        pop.dataset.forBtn = btn.dataset.subId || "";
+        pop.innerHTML = `
+          <div class="db-sub-pop-title">${submission.employeeName}'s availability</div>
+          ${rows || `<div class="db-sub-pop-empty">No days selected</div>`}
+        `;
+        document.body.appendChild(pop);
+        const r = btn.getBoundingClientRect();
+        const pw = pop.offsetWidth || 200;
+        pop.style.top = r.top + window.scrollY - 6 + "px";
+        let left = r.left + window.scrollX - pw - 10;
+        if (left < 8) left = r.right + window.scrollX + 10;
+        pop.style.left = left + "px";
+        _openSubPopover = pop;
+      }
+
+      document.addEventListener("click", (e) => {
+        if (
+          _openSubPopover &&
+          !e.target.closest(".db-sub-pop") &&
+          !e.target.closest(".db-sub-view")
+        ) {
+          closeSubAvailPopover();
+        }
+      });
 
       async function removeSubmission(id) {
         if (settings.demo) return;
@@ -2356,8 +2891,10 @@
         }
         try {
           // Build workers from submissions
-          const submissionWorkers = _submissions.map(s => {
-            const emp = workers.find(w => w._id?.toString() === s.employeeId?.toString());
+          const submissionWorkers = _submissions.map((s) => {
+            const emp = workers.find(
+              (w) => w._id?.toString() === s.employeeId?.toString(),
+            );
             return {
               name: s.employeeName,
               priority: emp ? emp.priority : 0,
@@ -2375,15 +2912,20 @@
             : getNextMondayStr();
 
           const calId = settings.calendarId || "";
-          const evRes = await fetch(`/events?monday=${weekOf}&calendarId=${encodeURIComponent(calId)}`);
-          if (!evRes.ok) { updateReadinessPill(); return; }
+          const evRes = await fetch(
+            `/events?monday=${weekOf}&calendarId=${encodeURIComponent(calId)}`,
+          );
+          if (!evRes.ok) {
+            updateReadinessPill();
+            return;
+          }
           const evData = await evRes.json();
 
           // If no student bookings exist this week, show a distinct state
           // rather than a misleading "Ready" (no gaps on an empty week).
           const studentData = evData.studentData || {};
-          const anyStudents = Object.values(studentData).some(day =>
-            Object.values(day).some(count => count > 0)
+          const anyStudents = Object.values(studentData).some((day) =>
+            Object.values(day).some((count) => count > 0),
           );
           if (!anyStudents) {
             _lastReadinessCheck = { gaps: [], noStudents: true };
@@ -2401,29 +2943,37 @@
               mode: settings.mode || "simplified",
             }),
           });
-          if (!genRes.ok) { updateReadinessPill(); return; }
+          if (!genRes.ok) {
+            updateReadinessPill();
+            return;
+          }
           const genData = await genRes.json();
 
           // Detect true gaps: slots with students > 0 but no assigned workers
           const gaps = [];
           for (const day of genData.schedule) {
-            const evDay = (evData.studentData || {})[day.day.toLowerCase()] || {};
-            const hasStudents = Object.values(evDay).some(v => v > 0);
+            const evDay =
+              (evData.studentData || {})[day.day.toLowerCase()] || {};
+            const hasStudents = Object.values(evDay).some((v) => v > 0);
             if (!hasStudents) continue;
             // Check if any slot with students has no coverage
             let hasGap = false;
             for (const [time, count] of Object.entries(evDay)) {
               if (count <= 0) continue;
-              const covered = day.assignments.some(a => {
+              const covered = day.assignments.some((a) => {
                 const toNum = (t) => {
-                  const [h, m] = t.split(":"); let hr = parseInt(h);
+                  const [h, m] = t.split(":");
+                  let hr = parseInt(h);
                   if (day.day === "Saturday" && hr < 10) hr += 12;
                   return hr + (m === "30" ? 0.5 : 0);
                 };
                 const tNum = toNum(time);
                 return toNum(a.start) <= tNum && toNum(a.end) > tNum;
               });
-              if (!covered) { hasGap = true; break; }
+              if (!covered) {
+                hasGap = true;
+                break;
+              }
             }
             if (hasGap) gaps.push(day.day);
           }
@@ -2445,13 +2995,16 @@
         activateDemo();
       } else {
         // Load centerId for availability link construction
-        fetch("/api/me").then(r => r.json()).then(d => {
-          _centerId = d.centerId || "";
-          if (d.centerName) {
-            const el = document.getElementById("db-center-name");
-            if (el) el.textContent = d.centerName;
-          }
-        }).catch(() => {});
+        fetch("/api/me")
+          .then((r) => r.json())
+          .then((d) => {
+            _centerId = d.centerId || "";
+            if (d.centerName) {
+              const el = document.getElementById("db-center-name");
+              if (el) el.textContent = d.centerName;
+            }
+          })
+          .catch(() => {});
 
         // Load the team first, then the form settings + submissions. Loading
         // employees first means the submissions widget can correctly compute
@@ -2472,7 +3025,11 @@
       // Refresh submissions immediately when the tab regains focus, so
       // returning to the dashboard shows up-to-date submissions right away.
       document.addEventListener("visibilitychange", () => {
-        if (!document.hidden && _centerSettings && isFormOpen(_centerSettings)) {
+        if (
+          !document.hidden &&
+          _centerSettings &&
+          isFormOpen(_centerSettings)
+        ) {
           loadSubmissions();
         }
       });
