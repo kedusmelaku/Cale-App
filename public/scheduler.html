@@ -1983,6 +1983,16 @@
         if (ring) ring.remove();
       }
 
+      function tutHidePulseRing() {
+        const ring = document.getElementById("tut-gear-pulse-ring");
+        if (ring) ring.style.display = "none";
+      }
+
+      function tutShowPulseRing() {
+        const ring = document.getElementById("tut-gear-pulse-ring");
+        if (ring) ring.style.display = "";
+      }
+
       // ── Gear nudge init ─────────────────────────────────────────────
       if (localStorage.getItem("scheduler-tut-completed") === "1") {
         document.body.classList.add("tut-completed");
@@ -1997,7 +2007,7 @@
       const TUT_STORAGE_KEY   = "scheduler-tut-step";
       const TUT_DEMO_KEY      = "scheduler-tut-demo";
       const TUT_COMPLETED_KEY = "scheduler-tut-completed";
-      const TUT_TOTAL         = 22;
+      const TUT_TOTAL         = 23;
       const tut = { active: false, step: 0 };
 
       function tutMarkCompleted() {
@@ -2020,18 +2030,27 @@
         {
           global: 14, target: ".av-tabs", pos: "right",
           title: "Try the Manual Tab",
-          body: "Switch to the <strong>Manual</strong> tab to see the full editing UI — day checkboxes, default-hours toggle, and start/end time dropdowns. Switch back to Form when done.",
-          hint: "Click the Manual tab to explore it",
-          waitFor: ".av-tab-manual",
+          body: "Switch to the <strong>Manual</strong> tab to explore the editing UI — day checkboxes, default-hours toggle, and start/end time dropdowns.",
+          hint: "Click the Manual tab to explore",
+          waitFor: "#av-tab-manual",
           waitForClass: "active",
         },
         {
-          global: 15, target: ".output-panel-header", pos: "left",
+          global: 15, target: ".availability-panel", pos: "right",
+          title: "Manual Availability",
+          body: "In Manual mode you can toggle which days each employee is available and adjust their start/end times directly — no form needed. Great for last-minute changes before generating. Click <strong>Next</strong> when you're done exploring.",
+          onEnter: function() {
+            const formTab = document.getElementById("av-tab-form");
+            if (formTab) formTab.click();
+          },
+        },
+        {
+          global: 16, target: ".output-panel-header", pos: "left",
           title: "Schedule Panel",
           body: "The right side shows the generated schedule. The <strong>Week of</strong> date picker sets which Monday to schedule — it always snaps to the nearest Monday.",
         },
         {
-          global: 16, target: "#btn-generate", pos: "below",
+          global: 17, target: "#btn-generate", pos: "below",
           title: "Try Generating a Schedule",
           body: "Click <strong>Generate Schedule</strong> to run the algorithm. In demo mode it uses sample student data. Press <strong>Enter</strong> while the date field is focused as a shortcut.",
           hint: "Click Generate Schedule",
@@ -2039,12 +2058,12 @@
           waitForClass: "has-schedule",
         },
         {
-          global: 17, target: ".schedule-grid", pos: "left",
+          global: 18, target: ".schedule-grid", pos: "left",
           title: "Reading the Timeline",
           body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. <strong>Hover any time slot label</strong> to see a tooltip: student count, instructors needed, and who's assigned. <strong>Red hatching</strong> means a shift falls outside submitted availability.",
         },
         {
-          global: 18, target: "#edit-btn", pos: "below",
+          global: 19, target: "#edit-btn", pos: "below",
           title: "Try Editing the Schedule",
           body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. Drag blocks vertically to move start times, drag the bottom handle to resize, and click <strong>✕</strong> to remove a shift.",
           hint: "Click Edit Schedule to open the editor",
@@ -2052,7 +2071,7 @@
           waitForClass: "active",
         },
         {
-          global: 19, target: "#screen-edit .edit-body", pos: "left",
+          global: 20, target: "#screen-edit .edit-body", pos: "left",
           title: "Edit Mode",
           body: "Each block is draggable. The <strong>bottom handle</strong> resizes the end time. <strong>✕</strong> removes the shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually. Click <strong>← Back</strong> when you're done.",
           hint: "Click ← Back to return to the schedule",
@@ -2061,12 +2080,12 @@
           onExit: function() { showScreen("screen-schedule"); },
         },
         {
-          global: 20, target: "#copy-btn", pos: "below",
+          global: 21, target: "#copy-btn", pos: "below",
           title: "Copy & Finish",
           body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. <strong>Finish →</strong> returns you to the dashboard.",
         },
         {
-          global: 21, target: null, pos: "center",
+          global: 22, target: null, pos: "center",
           title: "You're all set!",
           body: "That's the full app. The weekly flow: <strong>1)</strong> Add your team on the dashboard. <strong>2)</strong> Configure the form and share the link. <strong>3)</strong> Once everyone submits, pick a Monday date here and generate. <strong>4)</strong> Edit if needed, copy, and share.",
           next: "Done ✓",
@@ -2119,6 +2138,12 @@
 
       let _tutWaitTimer = null;
 
+      function tutRaisedModals(raise) {
+        document.querySelectorAll(".modal-overlay.open").forEach(el => {
+          el.classList.toggle("tut-raised", raise);
+        });
+      }
+
       function tutWatchFor(step) {
         if (_tutWaitTimer) clearInterval(_tutWaitTimer);
         _tutWaitTimer = setInterval(function() {
@@ -2140,6 +2165,7 @@
         const step = TUT_SCHEDULER_STEPS[li];
 
         if (step.onEnter) step.onEnter();
+        setTimeout(() => tutRaisedModals(true), 50);
 
         document.getElementById("tut-overlay").classList.add("active");
         document.getElementById("tut-badge").textContent = `Step ${tut.step + 1}`;
@@ -2178,10 +2204,11 @@
         if (li < 0) return;
         const step = TUT_SCHEDULER_STEPS[li];
         if (step.onExit) step.onExit();
+        tutRaisedModals(false);
         if (step.after) { step.after(); return; }
         tut.step++;
         localStorage.setItem(TUT_STORAGE_KEY, String(tut.step));
-        if (tut.step > 21) { tutEnd(); return; }
+        if (tut.step > 22) { tutEnd(); return; }
         const next = TUT_SCHEDULER_STEPS.find(s => s.global === tut.step);
         if (!next) { tutEnd(); return; }
         tutRender();
@@ -2209,7 +2236,9 @@
 
       function tutResumeAt(globalStep) {
         tut.active = true; tut.step = globalStep;
+        document.body.classList.add("tut-active");
         tutEnsureDemo();
+        tutHidePulseRing();
         tutRender();
       }
 
@@ -2227,11 +2256,13 @@
 
       function tutEnd() {
         tut.active = false;
+        document.body.classList.remove("tut-active");
         if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
         localStorage.removeItem(TUT_STORAGE_KEY);
         document.getElementById("tut-overlay").classList.remove("active");
         document.getElementById("tut-highlight-border").style.display = "none";
         document.getElementById("tut-card").classList.remove("waiting");
+        if (localStorage.getItem(TUT_COMPLETED_KEY) !== "1") tutShowPulseRing();
       }
 
       document.addEventListener("keydown", function(e) {

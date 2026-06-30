@@ -1552,6 +1552,14 @@ body.dark {
   display: block;
 }
 body.tut-completed .settings-tour-top { display: none; }
+body.tut-active .settings-tour-top { display: none; }
+
+/* Locked navigation buttons during tutorial */
+.tut-nav-locked {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  pointer-events: all;
+}
 
 .settings-tour-top-btn {
   width: 100%;
@@ -1570,6 +1578,19 @@ body.tut-completed .settings-tour-top { display: none; }
   transition: background 0.15s, color 0.15s;
 }
 .settings-tour-top-btn:hover { background: var(--accent); color: #fff; }
+
+body:not(.tut-completed) .settings-tour-top-btn {
+  animation: tut-tour-btn-pulse 2.2s ease-in-out infinite;
+}
+body:not(.tut-completed) .settings-tour-top-btn:hover {
+  animation: none;
+}
+
+@keyframes tut-tour-btn-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.45); }
+  60%  { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+  100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+}
 
 .settings-tour-bottom {
   display: none;
@@ -2219,6 +2240,60 @@ body.tut-completed .btn-gear::after { display: none; }
 }
 .db-sub-row:hover .db-sub-remove { opacity: 1; }
 .db-sub-remove:hover { color: #c0392b; }
+
+/* View availability button (hover-revealed) */
+.db-sub-view {
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+  flex-shrink: 0;
+  font-family: "Noto Sans", sans-serif;
+}
+.db-sub-row:hover .db-sub-view { opacity: 1; }
+.db-sub-view:hover { background: var(--accent); color: #fff; }
+
+/* During tutorial, keep View button always visible on submitted rows so it's discoverable */
+body.tut-active .db-sub-row-done .db-sub-view { opacity: 1; }
+
+/* Availability popover */
+.db-sub-pop {
+  position: absolute;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-radius: 9px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.16);
+  padding: 10px 13px;
+  z-index: 9000;
+  min-width: 160px;
+  pointer-events: none;
+}
+/* During the tutorial, raise the popover into the cutout band (above dim, below card) */
+body.tut-active .db-sub-pop { z-index: 502; }
+.db-sub-pop-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 7px;
+}
+.db-sub-pop-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 0.8rem;
+  padding: 2px 0;
+}
+.db-sub-pop-day { font-weight: 600; color: var(--text); }
+.db-sub-pop-time { color: var(--text-muted); }
+.db-sub-pop-empty { font-size: 0.79rem; color: var(--text-muted); font-style: italic; }
 
 /* Build schedule button */
 .db-build-btn {
