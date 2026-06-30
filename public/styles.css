@@ -214,6 +214,10 @@ header {
   transition: background 0.15s;
   white-space: nowrap;
 }
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 .btn-primary:hover { background: var(--accent-hover); }
 
@@ -533,6 +537,47 @@ header {
 .info-tag:focus-visible {
   outline: 2px solid var(--accent-on-tint);
   outline-offset: 2px;
+}
+
+/* The nested .info-tooltip is now only a hidden text source — the visible
+   tooltip is a body-level floating element (.info-floating) positioned by JS
+   so it can never be clipped by a modal's overflow or a transformed ancestor. */
+.info-tooltip { display: none !important; }
+
+/* ── Floating info tooltip (body-level, fixed, clip-proof) ── */
+.info-floating {
+  display: none;
+  position: fixed;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  font-size: 0.75rem;
+  font-weight: 400;
+  padding: 7px 10px;
+  border-radius: 6px;
+  width: 220px;
+  line-height: 1.5;
+  z-index: 12000;
+  pointer-events: none;
+  white-space: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+}
+.info-floating.show { display: block; }
+.info-floating::after {
+  content: "";
+  position: absolute;
+  left: var(--arrow-x, 50%);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+}
+.info-floating[data-arrow="bottom"]::after {
+  top: 100%;
+  border-top-color: var(--tooltip-bg);
+}
+.info-floating[data-arrow="top"]::after {
+  bottom: 100%;
+  border-bottom-color: var(--tooltip-bg);
 }
 
 .info-tooltip {
