@@ -1430,6 +1430,10 @@
 
       // ── Generate ───────────────────────────────────────────
       async function generate() {
+        // During the tour, generating is only unlocked once the user reaches
+        // the "Try Generating a Schedule" step (global 17). This also blocks
+        // the Enter-key shortcut on the date field.
+        if (tut.active && tut.step < 17) return;
         const mondayVal = document.getElementById("week-date").value;
         if (!mondayVal)
           return alert("Please enter the Monday date for this week.");
@@ -2048,10 +2052,6 @@
           global: 15, target: ".availability-panel", pos: "right",
           title: "Manual Availability",
           body: "In Manual mode you can toggle which days each employee is available and adjust their start/end times directly — no form needed. Great for last-minute changes before generating. Click <strong>Next</strong> when you're done exploring.",
-          onEnter: function() {
-            const formTab = document.getElementById("av-tab-form");
-            if (formTab) formTab.click();
-          },
         },
         {
           global: 16, target: ".output-panel-header", pos: "left",
@@ -2065,6 +2065,10 @@
           hint: "Click Generate Schedule",
           waitFor: ".schedule-grid",
           waitForClass: "has-schedule",
+          onEnter: function() {
+            const gen = document.getElementById("btn-generate");
+            if (gen) gen.disabled = false;
+          },
         },
         {
           global: 18, target: ".schedule-grid", pos: "left",
@@ -2099,7 +2103,12 @@
           title: "You're all set!",
           body: "That's the full app. The weekly flow: <strong>1)</strong> Add your team on the dashboard. <strong>2)</strong> Configure the form and share the link. <strong>3)</strong> Once everyone submits, pick a Monday date here and generate. <strong>4)</strong> Edit if needed, copy, and share.",
           next: "Done ✓",
-          after: function() { tutDisableDemo(); tutMarkCompleted(); },
+          after: function() {
+            tutDisableDemo();
+            tutMarkCompleted();
+            tutEnd();
+            window.location.href = "/";
+          },
         },
       ];
 
@@ -2119,9 +2128,13 @@
         const t = rect.top - PAD, l = rect.left - PAD;
         const b = rect.top + rect.height + PAD, r = rect.left + rect.width + PAD;
         const W = window.innerWidth, H = window.innerHeight;
+        // Seam-free cutout (slit at x=l on the bottom edge) — avoids the
+        // diagonal-seam triangle sliver near top-right cutouts.
         dim.style.clipPath =
-          `polygon(evenodd, 0 0, ${W}px 0, ${W}px ${H}px, 0 ${H}px, 0 0, ` +
-          `${l}px ${t}px, ${l}px ${b}px, ${r}px ${b}px, ${r}px ${t}px, ${l}px ${t}px)`;
+          `polygon(` +
+          `0px 0px, 0px ${H}px, ${l}px ${H}px, ${l}px ${t}px, ${r}px ${t}px, ` +
+          `${r}px ${b}px, ${l}px ${b}px, ${l}px ${H}px, ${W}px ${H}px, ${W}px 0px` +
+          `)`;
         border.style.display = "block";
         border.style.top = t + "px"; border.style.left = l + "px";
         border.style.width = (r - l) + "px"; border.style.height = (b - t) + "px";
@@ -2247,8 +2260,11 @@
       function tutResumeAt(globalStep) {
         tut.active = true; tut.step = globalStep;
         document.body.classList.add("tut-active");
+        showScreen("screen-schedule");
         tutEnsureDemo();
         tutHidePulseRing();
+        const gen = document.getElementById("btn-generate");
+        if (gen) gen.disabled = true;
         tutRender();
       }
 
@@ -2265,6 +2281,7 @@
         if (li >= 0 && TUT_SCHEDULER_STEPS[li].onExit) TUT_SCHEDULER_STEPS[li].onExit();
         tutDisableDemo();
         tutEnd();
+        window.location.href = "/";
       }
 
       function tutEnd() {
@@ -2272,6 +2289,8 @@
         document.body.classList.remove("tut-active");
         if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
         localStorage.removeItem(TUT_STORAGE_KEY);
+        const gen = document.getElementById("btn-generate");
+        if (gen) gen.disabled = false;
         document.getElementById("tut-overlay").classList.remove("active");
         document.getElementById("tut-highlight-border").style.display = "none";
         document.getElementById("tut-card").classList.remove("waiting");
@@ -2444,6 +2463,71 @@
         console.error("Failed to load employees:", err);
         renderAvailability();
       });
+
+      // ── Clip-proof floating info tooltips ──────────────────────────
+      // The visible tooltip is a single body-level fixed element positioned
+      // from the trigger's bounding rect, so it can never be clipped by a
+      // modal's overflow or a transformed/scrolling ancestor.
+      (function initInfoTooltips() {
+        let tip = null;
+        let activeTag = null;
+        function ensureTip() {
+          if (!tip) {
+            tip = document.createElement("div");
+            tip.className = "info-floating";
+            document.body.appendChild(tip);
+          }
+          return tip;
+        }
+        function position(tag, t) {
+          const r = tag.getBoundingClientRect();
+          const tw = t.offsetWidth, th = t.offsetHeight;
+          const M = 8, GAP = 8;
+          let top = r.top - GAP - th;
+          let arrow = "bottom";
+          if (top < M) { top = r.bottom + GAP; arrow = "top"; }
+          let left = r.left + r.width / 2 - tw / 2;
+          left = Math.max(M, Math.min(left, window.innerWidth - tw - M));
+          t.style.top = top + "px";
+          t.style.left = left + "px";
+          t.dataset.arrow = arrow;
+          const arrowX = r.left + r.width / 2 - left;
+          t.style.setProperty("--arrow-x", arrowX + "px");
+        }
+        function show(tag) {
+          const src = tag.querySelector(".info-tooltip");
+          if (!src) return;
+          const t = ensureTip();
+          activeTag = tag;
+          t.innerHTML = src.innerHTML;
+          t.style.width = src.style.width || "220px";
+          t.classList.add("show");
+          position(tag, t);
+        }
+        function hide() {
+          activeTag = null;
+          if (tip) tip.classList.remove("show");
+        }
+        document.addEventListener("mouseover", (e) => {
+          const tag = e.target.closest && e.target.closest(".info-tag");
+          if (tag) show(tag);
+        });
+        document.addEventListener("mouseout", (e) => {
+          const tag = e.target.closest && e.target.closest(".info-tag");
+          if (tag && !tag.contains(e.relatedTarget)) hide();
+        });
+        document.addEventListener("focusin", (e) => {
+          const tag = e.target.closest && e.target.closest(".info-tag");
+          if (tag) show(tag);
+        });
+        document.addEventListener("focusout", (e) => {
+          const tag = e.target.closest && e.target.closest(".info-tag");
+          if (tag) hide();
+        });
+        window.addEventListener("scroll", () => { if (activeTag) hide(); }, true);
+        window.addEventListener("resize", () => { if (activeTag) hide(); });
+      })();
+
     </script>
   </body>
 </html>
