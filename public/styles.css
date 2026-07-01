@@ -229,7 +229,7 @@ header {
 /* ── Buttons ── */
 .btn-primary {
   padding: 9px 20px;
-  background: var(--gradient);
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: var(--radius);
@@ -237,7 +237,7 @@ header {
   font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
-  transition: filter 0.15s, opacity 0.15s;
+  transition: background 0.2s, filter 0.2s;
   white-space: nowrap;
 }
 .btn-primary:disabled {
@@ -245,7 +245,10 @@ header {
   cursor: not-allowed;
 }
 
-.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-primary:hover:not(:disabled) {
+  background: var(--gradient);
+  filter: none;
+}
 
 .btn-secondary {
   padding: 9px 18px;
@@ -1564,7 +1567,7 @@ body.tut-active #tut-card { display: block; }
 
 .tut-next-btn {
   padding: 8px 18px;
-  background: var(--gradient);
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 8px;
@@ -1572,12 +1575,12 @@ body.tut-active #tut-card { display: block; }
   font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
-  transition: filter 0.15s;
+  transition: background 0.2s;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.tut-next-btn:hover:not(:disabled)    { filter: brightness(1.08); }
+.tut-next-btn:hover:not(:disabled) { background: var(--gradient); }
 .tut-next-btn:disabled { background: var(--border-strong); color: var(--text-muted); cursor: default; }
 
 /* ── Start tutorial button on Employees screen ── */
@@ -2614,7 +2617,7 @@ body.admin-page .admin-submit-btn {
   margin-top: 20px;
   width: 100%;
   padding: 11px;
-  background: var(--gradient);
+  background: var(--accent);
   color: #fff;
   font-size: 0.9375rem;
   font-weight: 600;
@@ -2622,9 +2625,9 @@ body.admin-page .admin-submit-btn {
   border-radius: 7px;
   cursor: pointer;
   font-family: "Inter", sans-serif;
-  transition: filter 0.15s, opacity 0.15s;
+  transition: background 0.2s;
 }
-body.admin-page .admin-submit-btn:hover:not(:disabled) { filter: brightness(1.08); }
+body.admin-page .admin-submit-btn:hover:not(:disabled) { background: var(--gradient); }
 body.admin-page .admin-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* ── Topbar ── */
@@ -2690,7 +2693,7 @@ body.admin-page .admin-section-header {
 }
 body.admin-page .admin-section-title { font-size: 1.1rem; font-weight: 700; }
 body.admin-page .admin-btn-primary {
-  background: var(--gradient);
+  background: var(--accent);
   color: #fff;
   border: none;
   padding: 9px 18px;
@@ -2699,9 +2702,9 @@ body.admin-page .admin-btn-primary {
   font-weight: 600;
   font-family: "Inter", sans-serif;
   cursor: pointer;
-  transition: filter 0.15s;
+  transition: background 0.2s;
 }
-body.admin-page .admin-btn-primary:hover { filter: brightness(1.08); }
+body.admin-page .admin-btn-primary:hover:not(:disabled) { background: var(--gradient); }
 body.admin-page .admin-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 body.admin-page .center-card {
