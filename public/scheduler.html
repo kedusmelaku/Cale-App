@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scheduler — Schedule</title>
-    <meta name="og:title" content="Scheduler" />
+    <title>Cale — Schedule</title>
+    <meta name="og:title" content="Cale" />
     <meta
       name="description"
       content="A scheduling tool for tutoring centers — generates weekly staff schedules based on availability and student bookings from Google Calendar"
@@ -51,7 +51,10 @@
     <div id="screen-schedule" class="screen active">
       <header>
         <button class="btn-back" onclick="goToWorkers()">← Employees</button>
-        <span class="header-title">Scheduler</span>
+        <a href="/" class="cale-logo-lockup">
+          <img src="/logo.svg" alt="Cale logo" />
+          <span class="cale-wordmark">Cale</span>
+        </a>
         <div class="header-actions">
           <button
             class="btn-secondary copy-btn"
@@ -130,7 +133,7 @@
               <div class="empty-state-icon">📅</div>
               <strong>Google Calendar isn't connected</strong>
               <p>
-                Scheduler needs your calendar to read student booking counts.
+                Cale needs your calendar to read student booking counts.
                 Connect it to generate a schedule.
               </p>
               <button
@@ -220,7 +223,10 @@
         >
           ← Back
         </button>
-        <span class="header-title">Scheduler</span>
+        <a href="/" class="cale-logo-lockup">
+          <img src="/logo.svg" alt="Cale logo" />
+          <span class="cale-wordmark">Cale</span>
+        </a>
         <div class="header-actions">
           <button class="btn-gear" onclick="openSettings()" title="Settings" aria-label="Settings">
             ⚙
@@ -231,7 +237,7 @@
         <div class="page-intro">
           <h1>Connect Google Calendar</h1>
           <p>
-            Scheduler reads student bookings from Google Calendar to generate
+            Cale reads student bookings from Google Calendar to generate
             schedules automatically.
           </p>
         </div>
@@ -273,7 +279,7 @@
         >
           <p>
             ✅ <strong>Disconnected</strong> — Google Calendar access has been
-            successfully disconnected from Scheduler
+            successfully disconnected from Cale
           </p>
           <button
             class="btn-primary"
@@ -439,7 +445,7 @@
             <div>
               <div class="settings-label">Calendar to Read</div>
               <div class="settings-sublabel">
-                Choose which Google Calendar Scheduler pulls student bookings
+                Choose which Google Calendar Cale pulls student bookings
                 from
               </div>
             </div>
@@ -490,7 +496,7 @@
     <!-- ── About Modal ── -->
     <div class="modal-overlay" id="about-modal">
       <div class="modal">
-        <h3>About Scheduler</h3>
+        <h3>About Cale</h3>
         <div
           style="
             font-size: 0.95rem;
@@ -499,7 +505,7 @@
           "
         >
           <p>
-            Scheduler is an internal operational management tool designed to
+            Cale is an internal operational management tool designed to
             streamline workforce scheduling. This application connects with the
             user's Google Calendar to read session bookings, allowing management
             to analyze hourly scheduling data and generate optimized staff
@@ -846,7 +852,7 @@
           const corrected = nearestMonday(val);
           document.getElementById("week-date").value = corrected;
           alert(
-            "Scheduler weeks must start on a Monday — date adjusted to " +
+            "Cale weeks must start on a Monday — date adjusted to " +
               corrected +
               ".",
           );
