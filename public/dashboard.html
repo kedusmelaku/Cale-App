@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scheduler — Dashboard</title>
+    <title>Cale — Dashboard</title>
     <meta
       name="google-site-verification"
       content="uzaK7zMwyeu8dhhMth8YUM2HL6VfXjCt52LQLcNIbhU" />
-    <meta name="og:title" content="Scheduler" />
+    <meta name="og:title" content="Cale" />
     <meta
       name="description"
       content="A scheduling tool for tutoring centers- generates weekly staff schedules based on availability and student bookings from Google Calendar" />
@@ -65,7 +65,10 @@
             justify-content: center;
             gap: 1px;
           ">
-          <span class="db-topbar-title">Scheduler</span>
+          <a href="/" class="cale-logo-lockup" style="gap:7px;">
+            <img src="/logo.svg" alt="Cale logo" />
+            <span class="cale-wordmark">Cale</span>
+          </a>
           <span
             id="db-center-name"
             style="
@@ -116,10 +119,10 @@
                 <span
                   class="info-tag"
                   tabindex="0"
-                  aria-label="Whether Google Calendar is connected. When connected, Scheduler reads your student bookings to check schedule coverage."
+                  aria-label="Whether Google Calendar is connected. When connected, Cale reads your student bookings to check schedule coverage."
                   >i<span class="info-tooltip"
                     >Whether your Google Calendar is connected. When connected,
-                    Scheduler reads student bookings from it to check
+                    Cale reads student bookings from it to check
                     coverage.</span
                   ></span
                 ></span
@@ -355,7 +358,10 @@
           onclick="showScreen('screen-workers')">
           ← Back
         </button>
-        <span class="header-title">Scheduler</span>
+        <a href="/" class="cale-logo-lockup">
+          <img src="/logo.svg" alt="Cale logo" />
+          <span class="cale-wordmark">Cale</span>
+        </a>
         <div class="header-actions">
           <button
             class="btn-gear"
@@ -370,7 +376,7 @@
         <div class="page-intro">
           <h1>Connect Google Calendar</h1>
           <p>
-            Scheduler reads student bookings from Google Calendar to generate
+            Cale reads student bookings from Google Calendar to generate
             schedules automatically.
           </p>
         </div>
@@ -408,7 +414,7 @@
           style="display: none">
           <p>
             ✅ <strong>Disconnected</strong> — Google Calendar access has been
-            successfully disconnected from Scheduler
+            successfully disconnected from Cale
           </p>
           <button
             class="btn-primary"
@@ -574,7 +580,7 @@
             <div>
               <div class="settings-label">Calendar to Read</div>
               <div class="settings-sublabel">
-                Choose which Google Calendar Scheduler pulls student bookings
+                Choose which Google Calendar Cale pulls student bookings
                 from
               </div>
             </div>
@@ -636,7 +642,7 @@
     <!-- ── About Modal (inline popup) ── -->
     <div class="modal-overlay" id="about-modal">
       <div class="modal">
-        <h3>About Scheduler</h3>
+        <h3>About Cale</h3>
         <div
           style="
             font-size: 0.95rem;
@@ -644,7 +650,7 @@
             color: var(--text-default);
           ">
           <p>
-            Scheduler is an internal operational management tool designed to
+            Cale is an internal operational management tool designed to
             streamline workforce scheduling. This application connects with the
             user's Google Calendar to read session bookings, allowing management
             to analyze hourly scheduling data and generate optimized staff
@@ -906,7 +912,7 @@
           global: 0,
           target: null,
           pos: "center",
-          title: "Welcome to Scheduler",
+          title: "Welcome to Cale",
           body: "This quick tour walks you through the full app. Demo mode is on so everything is populated. Your going to learn about all the features of this app by <strong>actually using them.</strong> Press <strong>→</strong> or <strong>Next</strong> to advance, <strong>Esc</strong> key to exit.",
           next: "Let's go →",
         },
@@ -2087,7 +2093,7 @@
       }
 
       // ── Calendar picker ──────────────────────────────────────
-      // Lets the user choose which Google Calendar Scheduler reads from,
+      // Lets the user choose which Google Calendar Cale reads from,
       // instead of always using the hardcoded default.
       let _calendarListCache = null;
 
