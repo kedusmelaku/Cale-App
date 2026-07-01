@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cale — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -26,12 +29,28 @@
       max-width: 380px;
     }
 
-    .logo {
+    .cale-logo-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: inherit;
+      margin-bottom: 6px;
+    }
+
+    .cale-logo-lockup img {
+      width: 28px;
+      height: 28px;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    .cale-wordmark {
+      font-family: "Sora", sans-serif;
       font-size: 1.35rem;
       font-weight: 700;
+      letter-spacing: -0.02em;
       color: #1a1a1a;
-      margin-bottom: 6px;
-      letter-spacing: -0.01em;
     }
 
     .subtitle {
@@ -104,7 +123,7 @@
 </head>
 <body>
   <div class="card">
-    <a href="/" class="cale-logo-lockup" style="margin-bottom: 6px; display: inline-flex;">
+    <a href="/" class="cale-logo-lockup">
       <img src="/logo.svg" alt="Cale logo" />
       <span class="cale-wordmark">Cale</span>
     </a>
