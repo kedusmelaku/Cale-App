@@ -195,10 +195,10 @@ body.dark .screen {
 
 /* ── Header ── */
 header {
-  background: rgba(240, 244, 255, 0.75);
+  background: rgba(240, 244, 255, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 1px 0 rgba(13,123,255,0.1);
   padding: 14px 28px;
   display: flex;
   align-items: center;
@@ -215,7 +215,7 @@ body.dark header {
   background: var(--surface);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-bottom-color: var(--border);
+  box-shadow: 0 1px 0 var(--border);
 }
 
 .header-title {
@@ -405,13 +405,17 @@ body.dark header {
 }
 
 .wcard {
-  background: var(--surface);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: visible;
   box-shadow: var(--shadow);
   display: flex;
   transition: box-shadow 0.15s;
+}
+
+body.dark .wcard {
+  background: var(--surface);
 }
 
 .wcard:hover { box-shadow: var(--shadow-md); }
@@ -2065,18 +2069,19 @@ body.tut-completed .btn-gear::after { display: none; }
   justify-content: space-between;
   padding: 0 24px;
   height: 56px;
-  border-bottom: 1px solid rgba(255,255,255,0.6);
   flex-shrink: 0;
-  background: rgba(240, 244, 255, 0.7);
+  background: rgba(240, 244, 255, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  /* Uniform separator: box-shadow renders identically across the full width */
+  box-shadow: 0 1px 0 rgba(13,123,255,0.1);
 }
 
 body.dark .db-topbar {
-  background: var(--bg);
+  background: var(--surface);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-bottom-color: var(--border);
+  box-shadow: 0 1px 0 var(--border);
 }
 .db-topbar-title {
   font-size: 1rem;
@@ -2102,10 +2107,19 @@ body.dark .db-topbar {
 .db-rail {
   width: 300px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgba(255,255,255,0.55);
   display: flex;
   flex-direction: column;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+body.dark .db-rail {
   background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-right-color: var(--border);
 }
 .db-rail-header {
   display: flex;
