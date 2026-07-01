@@ -187,7 +187,7 @@ app.get("/oauth/callback", requireAuth, async (req, res) => {
   .muted{color:#666;}
 </style></head><body>
 <h2>✅ Google Calendar connected!</h2>
-<p>The scheduler is connected and ready. This connection is saved and will
+<p>Cale is connected and ready. This connection is saved and will
 persist automatically — there's nothing else you need to do.</p>
 <p class="done">You can close this tab and return to the app.</p>
 <p class="muted">This tab will try to close itself in a moment.</p>
@@ -245,7 +245,7 @@ app.post("/oauth/disconnect", requireAuth, async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CALENDARS — lists every calendar the authenticated account can see, so the
-// user can pick which one Scheduler reads student bookings from.
+// user can pick which one Cale reads student bookings from.
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/calendars", requireAuth, async (req, res) => {
   try {
