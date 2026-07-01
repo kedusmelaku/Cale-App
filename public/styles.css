@@ -399,14 +399,22 @@ header {
 .modal-overlay.open.tut-raised { z-index: 502; }
 
 .modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
   padding: 28px;
   width: 360px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
   max-height: 90vh;
   overflow-y: auto;
+}
+
+body.dark .modal {
+  background: rgba(38, 38, 49, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .modal h3 {
@@ -1086,13 +1094,21 @@ input[type="date"]:focus-visible {
 
 /* ── Settings ── */
 .settings-modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
   width: 480px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+body.dark .settings-modal {
+  background: rgba(38, 38, 49, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .settings-header {
@@ -1103,8 +1119,14 @@ input[type="date"]:focus-visible {
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 1;
+}
+
+body.dark .settings-header {
+  background: rgba(38, 38, 49, 0.6);
 }
 
 .settings-title {
@@ -1439,16 +1461,24 @@ body.dark {
   display: none;
   position: fixed;
   width: 320px;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.8);
   padding: 20px 22px 16px;
   pointer-events: all;
   transition: top 0.35s cubic-bezier(0.4,0,0.2,1),
               left 0.35s cubic-bezier(0.4,0,0.2,1);
   z-index: 10001;
   overflow: hidden;
+}
+
+body.dark #tut-card {
+  background: rgba(38, 38, 49, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 /* Gradient top accent on the tutorial card */
 #tut-card::before {
