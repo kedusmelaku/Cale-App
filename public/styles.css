@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&family=Sora:wght@600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap");
 
 /* ── Cale logo lockup ── */
 .cale-logo-lockup {
@@ -31,10 +31,12 @@
   --surface2: #f9f9f7;
   --border: #e2e2dc;
   --border-strong: #c8c8c0;
-  --accent: #2a5fad;
-  --accent-hover: #1e4a8a;
-  --accent-light: #edf2fc;
+  --accent: #0D7BFF;
+  --accent-hover: #0062d6;
+  --accent-light: #e8f1ff;
   --accent-on-tint: var(--accent);
+  --gradient: linear-gradient(135deg, #0D7BFF 0%, #C3B9FF 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(13,123,255,0.06) 0%, rgba(195,185,255,0.06) 100%);
   --danger: #c0392b;
   --danger-on-tint: var(--danger);
   --text: #1a1a1a;
@@ -60,7 +62,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -115,7 +117,7 @@ body.demo-active.cal-warning-active #cal-warning-banner {
   font-size: 0.72rem;
   padding: 2px 8px;
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 #demo-banner button:hover,
@@ -167,7 +169,7 @@ header {
 }
 
 .header-title {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--text);
@@ -192,7 +194,7 @@ header {
 .page-intro { margin-bottom: 28px; }
 
 .page-intro h1 {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--text);
@@ -227,15 +229,15 @@ header {
 /* ── Buttons ── */
 .btn-primary {
   padding: 9px 20px;
-  background: var(--accent);
+  background: var(--gradient);
   color: white;
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
-  transition: background 0.15s;
+  transition: filter 0.15s, opacity 0.15s;
   white-space: nowrap;
 }
 .btn-primary:disabled {
@@ -243,7 +245,7 @@ header {
   cursor: not-allowed;
 }
 
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
 
 .btn-secondary {
   padding: 9px 18px;
@@ -252,7 +254,7 @@ header {
   border: 1.5px solid var(--green);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: all 0.15s;
@@ -269,7 +271,7 @@ header {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
   transition: all 0.15s;
@@ -286,7 +288,7 @@ header {
   border: 1.5px dashed var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.88rem;
   font-weight: 600;
   transition: all 0.15s;
@@ -300,7 +302,7 @@ header {
   color: var(--text-muted);
   cursor: pointer;
   font-size: 0.78rem;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   padding: 0;
   transition: color 0.15s;
 }
@@ -313,7 +315,7 @@ header {
   color: var(--accent-on-tint);
   cursor: pointer;
   font-size: 0.78rem;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   padding: 0;
   transition: color 0.15s;
 }
@@ -405,7 +407,7 @@ header {
 }
 
 .modal h3 {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 20px;
@@ -429,7 +431,7 @@ header {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.88rem;
   margin-bottom: 18px;
   transition: border-color 0.15s;
@@ -453,7 +455,7 @@ header {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-mid);
@@ -474,7 +476,7 @@ header {
   border-radius: var(--radius);
   color: var(--text-mid);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   transition: all 0.15s;
 }
@@ -488,7 +490,7 @@ header {
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: background 0.15s;
@@ -504,7 +506,7 @@ header {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   transition: border-color 0.15s;
   margin-bottom: 2px;
@@ -649,7 +651,7 @@ header {
 }
 
 .panel-title {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
@@ -673,7 +675,7 @@ header {
   padding: 7px 10px;
   font-size: 0.8rem;
   font-weight: 600;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   background: var(--surface2);
   color: var(--text-muted);
   border: none;
@@ -790,7 +792,7 @@ header {
   border: 1.5px solid var(--border);
   border-radius: 5px;
   color: var(--text);
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.78rem;
   transition: border-color 0.15s;
 }
@@ -851,7 +853,7 @@ input[type="date"] {
   padding: 7px 10px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   color: var(--text);
   background: var(--surface2);
@@ -874,7 +876,7 @@ input[type="date"]:focus-visible {
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: all 0.15s;
@@ -1043,7 +1045,7 @@ input[type="date"]:focus-visible {
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
   color: var(--text-muted);
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.78rem;
   cursor: pointer;
   transition: all 0.15s;
@@ -1103,7 +1105,7 @@ input[type="date"]:focus-visible {
 }
 
 .settings-title {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 1rem;
   font-weight: 700;
 }
@@ -1137,7 +1139,7 @@ input[type="date"]:focus-visible {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.8rem;
   color: var(--text-muted);
   transition: all 0.15s;
@@ -1241,7 +1243,7 @@ input[type="date"]:focus-visible {
   font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-muted);
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   white-space: nowrap;
 }
 
@@ -1264,7 +1266,7 @@ input[type="date"]:focus-visible {
   border: none;
   border-radius: 5px;
   color: #3a2a00;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.78rem;
   font-weight: 600;
   padding: 4px 10px;
@@ -1332,15 +1334,15 @@ body.dark {
   --text: #e8e8f0;
   --text-mid: #a0a0b8;
   --text-muted: #6b6b80;
-  --accent-light: #1a1a35;
+  --accent-light: #0a1628;
   --green-bg: #0a1f12;
   /* Lightened text-on-tint colors for the priority badges/picker — the base
      --accent/--green are too dark to read against their own tinted
      backgrounds once those backgrounds darken in this theme (was ~2.7:1,
      fails WCAG AA's 4.5:1 minimum). These pass at 5.10:1 / 6.31:1 while
      staying recognizably blue/green. */
-  --accent-on-tint: #649ae0;
-  --accent-on-tint-hover: #8ab8f0;
+  --accent-on-tint: #5ba3ff;
+  --accent-on-tint-hover: #80baff;
   --danger-on-tint: #e8786b;
   --green-on-tint: #4fae7c;
 }
@@ -1356,7 +1358,7 @@ body.dark {
 }
 
 .hours-summary-title {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
@@ -1435,7 +1437,7 @@ body.dark {
   position: fixed;
   width: 320px;
   background: var(--surface);
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   padding: 20px 22px 16px;
@@ -1443,6 +1445,15 @@ body.dark {
   transition: top 0.35s cubic-bezier(0.4,0,0.2,1),
               left 0.35s cubic-bezier(0.4,0,0.2,1);
   z-index: 10001;
+  overflow: hidden;
+}
+/* Gradient top accent on the tutorial card */
+#tut-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--gradient);
 }
 body.tut-active #tut-card { display: block; }
 
@@ -1477,7 +1488,7 @@ body.tut-active #tut-card { display: block; }
   color: var(--text-muted);
   font-size: 0.75rem;
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   padding: 0;
   transition: color 0.15s;
 }
@@ -1487,7 +1498,7 @@ body.tut-active #tut-card { display: block; }
 }
 
 .tut-title {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
@@ -1553,20 +1564,20 @@ body.tut-active #tut-card { display: block; }
 
 .tut-next-btn {
   padding: 8px 18px;
-  background: var(--accent);
+  background: var(--gradient);
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
-  transition: background 0.15s;
+  transition: filter 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.tut-next-btn:hover    { background: var(--accent-hover); }
+.tut-next-btn:hover:not(:disabled)    { filter: brightness(1.08); }
 .tut-next-btn:disabled { background: var(--border-strong); color: var(--text-muted); cursor: default; }
 
 /* ── Start tutorial button on Employees screen ── */
@@ -1578,7 +1589,7 @@ body.tut-active #tut-card { display: block; }
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   cursor: pointer;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   transition: all 0.15s;
@@ -1612,7 +1623,7 @@ body.tut-active #tut-card { display: block; }
   z-index: 501;
   border: 2px solid var(--accent);
   border-radius: 8px;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.18);
+  box-shadow: 0 0 0 3px rgba(13,123,255,0.18);
   transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
@@ -1786,7 +1797,7 @@ body.tut-completed .btn-gear::after { display: none; }
 }
 
 .av-window-title {
-  font-family: "Noto Serif", serif;
+  font-family: "Sora", sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text);
@@ -1826,7 +1837,7 @@ body.tut-completed .btn-gear::after { display: none; }
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
 }
 
@@ -1951,7 +1962,7 @@ body.tut-completed .btn-gear::after { display: none; }
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-top: 2px;
-  font-family: "Noto Sans", monospace;
+  font-family: "Inter", monospace;
   letter-spacing: 0.05em;
 }
 
@@ -1974,6 +1985,8 @@ body.tut-completed .btn-gear::after { display: none; }
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--bg);
+  /* Subtle brand gradient overlay */
+  background-image: var(--gradient-subtle);
 }
 .db-topbar-title {
   font-size: 1rem;
@@ -2325,7 +2338,7 @@ body.tut-completed .btn-gear::after { display: none; }
   opacity: 0;
   transition: opacity 0.12s, color 0.12s, border-color 0.12s, background 0.12s;
   flex-shrink: 0;
-  font-family: "Noto Sans", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 .db-sub-row:hover .db-sub-view { opacity: 1; }
 .db-sub-view:hover {
@@ -2536,6 +2549,16 @@ body.admin-page .admin-card {
   padding: 40px 36px 36px;
   width: 100%;
   max-width: 380px;
+  position: relative;
+  overflow: hidden;
+}
+/* Gradient top accent strip */
+body.admin-page .admin-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--gradient);
 }
 body.admin-page .admin-logo {
   font-size: 1.35rem;
@@ -2591,16 +2614,17 @@ body.admin-page .admin-submit-btn {
   margin-top: 20px;
   width: 100%;
   padding: 11px;
-  background: #1a1a1a;
+  background: var(--gradient);
   color: #fff;
   font-size: 0.9375rem;
   font-weight: 600;
   border: none;
   border-radius: 7px;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  font-family: "Inter", sans-serif;
+  transition: filter 0.15s, opacity 0.15s;
 }
-body.admin-page .admin-submit-btn:hover:not(:disabled) { background: #333; }
+body.admin-page .admin-submit-btn:hover:not(:disabled) { filter: brightness(1.08); }
 body.admin-page .admin-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* ── Topbar ── */
@@ -2666,17 +2690,18 @@ body.admin-page .admin-section-header {
 }
 body.admin-page .admin-section-title { font-size: 1.1rem; font-weight: 700; }
 body.admin-page .admin-btn-primary {
-  background: #1a1a1a;
+  background: var(--gradient);
   color: #fff;
   border: none;
   padding: 9px 18px;
   border-radius: 7px;
   font-size: 0.875rem;
   font-weight: 600;
+  font-family: "Inter", sans-serif;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: filter 0.15s;
 }
-body.admin-page .admin-btn-primary:hover { background: #333; }
+body.admin-page .admin-btn-primary:hover { filter: brightness(1.08); }
 body.admin-page .admin-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 body.admin-page .center-card {
