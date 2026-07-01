@@ -1,10 +1,10 @@
 {
-  "name": "schedule",
+  "name": "cale",
   "version": "1.0.0",
   "description": "",
   "main": "auth.js",
   "bin": {
-    "schedule": "bin/App.js"
+    "cale": "bin/App.js"
   },
   "directories": {
     "lib": "lib"
@@ -15,16 +15,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kedusmelaku/Schedule.git"
+    "url": "git+https://github.com/kedusmelaku/Cale-App.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/kedusmelaku/Schedule/issues"
+    "url": "https://github.com/kedusmelaku/Cale-App/issues"
   },
-  "homepage": "https://github.com/kedusmelaku/Schedule#readme",
+  "homepage": "https://github.com/kedusmelaku/Cale-App#readme",
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.3",
