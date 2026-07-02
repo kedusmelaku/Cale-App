@@ -14,16 +14,23 @@ const submissionSchema = new mongoose.Schema({
   // e.g. "2026-06-30"
   weekOf: { type: String, required: true },
 
-  // Same shape as Employee.days — array of day availability objects
+  // Availability per day, in canonical minutes since midnight (24-hour).
+  // A day the employee is available has one or more blocks; a two-block day
+  // can carry two. `allDay` is a UI hint meaning "the whole operating window";
+  // the scheduling engine reads `blocks` as the source of truth.
   days: [
     {
-      day:         { type: String, required: true },
-      selected:    { type: Boolean, default: false },
-      start:       { type: Number },
-      end:         { type: Number },
-      startMinute: { type: Number, default: 0 },
-      endMinute:   { type: Number, default: 0 },
-      allDay:      { type: Boolean, default: false },
+      _id:      false,
+      day:      { type: String, required: true },
+      selected: { type: Boolean, default: false },
+      allDay:   { type: Boolean, default: false },
+      blocks: [
+        {
+          _id:   false,
+          start: { type: Number, required: true }, // minutes since midnight
+          end:   { type: Number, required: true },
+        },
+      ],
     },
   ],
 

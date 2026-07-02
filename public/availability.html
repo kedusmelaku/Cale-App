@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Submit Availability — Cale</title>
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/utils.js"></script>
     <style>
       /* ── Availability form page styles ── */
       .av-form-shell {
@@ -300,6 +301,15 @@
 
       #step-pin, #step-form, #step-success { display: none; }
       #step-pin.active, #step-form.active, #step-success.active { display: block; }
+
+      /* Two-block day grouping */
+      .av-block-group + .av-block-group {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--border);
+      }
+      .av-sub-indent { margin-left: 24px; margin-top: 6px; }
+      .av-empty-note { font-size: 0.88rem; color: var(--text-muted); padding: 8px 0; }
     </style>
   </head>
   <body>
@@ -372,16 +382,12 @@
     </div>
 
     <script>
-      const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
-      const DAY_FULL = {
-        monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
-        thursday: "Thursday", saturday: "Saturday",
-      };
-
+      // Day metadata + buildSchedule() come from utils.js.
       let _employee = null;
       let _weekOf = null;
       let _windowOpen = null;
       let _windowClose = null;
+      let _sched = null; // buildSchedule() view of the center's active variant
 
       // Extract centerId from URL path: /availability/arlington-heights
       const _centerId = window.location.pathname.split("/").filter(Boolean)[1] || "";
@@ -406,6 +412,16 @@
           _windowClose = (s && s.windowClose) ? new Date(s.windowClose) : null;
         } catch (e) {
           console.warn("Could not load center settings:", e.message);
+        }
+
+        // Load the center's active operating schedule (open days + hours/blocks)
+        try {
+          const res = await fetch(`/center-schedule/${_centerId}`);
+          const data = await res.json();
+          _sched = buildSchedule(data.data && data.data.days);
+        } catch (e) {
+          console.warn("Could not load center schedule:", e.message);
+          _sched = buildSchedule(null);
         }
 
         // Determine weekOf from window open date, or default to next Monday
@@ -521,6 +537,16 @@
           console.warn("Could not refresh center settings:", e.message);
         }
 
+        // Make sure we have the operating schedule before showing the form.
+        if (!_sched || _sched.days.length === 0) {
+          try {
+            const sc = await fetch(`/center-schedule/${_centerId}`).then(r => r.json());
+            _sched = buildSchedule(sc.data && sc.data.days);
+          } catch (e) {
+            console.warn("Could not refresh center schedule:", e.message);
+          }
+        }
+
         if (!isWindowOpen()) {
           errEl.textContent = "The availability window is not currently open.";
           errEl.style.display = "block";
@@ -565,87 +591,108 @@
         renderDays();
       }
 
-      function timeOptions(isSaturday) {
-        const options = [];
-        const start = isSaturday ? 10 : 3;
-        const end = isSaturday ? 14 : 8;
-        for (let h = start; h <= end; h++) {
-          for (let m of [0, 30]) {
-            if (h === end && m === 30) break;
-            const totalMins = h * 60 + m;
-            const displayH = h > 12 ? h - 12 : h;
-            const displayM = m === 0 ? "00" : "30";
-            const ampm = isSaturday ? (h >= 12 ? "PM" : "AM") : "PM";
-            options.push({ value: totalMins, label: `${displayH}:${displayM} ${ampm}` });
-          }
-        }
-        return options;
+      // Time options within a single operating block (canonical minutes)
+      function blockTimeOptions(startMin, endMin) {
+        const out = [];
+        for (let m = startMin; m <= endMin; m += 30) out.push({ value: m, label: minToLabel(m) });
+        return out;
       }
 
-      function minsToHour(m) { return Math.floor(m / 60); }
-      function minsToMinute(m) { return m % 60; }
-      function hourMinToMins(h, m) { return h * 60 + (m || 0); }
+      // Friendly label for a block based on when it starts
+      function blockName(startMin) {
+        if (startMin < 12 * 60) return "Morning";
+        if (startMin < 17 * 60) return "Afternoon";
+        return "Evening";
+      }
 
-      // State for the form
+      // Form state: dayState[dayKey] = { selected, blocks: [{ on, allBlock, start, end }] }
+      // blocks runs parallel to the center's operating blocks for that day.
       const dayState = {};
+
+      function ensureDayState(d) {
+        const op = _sched.blocks(d);
+        if (!dayState[d] || dayState[d].blocks.length !== op.length) {
+          dayState[d] = {
+            selected: dayState[d] ? dayState[d].selected : false,
+            blocks: op.map((b) => ({ on: true, allBlock: true, start: b.start, end: b.end })),
+          };
+        }
+        return dayState[d];
+      }
 
       function renderDays() {
         const list = document.getElementById("day-list");
         list.innerHTML = "";
 
-        DAYS.forEach((d) => {
-          const isSat = d === "saturday";
-          const defaultStart = isSat ? 10 : (_employee.priority === 2 ? 3 : 4);
-          const defaultEnd = isSat ? 14 : 8;
+        if (!_sched || _sched.days.length === 0) {
+          list.innerHTML = '<div class="av-empty-note">This center has no open days set up yet. Please check with your manager.</div>';
+          const sa = document.getElementById("select-all-label");
+          if (sa) sa.style.display = "none";
+          return;
+        }
 
-          if (!dayState[d]) {
-            dayState[d] = {
-              selected: false,
-              allDay: true,
-              start: defaultStart,
-              startMinute: 0,
-              end: defaultEnd,
-              endMinute: 0,
-            };
+        _sched.days.forEach((d) => {
+          const st = ensureDayState(d);
+          const op = _sched.blocks(d);
+          const multi = op.length > 1;
+
+          let hoursHtml = "";
+          if (st.selected) {
+            hoursHtml = op.map((b, i) => {
+              const bs = st.blocks[i];
+              const on = multi ? bs.on : true;
+              const opts = blockTimeOptions(b.start, b.end);
+              const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
+
+              const onToggle = multi ? `
+                <label class="av-hours-check">
+                  <input type="checkbox" ${on ? "checked" : ""} onchange="toggleBlockOn('${d}',${i},this.checked)">
+                  ${blockName(b.start)} block (${rangeLabel})
+                </label>` : "";
+
+              let inner = "";
+              if (on) {
+                const fullCheck = `
+                  <label class="av-hours-check ${multi ? "av-sub-indent" : ""}">
+                    <input type="checkbox" ${bs.allBlock ? "checked" : ""} onchange="toggleFull('${d}',${i},this.checked)">
+                    ${multi ? "Available the whole block" : `Available all hours (${rangeLabel})`}
+                  </label>`;
+                let custom = "";
+                if (!bs.allBlock) {
+                  const startOpts = opts.filter((o) => o.value < b.end);
+                  const endOpts = opts.filter((o) => o.value > b.start);
+                  custom = `
+                    <div class="av-time-row ${multi ? "av-sub-indent" : ""}">
+                      <select aria-label="Start time" onchange="updateTime('${d}',${i},'start',this.value)">
+                        ${startOpts.map((o) => `<option value="${o.value}" ${o.value === bs.start ? "selected" : ""}>${o.label}</option>`).join("")}
+                      </select>
+                      <span>–</span>
+                      <select aria-label="End time" onchange="updateTime('${d}',${i},'end',this.value)">
+                        ${endOpts.map((o) => `<option value="${o.value}" ${o.value === bs.end ? "selected" : ""}>${o.label}</option>`).join("")}
+                      </select>
+                    </div>`;
+                }
+                inner = fullCheck + custom;
+              }
+              return `<div class="av-block-group">${onToggle}${inner}</div>`;
+            }).join("");
           }
 
-          const s = dayState[d];
-          const opts = timeOptions(isSat);
-          const startMins = hourMinToMins(s.start, s.startMinute);
-          const endMins = hourMinToMins(s.end, s.endMinute);
-
           const block = document.createElement("div");
-          block.className = `av-day-block${s.selected ? " selected" : ""}`;
+          block.className = `av-day-block${st.selected ? " selected" : ""}`;
           block.innerHTML = `
             <div class="av-day-top">
-              <input type="checkbox" id="day-${d}" ${s.selected ? "checked" : ""}
-                onchange="toggleDay('${d}', this.checked)" aria-label="${DAY_FULL[d]}">
-              <label class="av-day-name" for="day-${d}">${DAY_FULL[d]}</label>
+              <input type="checkbox" id="day-${d}" ${st.selected ? "checked" : ""}
+                onchange="toggleDay('${d}', this.checked)" aria-label="${_sched.dayFull(d)}">
+              <label class="av-day-name" for="day-${d}">${_sched.dayFull(d)}</label>
             </div>
-            ${s.selected ? `
-            <div class="av-day-hours">
-              <label class="av-hours-check">
-                <input type="checkbox" ${s.allDay ? "checked" : ""}
-                  onchange="toggleAllDay('${d}', this.checked)">
-                Default hours
-              </label>
-              ${!s.allDay ? `
-              <div class="av-time-row">
-                <select aria-label="Start time" onchange="updateTime('${d}', 'start', this.value)">
-                  ${opts.map(o => `<option value="${o.value}" ${o.value === startMins ? "selected" : ""}>${o.label}</option>`).join("")}
-                </select>
-                <span>–</span>
-                <select aria-label="End time" onchange="updateTime('${d}', 'end', this.value)">
-                  ${opts.map(o => `<option value="${o.value}" ${o.value === endMins ? "selected" : ""}>${o.label}</option>`).join("")}
-                </select>
-              </div>` : ""}
-            </div>` : ""}`;
+            ${st.selected ? `<div class="av-day-hours">${hoursHtml}</div>` : ""}`;
           list.appendChild(block);
         });
 
         // Sync the select-all checkbox
-        const allChecked = DAYS.every(d => dayState[d]?.selected);
-        const anyChecked = DAYS.some(d => dayState[d]?.selected);
+        const allChecked = _sched.days.every((d) => dayState[d]?.selected);
+        const anyChecked = _sched.days.some((d) => dayState[d]?.selected);
         const selectAll = document.getElementById("select-all-days");
         if (selectAll) {
           selectAll.checked = allChecked;
@@ -654,38 +701,62 @@
       }
 
       function toggleAllDaysForm(checked) {
-        DAYS.forEach((d) => {
-          if (!dayState[d]) dayState[d] = { selected: false, allDay: true, start: d === "saturday" ? 10 : (_employee?.priority === 2 ? 3 : 4), startMinute: 0, end: d === "saturday" ? 14 : 8, endMinute: 0 };
-          dayState[d].selected = checked;
-        });
+        _sched.days.forEach((d) => { ensureDayState(d).selected = checked; });
         renderDays();
       }
 
       function toggleDay(d, checked) {
-        dayState[d].selected = checked;
+        ensureDayState(d).selected = checked;
         renderDays();
       }
 
-      function toggleAllDay(d, checked) {
-        dayState[d].allDay = checked;
+      function toggleBlockOn(d, i, checked) {
+        ensureDayState(d).blocks[i].on = checked;
         renderDays();
       }
 
-      function updateTime(d, field, val) {
-        const totalMins = parseInt(val);
-        const s = dayState[d];
+      function toggleFull(d, i, checked) {
+        ensureDayState(d).blocks[i].allBlock = checked;
+        renderDays();
+      }
+
+      function updateTime(d, i, field, val) {
+        const m = parseInt(val, 10);
+        const bs = ensureDayState(d).blocks[i];
         if (field === "start") {
-          const endMins = hourMinToMins(s.end, s.endMinute);
-          if (totalMins >= endMins) { renderDays(); return; }
-          s.start = minsToHour(totalMins);
-          s.startMinute = minsToMinute(totalMins);
+          if (m >= bs.end) { renderDays(); return; }
+          bs.start = m;
         } else {
-          const startMins = hourMinToMins(s.start, s.startMinute);
-          if (totalMins <= startMins) { renderDays(); return; }
-          s.end = minsToHour(totalMins);
-          s.endMinute = minsToMinute(totalMins);
+          if (m <= bs.start) { renderDays(); return; }
+          bs.end = m;
         }
         renderDays();
+      }
+
+      // Builds the submission payload: selected days with their active blocks.
+      function collectDays() {
+        if (!_sched) return [];
+        return _sched.days
+          .filter((d) => dayState[d]?.selected)
+          .map((d) => {
+            const st = dayState[d];
+            const op = _sched.blocks(d);
+            const multi = op.length > 1;
+            const blocks = [];
+            st.blocks.forEach((bs, i) => {
+              const on = multi ? bs.on : true;
+              if (!on) return;
+              blocks.push({
+                start: bs.allBlock ? op[i].start : bs.start,
+                end:   bs.allBlock ? op[i].end   : bs.end,
+              });
+            });
+            const allDay =
+              blocks.length === op.length &&
+              st.blocks.every((bs, i) => (multi ? bs.on : true) && bs.allBlock);
+            return { day: d, selected: true, allDay, blocks };
+          })
+          .filter((c) => c.blocks.length > 0);
       }
 
       // ── Confirmation modal ──────────────────────────────────
@@ -693,25 +764,18 @@
         const errEl = document.getElementById("submit-error");
         errEl.style.display = "none";
 
-        const anySelected = DAYS.some(d => dayState[d]?.selected);
-        if (!anySelected) {
-          errEl.textContent = "Please select at least one day.";
+        const chosen = collectDays();
+        if (chosen.length === 0) {
+          errEl.textContent = "Please select at least one day and time.";
           errEl.style.display = "block";
           return;
         }
 
         const list = document.getElementById("confirm-day-list");
-        list.innerHTML = DAYS.filter(d => dayState[d]?.selected).map(d => {
-          const s = dayState[d];
-          const isSat = d === "saturday";
-          let hoursStr;
-          if (s.allDay) {
-            hoursStr = isSat ? "10:00 AM – 2:00 PM" : "Default hours";
-          } else {
-            hoursStr = `${fmtTime(s.start, s.startMinute, isSat)} – ${fmtTime(s.end, s.endMinute, isSat)}`;
-          }
+        list.innerHTML = chosen.map((c) => {
+          const hoursStr = c.blocks.map((b) => `${minToLabel(b.start)} – ${minToLabel(b.end)}`).join(", ");
           return `<div class="confirm-day-row">
-            <span class="confirm-day-name">${DAY_FULL[d]}</span>
+            <span class="confirm-day-name">${_sched.dayFull(c.day)}</span>
             <span class="confirm-day-hours">${hoursStr}</span>
           </div>`;
         }).join("");
@@ -722,13 +786,6 @@
         document.getElementById("confirm-overlay").classList.add("open");
       }
 
-      function fmtTime(h, min, isSat) {
-        const displayH = h > 12 ? h - 12 : h;
-        const displayM = (min || 0) === 30 ? ":30" : ":00";
-        const ampm = isSat ? (h >= 12 ? "PM" : "AM") : "PM";
-        return `${displayH}${displayM} ${ampm}`;
-      }
-
       function closeConfirm() {
         document.getElementById("confirm-overlay").classList.remove("open");
       }
@@ -737,15 +794,7 @@
         const confirmBtn = document.getElementById("confirm-submit-btn");
         const errEl = document.getElementById("submit-error");
 
-        const days = DAYS.map((d) => ({
-          day: d,
-          selected: dayState[d] ? dayState[d].selected : false,
-          allDay: dayState[d] ? dayState[d].allDay : true,
-          start: dayState[d] ? dayState[d].start : 4,
-          end: dayState[d] ? dayState[d].end : 8,
-          startMinute: dayState[d] ? dayState[d].startMinute : 0,
-          endMinute: dayState[d] ? dayState[d].endMinute : 0,
-        }));
+        const days = collectDays();
 
         confirmBtn.disabled = true;
         confirmBtn.textContent = "Submitting…";

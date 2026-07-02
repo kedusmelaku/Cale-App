@@ -14,6 +14,14 @@ const Submission = require("./Submission");
 const OAuthToken = require("./OAuthToken");
 const Center = require("./Center");
 const mongoose = require("mongoose");
+const {
+  defaultSchedule,
+  getActiveVariant,
+  resolveActiveName,
+  validateSchedule,
+  normalizeSchedule,
+  variantToDayConfigs,
+} = require("./scheduleConfig");
 
 if (!process.env.JWT_SECRET) {
   console.error("FATAL: JWT_SECRET env var is not set");
@@ -289,66 +297,22 @@ app.get("/calendars", requireAuth, async (req, res) => {
 // EVENTS
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/events/mock", requireAuth, (req, res) => {
+  // Keyed by dayKey then canonical minute since midnight (24-hour), matching
+  // the default operating slots (Mon–Thu 3–8 PM = 900–1170, Sat 10–2 = 600–810).
   res.json({
     studentData: {
-      monday: {
-        4: 3,
-        "4:30": 4,
-        5: 6,
-        "5:30": 5,
-        6: 4,
-        "6:30": 3,
-        7: 2,
-        "7:30": 1,
-      },
-      tuesday: {
-        4: 2,
-        "4:30": 3,
-        5: 5,
-        "5:30": 6,
-        6: 5,
-        "6:30": 4,
-        7: 3,
-        "7:30": 2,
-      },
-      wednesday: {
-        3: 1,
-        "3:30": 2,
-        4: 4,
-        "4:30": 5,
-        5: 4,
-        "5:30": 3,
-        6: 5,
-        "6:30": 6,
-        7: 3,
-      },
-      thursday: {
-        4: 3,
-        "4:30": 5,
-        5: 6,
-        "5:30": 5,
-        6: 4,
-        "6:30": 6,
-        7: 4,
-        "7:30": 2,
-      },
-      saturday: {
-        10: 4,
-        "10:30": 5,
-        11: 6,
-        "11:30": 5,
-        12: 4,
-        "12:30": 3,
-        1: 4,
-        "1:30": 3,
-      },
+      monday:    { 960: 3, 990: 4, 1020: 6, 1050: 5, 1080: 4, 1110: 3, 1140: 2, 1170: 1 },
+      tuesday:   { 960: 2, 990: 3, 1020: 5, 1050: 6, 1080: 5, 1110: 4, 1140: 3, 1170: 2 },
+      wednesday: { 900: 1, 930: 2, 960: 4, 990: 5, 1020: 4, 1050: 3, 1080: 5, 1110: 6, 1140: 3 },
+      thursday:  { 960: 3, 990: 5, 1020: 6, 1050: 5, 1080: 4, 1110: 6, 1140: 4, 1170: 2 },
+      saturday:  { 600: 4, 630: 5, 660: 6, 690: 5, 720: 4, 750: 3, 780: 4, 810: 3 },
     },
     oneOnOneData: {
-      monday: { 5: true, "5:30": true },
-      tuesday: {},
-      wednesday: { 6: true, "6:30": true },
-      thursday: {},
-      saturday: { 11: true, "11:30": true },
+      monday:    { 1020: true, 1050: true },
+      tuesday:   {},
+      wednesday: { 1080: true, 1110: true },
+      thursday:  {},
+      saturday:  { 660: true, 690: true },
     },
   });
 });
@@ -555,67 +519,74 @@ app.post("/availability/lookup", async (req, res) => {
 });
 
 
-app.post("/generate", requireAuth, (req, res) => {
-  const { workers, studentData, oneOnOneData, mode } = req.body;
+app.post("/generate", requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const { workers, studentData, oneOnOneData, mode } = req.body;
 
-  const users = workers.map((w) => {
-    const hoursAv = w.days.map((d) => {
-      if (d.allDay) {
-        const sat = d.day === "saturday";
-        return [
-          d.day,
-          sat ? 10 : (w.defaultStart ?? (w.priority === 2 ? 3 : 4)),
-          sat ? 14 : (w.defaultEnd ?? 8),
-        ];
-      }
-      const start = d.start + ((d.startMinute || 0) === 30 ? 0.5 : 0);
-      const end = d.end + ((d.endMinute || 0) === 30 ? 0.5 : 0);
-      return [d.day, start, end];
+    // Build the week from the center's active operating schedule.
+    const settings = await CenterSettings.findOne({ centerId: req.centerId });
+    const schedule = (settings && settings.schedule) || defaultSchedule();
+    const { variant } = getActiveVariant(schedule);
+    const dayConfigs = variantToDayConfigs(variant);
+
+    // Workers arrive with availability as per-day blocks in canonical minutes:
+    //   days: [ { day, blocks: [{start,end}] } ]
+    const users = (workers || []).map((w) => {
+      const user = new User(w.name, w.days || [], w.submittedAt || null);
+      if (w.priority) user.setPriority(w.priority);
+      return user;
     });
-    const user = new User(w.name, hoursAv, w.submittedAt || null);
-    if (w.priority) user.setPriority(w.priority);
-    return user;
-  });
 
-  const isUltra = mode === "ultra";
-  const week = isUltra ? new Week(users) : new SimplifiedWeek(users);
+    const isUltra = mode === "ultra";
+    const week = isUltra
+      ? new Week(users, dayConfigs)
+      : new SimplifiedWeek(users, dayConfigs);
 
-  if (studentData) {
-    for (const day of week.week) {
-      const dk = day.dayName.toLowerCase();
-      const sdt = studentData[dk] || {};
-      const odt = oneOnOneData ? oneOnOneData[dk] || {} : {};
-      for (const slot of day.slots) {
-        slot.students = sdt[slot.time] || 0;
-        slot.oneOnOne = odt[slot.time] || false;
+    if (studentData) {
+      // studentData / oneOnOneData are keyed by dayKey then canonical minute.
+      for (const day of week.week) {
+        const sdt = studentData[day.dayKey] || {};
+        const odt = oneOnOneData ? oneOnOneData[day.dayKey] || {} : {};
+        for (const slot of day.slots) {
+          slot.students = sdt[slot.time] || 0;
+          slot.oneOnOne = !!odt[slot.time];
+        }
       }
+      const tmp = isUltra ? new Day() : new SimplifiedDay();
+      tmp.canWork(week.week, users);
+      tmp.willWork(week.week);
+    } else {
+      week.createSchedule();
     }
-    const tmp = isUltra ? new Day("") : new SimplifiedDay("");
-    tmp.canWork(week.week, users);
-    tmp.willWork(week.week);
-  } else {
-    week.createSchedule();
+
+    const scheduleOut = week.week.map((day, i) => {
+      const assignments = [];
+      for (const w of day.totalWorkers) {
+        const di = w.days.indexOf(day.dayKey);
+        for (const shift of w.working[di] || []) {
+          assignments.push({
+            name: w.name,
+            start: shift.start, // canonical minutes
+            end: shift.end,
+            priority: w.priority,
+          });
+        }
+      }
+      return {
+        dayKey: day.dayKey,
+        dayName: day.dayName,
+        blocks: dayConfigs[i].blocks,
+        slots: dayConfigs[i].slots,
+        assignments,
+      };
+    });
+
+    res.json({ schedule: scheduleOut, text: "" });
+  } catch (err) {
+    console.error("/generate:", err.message);
+    res.status(500).json({ error: "Could not generate the schedule." });
   }
-
-  const schedule = week.week.map((day) => ({
-    day: day.dayName,
-    assignments: day.totalWorkers
-      .filter(
-        (w) =>
-          w.working[w.days.indexOf(day.dayName.toLowerCase())][0] !== undefined,
-      )
-      .map((w) => {
-        const di = w.days.indexOf(day.dayName.toLowerCase());
-        return {
-          name: w.name,
-          start: w.working[di][0],
-          end: w.working[di][1],
-          priority: w.priority,
-        };
-      }),
-  }));
-
-  res.json({ schedule, text: "" });
 });
 
 // Returns the centerId for the currently logged-in manager — used by the
@@ -687,9 +658,25 @@ app.post("/api/admin/centers", requireAdmin, async (req, res) => {
     const existing = await Center.findOne({ centerId: centerId.trim().toLowerCase() });
     if (existing) return res.status(409).json({ error: "A center with that ID already exists." });
 
+    // Schedule is set at creation. Fall back to the default (which reproduces
+    // the app's original Mon–Thu 3–8 / Sat 10–2 behavior) if none was sent.
+    let schedule = req.body.schedule || defaultSchedule();
+    const schedErr = validateSchedule(schedule);
+    if (schedErr) return res.status(400).json({ error: schedErr });
+    schedule = normalizeSchedule(schedule);
+
+    const cleanId = centerId.trim().toLowerCase();
     const passwordHash = await bcrypt.hash(password, 10);
-    const center = new Center({ centerId: centerId.trim().toLowerCase(), name, passwordHash });
+    const center = new Center({ centerId: cleanId, name, passwordHash });
     await center.save();
+
+    // Create the settings document up front so the schedule exists immediately.
+    await CenterSettings.findOneAndUpdate(
+      { centerId: cleanId },
+      { centerId: cleanId, schedule },
+      { upsert: true, new: true },
+    );
+
     res.json({ data: { centerId: center.centerId, name: center.name } });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -779,6 +766,82 @@ app.get("/api/admin/centers/:centerId/details", requireAdmin, async (req, res) =
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHEDULE CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Admin: read a center's full schedule config (both variants).
+app.get("/api/admin/centers/:centerId/schedule", requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const { centerId } = req.params;
+    const center = await Center.findOne({ centerId });
+    if (!center) return res.status(404).json({ error: "Center not found." });
+
+    const settings = await CenterSettings.findOne({ centerId });
+    const schedule = (settings && settings.schedule) || defaultSchedule();
+    res.json({ data: { schedule, activeVariant: resolveActiveName(schedule) } });
+  } catch (err) {
+    console.error("GET schedule:", err.message);
+    res.status(500).json({ error: "Could not load the schedule." });
+  }
+});
+
+// Admin: save a center's full schedule config.
+app.put("/api/admin/centers/:centerId/schedule", requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const { centerId } = req.params;
+    const center = await Center.findOne({ centerId });
+    if (!center) return res.status(404).json({ error: "Center not found." });
+
+    const schedErr = validateSchedule(req.body.schedule);
+    if (schedErr) return res.status(400).json({ error: schedErr });
+    const schedule = normalizeSchedule(req.body.schedule);
+
+    const doc = await CenterSettings.findOneAndUpdate(
+      { centerId },
+      { centerId, schedule },
+      { new: true, upsert: true },
+    );
+    res.json({ data: { schedule: doc.schedule, activeVariant: resolveActiveName(doc.schedule) } });
+  } catch (err) {
+    console.error("PUT schedule:", err.message);
+    res.status(500).json({ error: "Could not save the schedule." });
+  }
+});
+
+// Manager-facing: the current center's resolved active operating schedule.
+// Used by the dashboard and scheduler to build days/hours dynamically.
+app.get("/center-schedule", requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const settings = await CenterSettings.findOne({ centerId: req.centerId });
+    const schedule = (settings && settings.schedule) || defaultSchedule();
+    const { name, variant } = getActiveVariant(schedule);
+    res.json({ data: { activeVariant: name, days: variant, schedule } });
+  } catch (err) {
+    console.error("GET /center-schedule:", err.message);
+    res.status(500).json({ error: "Could not load the schedule." });
+  }
+});
+
+// Public: resolved active operating schedule for a center. Used by the
+// availability form (no auth) so employees only see days/hours the center runs.
+app.get("/center-schedule/:centerId", async (req, res) => {
+  try {
+    await connectDB();
+    const { centerId } = req.params;
+    const settings = await CenterSettings.findOne({ centerId });
+    const schedule = (settings && settings.schedule) || defaultSchedule();
+    const { name, variant } = getActiveVariant(schedule);
+    res.json({ data: { activeVariant: name, days: variant } });
+  } catch (err) {
+    console.error("GET /center-schedule/:centerId:", err.message);
+    res.status(500).json({ error: "Could not load the schedule." });
   }
 });
 

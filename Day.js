@@ -1,290 +1,98 @@
-//const Day = require('./Day');
-//const User = require('./User');
-//const Week = require('./Week');
+// ── Day.js ──────────────────────────────────────────────────────────────────
+// Base day for the "ultra" (slot-by-slot) scheduling mode. Built from config:
+//   new Day(dayKey, dayName, slots)   slots = [startMin, ...] (canonical minutes)
+// Each slot's `time` is its start minute. A day may be built from one or two
+// operating blocks; the flattened `slots` list simply omits the gap between
+// two-block days, so the algorithm never assigns across a gap.
+// ─────────────────────────────────────────────────────────────────────────────
+
 class Day {
-  constructor() {
-    if (arguments.length === 1) {
-      // One-argument constructor: dayName
-      this.dayName = arguments[0];
-    } else if (arguments.length === 2) {
-      // Two-argument constructor: dayName and boolean (e.g., isSaturday)
-      this.dayName = arguments[0];
-      this.isSaturday = arguments[1];
-    }
+  constructor(dayKey = "", dayName = "", slots = []) {
+    this.dayKey = (dayKey || "").toLowerCase();
+    this.dayName = dayName || "";
     this.totalWorkers = [];
-    if (this.isSaturday) {
-      this.slots = [
-        {
-          time: "10",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null, 
-        },
-        {
-          time: "10:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "11",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "11:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "12",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "12:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "1",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "1:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "2",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-      ];
-    } else {
-      this.slots = [
-        {
-          time: "3",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "3:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "4",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "4:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "5",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "5:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "6",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "6:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "7",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "7:30",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-        {
-          time: "8",
-          students: 0,
-          workers: [],
-          oneOnOne: false,
-          oneOnOneWorker: null,
-        },
-      ];
-    }
+    this.slots = (slots || []).map((min) => ({
+      time: min, // canonical minutes since midnight
+      students: 0,
+      workers: [],
+      oneOnOne: false,
+      oneOnOneWorker: null,
+    }));
   }
 
+  // Sort helper: fewer points first, then earliest submission, then unknown last.
+  _sortByPriority(list) {
+    list.sort((a, b) => {
+      if (a.points !== b.points) return a.points - b.points;
+      if (a.submittedAt && b.submittedAt) return new Date(a.submittedAt) - new Date(b.submittedAt);
+      if (a.submittedAt) return -1;
+      if (b.submittedAt) return 1;
+      return 0;
+    });
+  }
+
+  // Assign every available worker to every slot they can cover.
   canWork(week, users) {
-    for (let k = 0; k < week.length; k++) {//for each day
-      let day = week[k];
-      for (let u = 0; u < users.length; u++) {
-        let user = users[u];
-        let dayIndex = user.days.indexOf(day.dayName.toLowerCase());
-        if (dayIndex !== -1) {
-          for (let i = 0; i < day.slots.length; i++) {//for each slot
-            const time = day.slots[i].time;
-            if (user.hours[dayIndex].includes(time)) {
-              //if the user's hours includes the current time, add them to that slot
-              day.slots[i].workers.push(user); //add to slot
-
-              if (!day.totalWorkers.includes(user)) {
-                //add to total workers of the day
-                day.totalWorkers.push(user);
-              }
-              //console.log(user.name + " added to slot");
-            }
-
-            day.slots[i].workers.sort(function (a, b) {
-              if (a.points !== b.points) return a.points - b.points;
-              if (a.submittedAt && b.submittedAt) return new Date(a.submittedAt) - new Date(b.submittedAt);
-              if (a.submittedAt) return -1;
-              if (b.submittedAt) return 1;
-              return 0;
-            }); //sort from least to greatest based on points, then by submission time
+    for (const day of week) {
+      for (const user of users) {
+        const di = user.days.indexOf(day.dayKey);
+        if (di === -1) continue;
+        for (const slot of day.slots) {
+          if (user.availableAt(di, slot.time)) {
+            slot.workers.push(user);
+            if (!day.totalWorkers.includes(user)) day.totalWorkers.push(user);
           }
         }
       }
+      for (const slot of day.slots) this._sortByPriority(slot.workers);
     }
   }
 
+  // Trim each slot to the number of workers actually needed (1:3 ratio), then
+  // derive each worker's shift as [firstAssignedSlot, lastAssignedSlot + 30].
   willWork(week) {
-    for (let k = 0; k < week.length; k++) {//for each day
-      let day = week[k];
-      let prevWorkers = 0; //stores the amount of workers from previous slot in order to be able to detect a change
-      for (let i = 0; i < day.slots.length; i++) {
-        //for each slot
-        let workersTemp = [...day.slots[i].workers]; // actual copy//creates a copy of the array so it only adds the workers needed to the actual array
-        day.slots[i].workers = [];
-        let workersNeeded = Math.ceil(day.slots[i].students / 3); //number of instructors needed based on the ratio of 1:3 instructors to students
-        let current = 0; //amount of current workers; defined before the loop so it doesnt add workers if the number of workers is the same
-        for (
-          ;
-          current < workersNeeded && current < workersTemp.length;
-          current++
-        ) {
-          //keep adding workers until worker amount satisfied or run out of workers
-          day.slots[i].workers.push(workersTemp[current]); //add instructors from the list of workers available that hour
+    for (const day of week) {
+      for (const slot of day.slots) {
+        const workersTemp = [...slot.workers];
+        slot.workers = [];
+        const workersNeeded = Math.ceil(slot.students / 3);
+        let current = 0;
+        for (; current < workersNeeded && current < workersTemp.length; current++) {
+          slot.workers.push(workersTemp[current]);
         }
-        if (prevWorkers > workersNeeded + 2) {
-          //checks if the workers needed changes drastically (change in 2 or more), if so end the extra workers' shifts
-          for (
-            let w = current;
-            w < workersTemp.length && w < prevWorkers;
-            w++
-          ) {
-            workersTemp[w].working[
-              workersTemp[w].days.indexOf(day.dayName.toLowerCase())
-            ][1] = day.slots[i].time;
-          }
-        }
-        prevWorkers = current; //update prevWorkers for next slot
+        // Excess workers simply drop out of later slots; each worker's final
+        // shift(s) are derived from the slots they remain in (below).
       }
-      for (let worker of day.totalWorkers) {
-        //for each worker that worked that day, assign their start and end times
-        let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
-        let times = [];
-        const isSat = day.dayName.toLowerCase() === "saturday";
-        for (let slot of day.slots) {
-          //find all slots the worker was assigned to
-          if (slot.workers.includes(worker))
-            times.push(this.timeToNum(slot.time, isSat));
+
+      for (const worker of day.totalWorkers) {
+        const di = worker.days.indexOf(day.dayKey);
+        const times = [];
+        for (const slot of day.slots) {
+          if (slot.workers.includes(worker)) times.push(slot.time);
         }
-        if (times.length > 0) {
-          //if the worker was assigned to any slots, set their start and end times
-          worker.working[dayIndex][0] = this.numToTime(Math.min(...times), isSat); //set start time to earliest slot
-          worker.working[dayIndex][1] = this.numToTime(Math.max(...times), isSat); //set end time to latest slot + 0.5 (end of that half hour block)
+        if (times.length === 0) continue;
+        times.sort((a, b) => a - b);
+        // Split into maximal contiguous runs (breaks at gaps / two-block seams).
+        worker.working[di] = [];
+        let runStart = times[0];
+        let prev = times[0];
+        for (let k = 1; k < times.length; k++) {
+          if (times[k] === prev + 30) { prev = times[k]; continue; }
+          worker.working[di].push({ start: runStart, end: prev + 30 });
+          runStart = times[k];
+          prev = times[k];
         }
+        worker.working[di].push({ start: runStart, end: prev + 30 });
       }
     }
-  }
-
-  timeToNum(t, isSaturday = false) {
-    let [h, m] = t.split(":");
-    let hour = parseInt(h);
-    // Saturday PM slots (1, 1:30, 2) are actually 13:00, 13:30, 14:00
-    if (isSaturday && hour < 10) hour += 12;
-    return hour + (m === "30" ? 0.5 : 0);
-  }
-
-  numToTime(n, isSaturday = false) {
-    let h = Math.floor(n);
-    if (isSaturday && h > 12) h -= 12;
-    return n % 1 === 0.5 ? h + ":30" : h.toString();
   }
 
   resetAllWorkers() {
-    for (let i = 0; i < this.slots.length; i++) {
-      this.slots[i].workers = [];
-    }
-  }
-
-  resetWorkers(hour) {
-    //to signify a half hour, use .5 (ex. 6.5 for 6:30)
-    if (Number(hour) >= 3 && Number(hour) <= 8) {
-      let index = Math.floor(hour * 2) - 6; // adjust calculation to match array index
-      this.slots[index].workers = [];
-    }
+    for (const slot of this.slots) slot.workers = [];
   }
 
   resetAllStudents() {
-    for (let i = 0; i < this.slots.length; i++) {
-      this.slots[i].students = 0;
-    }
-  }
-
-  resetStudents(hour) {
-    //to signify a half hour, use .5 (ex. 6.5 for 6:30)
-    if (Number(hour) >= 3 && Number(hour) <= 8) {
-      let index = Math.floor(hour * 2) - 6; // adjust calculation to match array index
-      this.slots[index].students = 0;
-    }
+    for (const slot of this.slots) slot.students = 0;
   }
 
   resetAllHours() {
