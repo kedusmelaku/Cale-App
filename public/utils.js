@@ -77,3 +77,112 @@ function indexToTime(idx, isSat) {
   if (isSat && h > 12) return h - 12 + (m ? ":30" : "");
   return h + (m ? ":30" : "");
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// CANONICAL SCHEDULE LAYER (config-driven; minutes since midnight, 24-hour)
+//
+// Added for per-center schedules. Everything above this line is the LEGACY
+// fixed-window API (DAYS, WEEKDAY_SLOTS, SAT_SLOTS, slotList, timeToIndex,
+// indexToTime) that assumes Mon–Thu 3–8 PM + Sat 10–2. It stays in place until
+// every page is migrated to buildSchedule(); Section 8 removes it once unused.
+//
+// New model: a "variant" is the `days` object returned by /center-schedule —
+//   { monday: { open, blocks: [{start,end}] }, … sunday }
+// with all times in minutes since midnight (9:00 AM = 540, 3:30 PM = 930).
+// A day may have up to two blocks (a two-block day with a gap). AM/PM lives
+// only in display, never in data.
+// ─────────────────────────────────────────────────────────────────────────
+
+const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_FULL_ALL = {
+  monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
+  friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+};
+const DAY_ABBR = {
+  monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu",
+  friday: "Fri", saturday: "Sat", sunday: "Sun",
+};
+
+// minutes since midnight → "3:30 PM"
+function minToLabel(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  const ampm = h >= 12 && h < 24 ? "PM" : "AM";
+  let dh = h % 12; if (dh === 0) dh = 12;
+  return dh + ":" + (m === 0 ? "00" : String(m).padStart(2, "0")) + " " + ampm;
+}
+
+// compact form for dense grids → "3" or "3:30" (no AM/PM)
+function minToClock(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  let dh = h % 12; if (dh === 0) dh = 12;
+  return m === 0 ? String(dh) : dh + ":" + String(m).padStart(2, "0");
+}
+
+// blocks ([{start,end}] in minutes) → flat array of slot-start minutes (30-min steps).
+// The gap between two blocks produces no slots, which is what makes two-block
+// days fall out naturally.
+function slotsForBlocks(blocks) {
+  const slots = [];
+  for (const b of (blocks || []).slice().sort((a, b) => a.start - b.start)) {
+    for (let m = b.start; m < b.end; m += 30) slots.push(m);
+  }
+  return slots;
+}
+
+// Builds a runtime view of one schedule variant. This is the single helper the
+// dashboard, availability form, and scheduler use to render days/hours instead
+// of the hardcoded DAYS / slot arrays.
+function buildSchedule(variant) {
+  variant = variant || {};
+  const days = DAY_ORDER.filter(
+    (k) => variant[k] && variant[k].open && (variant[k].blocks || []).length,
+  );
+
+  const blocksByDay = {}, slotsByDay = {};
+  for (const k of days) {
+    const blocks = (variant[k].blocks || []).slice().sort((a, b) => a.start - b.start);
+    blocksByDay[k] = blocks;
+    slotsByDay[k] = slotsForBlocks(blocks);
+  }
+
+  const allFirst = days.map((k) => slotsByDay[k][0]);
+  const allLast = days.map((k) => slotsByDay[k][slotsByDay[k].length - 1] + 30);
+  const rangeMin = days.length ? Math.min(...allFirst) : 0;
+  const rangeMax = days.length ? Math.max(...allLast) : 0;
+
+  return {
+    variant,
+    days,                                   // ordered open day keys
+    isOpen: (k) => days.includes(k),
+    dayFull: (k) => DAY_FULL_ALL[k] || k,
+    dayAbbr: (k) => DAY_ABBR[k] || k,
+    blocks: (k) => blocksByDay[k] || [],
+    blockCount: (k) => (blocksByDay[k] || []).length,
+    slots: (k) => slotsByDay[k] || [],      // slot-start minutes for the day
+    slotCount: (k) => (slotsByDay[k] || []).length,
+    slotLabel: (min) => minToLabel(min),
+    // flattened slot index ↔ canonical minute, per day
+    timeToSlotIndex: (k, min) => (slotsByDay[k] || []).indexOf(min),
+    slotIndexToTime: (k, idx) => (slotsByDay[k] || [])[idx],
+    // which block (0-based) a minute falls in for a day, or -1 if in a gap/closed
+    blockIndexAt: (k, min) => (blocksByDay[k] || []).findIndex((b) => min >= b.start && min < b.end),
+    // true when a visual gap follows this flattened slot index (block boundary)
+    gapAfterSlot: (k, idx) => {
+      const s = slotsByDay[k] || [];
+      if (idx < 0 || idx >= s.length - 1) return false;
+      return s[idx + 1] !== s[idx] + 30;
+    },
+    // widest time window across all open days (for a shared grid axis, if used)
+    range: () => ({ min: rangeMin, max: rangeMax }),
+    axis: () => { const out = []; for (let m = rangeMin; m < rangeMax; m += 30) out.push(m); return out; },
+  };
+}
+
+// Allow Node (the scheduling engine + tests) to require these; harmless in the
+// browser where `module` is undefined and the functions stay global.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    DAY_ORDER, DAY_FULL_ALL, DAY_ABBR,
+    minToLabel, minToClock, slotsForBlocks, buildSchedule,
+  };
+}

@@ -5,6 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — Cale</title>
   <link rel="stylesheet" href="/styles.css" />
+  <style>
+    /* ── Schedule editor (scoped under .admin-page) ── */
+    .admin-page .sched-editor { font-size: 0.9rem; color: var(--text, #1a1a2e); }
+    .admin-page .sched-mode {
+      background: var(--surface2, #f4f6fb); border: 1px solid var(--border, #e2e6ef);
+      border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;
+    }
+    .admin-page .sched-mode-opt { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+    .admin-page .sched-mode-opt + .sched-mode-opt { margin-top: 12px; }
+    .admin-page .sched-sub {
+      margin: 8px 0 2px 26px; display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap; color: var(--text-mid, #444); font-weight: 500; font-size: 0.85rem;
+    }
+    .admin-page .sched-sub select,
+    .admin-page .sched-block select {
+      padding: 5px 8px; border: 1px solid var(--border, #d5dae6); border-radius: 7px;
+      background: #fff; font-size: 0.85rem; color: var(--text, #1a1a2e); cursor: pointer;
+    }
+    .admin-page .sched-seg { display: inline-flex; border: 1px solid var(--border, #d5dae6); border-radius: 8px; overflow: hidden; }
+    .admin-page .sched-seg button { border: none; background: #fff; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-muted, #6b7280); }
+    .admin-page .sched-seg button.on { background: #0D7BFF; color: #fff; }
+    .admin-page .sched-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .admin-page .sched-tab {
+      flex: 1; padding: 9px; border: 1px solid var(--border, #d5dae6); background: #fff;
+      border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-muted, #6b7280); line-height: 1.25;
+    }
+    .admin-page .sched-tab.active { background: #0D7BFF; border-color: #0D7BFF; color: #fff; }
+    .admin-page .sched-tab-badge { font-size: 0.68rem; opacity: 0.9; display: block; font-weight: 500; }
+    .admin-page .sched-day-row {
+      border: 1px solid var(--border, #e2e6ef); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 8px; background: #fff;
+    }
+    .admin-page .sched-day-row.is-open { border-color: #bcd8ff; background: #f5f9ff; }
+    .admin-page .sched-day-top { display: flex; align-items: center; gap: 10px; }
+    .admin-page .sched-day-name { font-weight: 600; flex: 1; }
+    .admin-page .sched-closed { color: var(--text-muted, #9aa1ac); font-size: 0.82rem; }
+    .admin-page .sched-blocks { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .admin-page .sched-block { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .admin-page .sched-block-label { font-size: 0.78rem; color: var(--text-muted, #8891a0); min-width: 62px; }
+    .admin-page .sched-block-rm { border: none; background: transparent; color: #e05c5c; font-size: 0.8rem; cursor: pointer; padding: 4px; }
+    .admin-page .sched-add-block {
+      align-self: flex-start; border: 1px dashed #9cc4ff; background: transparent;
+      color: #0D7BFF; border-radius: 7px; padding: 5px 10px; font-size: 0.82rem; cursor: pointer;
+    }
+    .admin-page .sched-save-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+    .admin-page .sched-save-msg { font-size: 0.85rem; }
+    .admin-page .sched-save-msg.ok { color: #2e9e5b; }
+    .admin-page .sched-save-msg.err { color: #e05c5c; }
+    .admin-page .admin-modal.wide { max-width: 560px; }
+    .admin-page .sched-scroll { max-height: 50vh; overflow-y: auto; padding-right: 4px; }
+    .admin-page .sched-defaults {
+      margin-top: 16px; border: 1px solid var(--border, #e2e6ef);
+      border-radius: 10px; padding: 14px 16px; background: var(--surface2, #f4f6fb);
+    }
+    .admin-page .sched-defaults-title { font-weight: 600; margin-bottom: 4px; }
+    .admin-page .sched-defaults-note { font-size: 0.8rem; color: var(--text-muted, #8891a0); margin-bottom: 12px; }
+    .admin-page .sched-default-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .admin-page .sched-default-name { min-width: 104px; font-size: 0.86rem; font-weight: 500; }
+    .admin-page .sched-default-row select {
+      padding: 5px 8px; border: 1px solid var(--border, #d5dae6); border-radius: 7px;
+      background: #fff; font-size: 0.85rem; color: var(--text, #1a1a2e); cursor: pointer;
+    }
+  </style>
 </head>
 <body class="admin-page">
   <div class="admin-topbar">
@@ -80,31 +143,57 @@
           <div class="emp-empty">Loading…</div>
         </div>
       </div>
+
+      <!-- Operating schedule -->
+      <div class="detail-section">
+        <div class="detail-section-title">Hours &amp; Schedule</div>
+        <div id="sched-body-detail" class="sched-editor">
+          <div class="emp-empty">Loading…</div>
+        </div>
+        <div class="sched-save-row" id="sched-save-row-detail" style="display:none;">
+          <button class="admin-btn-primary" onclick="saveDetailSchedule()">Save Schedule</button>
+          <span class="sched-save-msg" id="sched-save-msg-detail"></span>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Add / Edit Modal -->
   <div class="admin-modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-    <div class="admin-modal">
+    <div class="admin-modal" id="admin-modal">
       <div class="admin-modal-title" id="modal-title">Add Center</div>
-      <div class="admin-field" id="field-centerid">
-        <label for="m-centerid">Center ID</label>
-        <input type="text" id="m-centerid" placeholder="e.g. arlington-heights" autocomplete="off" />
-        <div class="admin-field-hint">Lowercase letters and hyphens only. This is what managers type at login.</div>
+
+      <div id="modal-step-info">
+        <div class="admin-field" id="field-centerid">
+          <label for="m-centerid">Center ID</label>
+          <input type="text" id="m-centerid" placeholder="e.g. arlington-heights" autocomplete="off" />
+          <div class="admin-field-hint">Lowercase letters and hyphens only. This is what managers type at login.</div>
+        </div>
+        <div class="admin-field">
+          <label for="m-name">Display Name</label>
+          <input type="text" id="m-name" placeholder="e.g. Arlington Heights Mathnasium" autocomplete="off" />
+        </div>
+        <div class="admin-field">
+          <label for="m-password">Password</label>
+          <input type="password" id="m-password" placeholder="Manager password for this center" autocomplete="new-password" />
+          <div class="admin-field-hint" id="m-password-hint">Leave blank to keep the existing password.</div>
+        </div>
       </div>
-      <div class="admin-field">
-        <label for="m-name">Display Name</label>
-        <input type="text" id="m-name" placeholder="e.g. Arlington Heights Mathnasium" autocomplete="off" />
+
+      <div id="modal-step-sched" style="display:none;">
+        <div class="admin-field-hint" style="margin-bottom:12px;">
+          Set the center's operating days and hours. You can fine-tune this any time from the center's page.
+        </div>
+        <div class="sched-scroll">
+          <div id="sched-body-create" class="sched-editor"></div>
+        </div>
       </div>
-      <div class="admin-field">
-        <label for="m-password">Password</label>
-        <input type="password" id="m-password" placeholder="Manager password for this center" autocomplete="new-password" />
-        <div class="admin-field-hint" id="m-password-hint">Leave blank to keep the existing password.</div>
-      </div>
+
       <div class="admin-modal-error" id="modal-error"></div>
       <div class="admin-modal-actions">
-        <button class="admin-btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="admin-btn-primary" id="modal-submit" onclick="submitModal()">Add Center</button>
+        <button class="admin-btn-cancel" id="modal-back" onclick="modalBack()" style="display:none;">← Back</button>
+        <button class="admin-btn-cancel" id="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="admin-btn-primary" id="modal-submit" onclick="modalPrimary()">Next →</button>
       </div>
     </div>
   </div>
@@ -113,6 +202,12 @@
     let _centers = [];
     let _editingCenterId = null;
     let _detailCenterId = null;
+    let _modalStep = "info";        // "info" | "sched" (Add flow)
+    let _createSchedule = null;     // working schedule for the Add flow
+    let _sched = null;              // schedule object the editor is mutating
+    let _schedTab = "schoolYear";   // which variant tab is showing
+    let _schedTarget = "create";    // "create" | "detail" — which container to render into
+    let _detailActive = "schoolYear"; // active variant resolved for the detail center
 
     // ── View switching ────────────────────────────────────────
     function showList() {
@@ -168,6 +263,9 @@
       document.getElementById("d-name").textContent = "Loading…";
       document.getElementById("d-id").textContent = centerId;
       document.getElementById("d-emp-list").innerHTML = "<div class='emp-empty'>Loading…</div>";
+      document.getElementById("sched-body-detail").innerHTML = "<div class='emp-empty'>Loading…</div>";
+      document.getElementById("sched-save-row-detail").style.display = "none";
+      document.getElementById("sched-save-msg-detail").textContent = "";
       ["d-emp-count","d-pin-sub","d-sub-count","d-sub-sub","d-cal-val","d-cal-sub","d-form-val","d-form-sub","d-activity-val","d-activity-sub"]
         .forEach(id => { document.getElementById(id).textContent = "—"; });
 
@@ -176,8 +274,23 @@
         if (res.status === 401) { window.location.href = "/admin/login"; return; }
         const { data } = await res.json();
         renderDetail(data);
+        loadDetailSchedule(centerId);
       } catch {
         document.getElementById("d-name").textContent = "Failed to load";
+      }
+    }
+
+    async function loadDetailSchedule(centerId) {
+      try {
+        const res = await fetch(`/api/admin/centers/${centerId}/schedule`);
+        if (!res.ok) throw new Error();
+        const { data } = await res.json();
+        _detailActive = data.activeVariant || "schoolYear";
+        openScheduleEditor(data.schedule, "detail");
+        document.getElementById("sched-save-row-detail").style.display = "";
+      } catch {
+        document.getElementById("sched-body-detail").innerHTML =
+          "<div class='emp-empty'>Couldn't load the schedule.</div>";
       }
     }
 
@@ -275,8 +388,14 @@
     // ── Add / Edit modal ──────────────────────────────────────
     function openAddModal() {
       _editingCenterId = null;
+      _modalStep = "info";
+      _createSchedule = clientDefaultSchedule();
       document.getElementById("modal-title").textContent = "Add Center";
-      document.getElementById("modal-submit").textContent = "Add Center";
+      document.getElementById("modal-submit").textContent = "Next →";
+      document.getElementById("modal-back").style.display = "none";
+      document.getElementById("admin-modal").classList.remove("wide");
+      document.getElementById("modal-step-info").style.display = "";
+      document.getElementById("modal-step-sched").style.display = "none";
       document.getElementById("field-centerid").style.display = "";
       document.getElementById("m-password-hint").style.display = "none";
       document.getElementById("m-centerid").value = "";
@@ -291,8 +410,13 @@
       const center = _centers.find(c => c.centerId === centerId);
       if (!center) return;
       _editingCenterId = centerId;
+      _modalStep = "info";
       document.getElementById("modal-title").textContent = "Edit Center";
       document.getElementById("modal-submit").textContent = "Save Changes";
+      document.getElementById("modal-back").style.display = "none";
+      document.getElementById("admin-modal").classList.remove("wide");
+      document.getElementById("modal-step-info").style.display = "";
+      document.getElementById("modal-step-sched").style.display = "none";
       document.getElementById("field-centerid").style.display = "none";
       document.getElementById("m-password-hint").style.display = "";
       document.getElementById("m-name").value = center.name;
@@ -304,7 +428,9 @@
 
     function closeModal() {
       document.getElementById("modal-overlay").classList.remove("open");
+      document.getElementById("admin-modal").classList.remove("wide");
       _editingCenterId = null;
+      _modalStep = "info";
     }
 
     function handleOverlayClick(e) {
@@ -343,7 +469,7 @@
           }
           const res = await fetch("/api/admin/centers", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ centerId, name, password }),
+            body: JSON.stringify({ centerId, name, password, schedule: _createSchedule }),
           });
           const data = await res.json();
           if (!res.ok) { errorEl.textContent = data.error || "Something went wrong."; btn.disabled = false; return; }
@@ -352,6 +478,45 @@
         }
       } catch { errorEl.textContent = "Something went wrong."; }
       btn.disabled = false;
+    }
+
+    // Primary-button dispatcher: Edit saves immediately; Add advances info → schedule → create.
+    function modalPrimary() {
+      if (_editingCenterId) { submitModal(); return; }
+      if (_modalStep === "info") { goToSchedStep(); return; }
+      submitModal();
+    }
+
+    function goToSchedStep() {
+      const errorEl = document.getElementById("modal-error");
+      errorEl.textContent = "";
+      const centerId = document.getElementById("m-centerid").value.trim().toLowerCase();
+      const name = document.getElementById("m-name").value.trim();
+      const password = document.getElementById("m-password").value;
+      if (!centerId) { errorEl.textContent = "Center ID is required."; return; }
+      if (!/^[a-z0-9-]+$/.test(centerId)) {
+        errorEl.textContent = "Center ID can only contain lowercase letters, numbers, and hyphens."; return;
+      }
+      if (!name) { errorEl.textContent = "Display name is required."; return; }
+      if (!password) { errorEl.textContent = "Password is required."; return; }
+
+      _modalStep = "sched";
+      document.getElementById("modal-step-info").style.display = "none";
+      document.getElementById("modal-step-sched").style.display = "";
+      document.getElementById("modal-back").style.display = "";
+      document.getElementById("modal-submit").textContent = "Create Center";
+      document.getElementById("admin-modal").classList.add("wide");
+      openScheduleEditor(_createSchedule, "create");
+    }
+
+    function modalBack() {
+      _modalStep = "info";
+      document.getElementById("modal-error").textContent = "";
+      document.getElementById("modal-step-sched").style.display = "none";
+      document.getElementById("modal-step-info").style.display = "";
+      document.getElementById("modal-back").style.display = "none";
+      document.getElementById("modal-submit").textContent = "Next →";
+      document.getElementById("admin-modal").classList.remove("wide");
     }
 
     async function deleteCenter(centerId, name) {
@@ -371,8 +536,254 @@
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeModal();
-      if (e.key === "Enter" && document.getElementById("modal-overlay").classList.contains("open")) submitModal();
+      if (e.key === "Enter" && document.getElementById("modal-overlay").classList.contains("open")) {
+        const t = e.target.tagName;
+        if (t === "SELECT" || t === "BUTTON") return; // don't hijack control interactions
+        modalPrimary();
+      }
     });
+
+    // ── Schedule editor ───────────────────────────────────────
+    // Times are minutes since midnight, 24-hour (matches scheduleConfig.js).
+    const SCHED_DAY_KEYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+    const SCHED_DAY_NAMES = {
+      monday:"Monday", tuesday:"Tuesday", wednesday:"Wednesday", thursday:"Thursday",
+      friday:"Friday", saturday:"Saturday", sunday:"Sunday",
+    };
+    const SCHED_MONTHS = ["","January","February","March","April","May","June",
+      "July","August","September","October","November","December"];
+    const SCHED_MIN = 360;   // 6:00 AM
+    const SCHED_MAX = 1410;  // 11:30 PM
+
+    function schedMinToLabel(m) {
+      const h = Math.floor(m / 60), mm = m % 60;
+      const ampm = h >= 12 && h < 24 ? "PM" : "AM";
+      let dh = h % 12; if (dh === 0) dh = 12;
+      return `${dh}:${mm === 0 ? "00" : "30"} ${ampm}`;
+    }
+
+    function schedDefaultVariant() {
+      const wk = { start: 900, end: 1200 }, sat = { start: 600, end: 840 };
+      return {
+        monday:    { open: true,  blocks: [{ ...wk }] },
+        tuesday:   { open: true,  blocks: [{ ...wk }] },
+        wednesday: { open: true,  blocks: [{ ...wk }] },
+        thursday:  { open: true,  blocks: [{ ...wk }] },
+        friday:    { open: false, blocks: [] },
+        saturday:  { open: true,  blocks: [{ ...sat }] },
+        sunday:    { open: false, blocks: [] },
+        defaults:  [{ start: 960, end: 1200 }, { start: 960, end: 1200 }, { start: 900, end: 1200 }],
+      };
+    }
+    function schedDefaultWindows() {
+      return [{ start: 960, end: 1200 }, { start: 960, end: 1200 }, { start: 900, end: 1200 }];
+    }
+    function clientDefaultSchedule() {
+      return {
+        mode: "auto", manualActive: "schoolYear",
+        summerStart: null, summerEnd: null,
+        schoolYear: schedDefaultVariant(), summer: schedDefaultVariant(),
+      };
+    }
+
+    function timeOptionsHTML(selected) {
+      let out = "";
+      for (let m = SCHED_MIN; m <= SCHED_MAX; m += 30) {
+        out += `<option value="${m}"${m === selected ? " selected" : ""}>${schedMinToLabel(m)}</option>`;
+      }
+      return out;
+    }
+
+    function schedContainer() {
+      return document.getElementById(_schedTarget === "create" ? "sched-body-create" : "sched-body-detail");
+    }
+
+    function openScheduleEditor(schedule, target) {
+      _sched = schedule;
+      _schedTarget = target;
+      _schedTab = "schoolYear";
+      renderScheduleEditor();
+    }
+
+    function schedActiveBadge(variantName) {
+      // Only meaningful in the detail view, where the server told us what's active now.
+      if (_schedTarget !== "detail") return "";
+      return _detailActive === variantName ? `<span class="sched-tab-badge">active now</span>` : "";
+    }
+
+    function renderScheduleEditor() {
+      const s = _sched;
+      const auto = s.mode !== "manual";
+
+      // Mode + summer switching
+      const sm = s.summerStart || {}, em = s.summerEnd || {};
+      const monthOpts = (sel) => `<option value="">Month</option>` +
+        [1,2,3,4,5,6,7,8,9,10,11,12].map(m =>
+          `<option value="${m}"${sel === m ? " selected" : ""}>${SCHED_MONTHS[m]}</option>`).join("");
+      const dayOpts = (sel) => `<option value="">Day</option>` +
+        Array.from({length:31}, (_,i)=>i+1).map(d =>
+          `<option value="${d}"${sel === d ? " selected" : ""}>${d}</option>`).join("");
+
+      const autoBlock = `
+        <div class="sched-sub">Summer schedule active from
+          <select onchange="schedSetSummer('start','month',this.value)">${monthOpts(sm.month)}</select>
+          <select onchange="schedSetSummer('start','day',this.value)">${dayOpts(sm.day)}</select>
+          to
+          <select onchange="schedSetSummer('end','month',this.value)">${monthOpts(em.month)}</select>
+          <select onchange="schedSetSummer('end','day',this.value)">${dayOpts(em.day)}</select>
+        </div>
+        <div class="sched-sub">
+          <button class="sched-block-rm" style="color:var(--text-muted,#8891a0);" onclick="schedClearRange()">
+            Clear dates (always use school-year)
+          </button>
+        </div>`;
+
+      const manualBlock = `
+        <div class="sched-sub">Currently active:
+          <span class="sched-seg">
+            <button class="${s.manualActive !== "summer" ? "on" : ""}" onclick="schedSetManualActive('schoolYear')">School Year</button>
+            <button class="${s.manualActive === "summer" ? "on" : ""}" onclick="schedSetManualActive('summer')">Summer</button>
+          </span>
+        </div>`;
+
+      const modeHTML = `
+        <div class="sched-mode">
+          <label class="sched-mode-opt">
+            <input type="radio" name="schedmode-${_schedTarget}" ${auto ? "checked" : ""} onchange="schedSetMode('auto')">
+            Switch to the summer schedule automatically by date
+          </label>
+          ${auto ? autoBlock : ""}
+          <label class="sched-mode-opt">
+            <input type="radio" name="schedmode-${_schedTarget}" ${!auto ? "checked" : ""} onchange="schedSetMode('manual')">
+            Switch manually
+          </label>
+          ${!auto ? manualBlock : ""}
+        </div>`;
+
+      const tabsHTML = `
+        <div class="sched-tabs">
+          <button class="sched-tab ${_schedTab === "schoolYear" ? "active" : ""}" onclick="schedSetTab('schoolYear')">
+            School Year${schedActiveBadge("schoolYear")}
+          </button>
+          <button class="sched-tab ${_schedTab === "summer" ? "active" : ""}" onclick="schedSetTab('summer')">
+            Summer${schedActiveBadge("summer")}
+          </button>
+        </div>`;
+
+      const v = s[_schedTab] || {};
+      const daysHTML = SCHED_DAY_KEYS.map(dk => {
+        const d = v[dk] || { open: false, blocks: [] };
+        const blocks = d.blocks || [];
+        let inner = "";
+        if (d.open) {
+          const blockRows = blocks.map((b, i) => `
+            <div class="sched-block">
+              ${blocks.length > 1 ? `<span class="sched-block-label">${i === 0 ? "Block 1" : "Block 2"}</span>` : ""}
+              <select onchange="schedSetBlockTime('${dk}',${i},'start',this.value)">${timeOptionsHTML(b.start)}</select>
+              <span>–</span>
+              <select onchange="schedSetBlockTime('${dk}',${i},'end',this.value)">${timeOptionsHTML(b.end)}</select>
+              ${blocks.length > 1 ? `<button class="sched-block-rm" onclick="schedRemoveBlock('${dk}',${i})">Remove</button>` : ""}
+            </div>`).join("");
+          const addBtn = blocks.length < 2
+            ? `<button class="sched-add-block" onclick="schedAddBlock('${dk}')">+ Add second block (split day)</button>` : "";
+          inner = `<div class="sched-blocks">${blockRows}${addBtn}</div>`;
+        }
+        return `
+          <div class="sched-day-row ${d.open ? "is-open" : ""}">
+            <div class="sched-day-top">
+              <input type="checkbox" ${d.open ? "checked" : ""} onchange="schedToggleDay('${dk}', this.checked)">
+              <span class="sched-day-name">${SCHED_DAY_NAMES[dk]}</span>
+              ${d.open ? "" : `<span class="sched-closed">Closed</span>`}
+            </div>
+            ${inner}
+          </div>`;
+      }).join("");
+
+      // Per-priority default hours for this variant
+      if (!Array.isArray(v.defaults) || v.defaults.length !== 3) {
+        s[_schedTab].defaults = schedDefaultWindows();
+      }
+      const defs = s[_schedTab].defaults;
+      const levelNames = ["Normal", "Priority", "High Priority"];
+      const defaultsHTML = `
+        <div class="sched-defaults">
+          <div class="sched-defaults-title">Default hours by priority level</div>
+          <div class="sched-defaults-note">
+            Used when someone marks a day “available all day.” The start time applies Monday–Friday
+            (after-school); weekends use each day's full hours.
+          </div>
+          ${levelNames.map((nm, i) => `
+            <div class="sched-default-row">
+              <span class="sched-default-name">${nm}</span>
+              <select onchange="schedSetDefault(${i},'start',this.value)">${timeOptionsHTML(defs[i].start)}</select>
+              <span>–</span>
+              <select onchange="schedSetDefault(${i},'end',this.value)">${timeOptionsHTML(defs[i].end)}</select>
+            </div>`).join("")}
+        </div>`;
+
+      schedContainer().innerHTML = modeHTML + tabsHTML + daysHTML + defaultsHTML;
+    }
+
+    // Editor mutations (operate on _sched, then re-render where structure changes)
+    function schedSetTab(tab) { _schedTab = tab; renderScheduleEditor(); }
+    function schedSetMode(mode) { _sched.mode = mode; renderScheduleEditor(); }
+    function schedSetManualActive(v) { _sched.manualActive = v; renderScheduleEditor(); }
+    function schedClearRange() { _sched.summerStart = null; _sched.summerEnd = null; renderScheduleEditor(); }
+    function schedSetSummer(which, field, val) {
+      const key = which === "start" ? "summerStart" : "summerEnd";
+      if (!_sched[key]) _sched[key] = { month: null, day: null };
+      _sched[key][field] = val === "" ? null : parseInt(val, 10);
+    }
+    function schedToggleDay(dk, open) {
+      const d = _sched[_schedTab][dk];
+      d.open = open;
+      if (open && (!d.blocks || d.blocks.length === 0)) d.blocks = [{ start: 900, end: 1200 }];
+      if (!open) d.blocks = [];
+      renderScheduleEditor();
+    }
+    function schedAddBlock(dk) {
+      const blocks = _sched[_schedTab][dk].blocks;
+      if (blocks.length >= 2) return;
+      const firstEnd = blocks[0].end;
+      let start = Math.min(firstEnd + 60, SCHED_MAX - 30);
+      if (start <= firstEnd) start = Math.min(firstEnd + 30, SCHED_MAX - 30);
+      let end = Math.min(start + 120, SCHED_MAX);
+      if (end <= start) end = Math.min(start + 30, SCHED_MAX);
+      blocks.push({ start, end });
+      renderScheduleEditor();
+    }
+    function schedRemoveBlock(dk, i) {
+      _sched[_schedTab][dk].blocks.splice(i, 1);
+      renderScheduleEditor();
+    }
+    function schedSetBlockTime(dk, i, field, val) {
+      _sched[_schedTab][dk].blocks[i][field] = parseInt(val, 10);
+    }
+
+    function schedSetDefault(level, field, val) {
+      const v = _sched[_schedTab];
+      if (!Array.isArray(v.defaults) || v.defaults.length !== 3) v.defaults = schedDefaultWindows();
+      v.defaults[level][field] = parseInt(val, 10);
+    }
+
+    async function saveDetailSchedule() {
+      const msg = document.getElementById("sched-save-msg-detail");
+      msg.textContent = ""; msg.className = "sched-save-msg";
+      try {
+        const res = await fetch(`/api/admin/centers/${_detailCenterId}/schedule`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ schedule: _sched }),
+        });
+        const data = await res.json();
+        if (!res.ok) { msg.textContent = data.error || "Couldn't save."; msg.className = "sched-save-msg err"; return; }
+        _sched = data.data.schedule;
+        _detailActive = data.data.activeVariant || _detailActive;
+        renderScheduleEditor();
+        msg.textContent = "Saved."; msg.className = "sched-save-msg ok";
+      } catch {
+        msg.textContent = "Couldn't save."; msg.className = "sched-save-msg err";
+      }
+    }
 
     loadCenters();
   </script>

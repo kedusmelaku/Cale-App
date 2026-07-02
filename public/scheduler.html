@@ -10,6 +10,35 @@
       content="A scheduling tool for tutoring centers — generates weekly staff schedules based on availability and student bookings from Google Calendar"
     />
     <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Labeled break between two operating blocks in the timeline axis */
+      .timeline-break {
+        position: absolute;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .timeline-break::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 1px dashed var(--border, #d6dae2);
+      }
+      .timeline-break span {
+        position: relative;
+        background: var(--surface, #fff);
+        padding: 0 6px;
+        font-size: 10px;
+        line-height: 1;
+        color: var(--text-muted, #8a93a3);
+        white-space: nowrap;
+      }
+    </style>
     <script src="/analytics.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
     <script src="/utils.js"></script>
@@ -671,6 +700,64 @@
       let availability = {};
       let avMode = "form"; // "form" | "manual"
       let submissionsByEmployeeId = {}; // employeeId -> submission days array
+
+      // ── Config-driven schedule (canonical minutes) ──────────
+      let SCHED = buildSchedule(null); // replaced by loadSchedule(); safe default
+      let SCHED_DEFAULTS = null;   // per-priority default windows [{start,end}x3]
+
+      // Mirrors the server's default schedule (Mon–Thu 3–8 PM, Sat 10–2) so a
+      // transient /center-schedule failure still yields a usable grid.
+      const CLIENT_DEFAULT_VARIANT = {
+        monday:    { open: true, blocks: [{ start: 900, end: 1200 }] },
+        tuesday:   { open: true, blocks: [{ start: 900, end: 1200 }] },
+        wednesday: { open: true, blocks: [{ start: 900, end: 1200 }] },
+        thursday:  { open: true, blocks: [{ start: 900, end: 1200 }] },
+        friday:    { open: false, blocks: [] },
+        saturday:  { open: true, blocks: [{ start: 600, end: 840 }] },
+        sunday:    { open: false, blocks: [] },
+        defaults: [
+          { start: 960, end: 1200 },
+          { start: 960, end: 1200 },
+          { start: 900, end: 1200 },
+        ],
+      };
+
+      async function loadSchedule() {
+        try {
+          const res = await fetch("/center-schedule");
+          const data = await res.json();
+          const days = (data.data && data.data.days) || CLIENT_DEFAULT_VARIANT;
+          SCHED = buildSchedule(days);
+          SCHED_DEFAULTS = days.defaults || CLIENT_DEFAULT_VARIANT.defaults;
+        } catch (e) {
+          console.warn("Could not load center schedule:", e.message);
+          SCHED = buildSchedule(CLIENT_DEFAULT_VARIANT);
+          SCHED_DEFAULTS = CLIENT_DEFAULT_VARIANT.defaults;
+        }
+      }
+
+      // Concrete availability blocks for a day when "available all day" is chosen,
+      // applying the per-priority default window Mon–Fri (weekends use full hours).
+      function clientDefaultBlocks(dayKey, priority) {
+        const ops = SCHED.blocks(dayKey);
+        const isWeekend = dayKey === "saturday" || dayKey === "sunday";
+        const win = SCHED_DEFAULTS ? SCHED_DEFAULTS[priority] : null;
+        if (isWeekend || !win) return ops.map((b) => ({ start: b.start, end: b.end }));
+        const out = [];
+        for (const b of ops) {
+          const s = Math.max(b.start, win.start);
+          const e = Math.min(b.end, win.end);
+          if (s < e) out.push({ start: s, end: e });
+        }
+        // If the floor wipes out every block, fall back to full hours so a
+        // selected day is never left with zero availability.
+        return out.length ? out : ops.map((b) => ({ start: b.start, end: b.end }));
+      }
+
+      // Which operating block (index) a minute falls in on a day, or -1.
+      function blockIndexAt(dayKey, min) {
+        return SCHED.blocks(dayKey).findIndex((b) => min >= b.start && min < b.end);
+      }
       let scheduleData = [];
       let addShiftTarget = null;
       let dragState = null;
@@ -703,62 +790,27 @@
       ];
 
       function buildDemoAvailability() {
-        return {
-          Alex: DAYS.map((d) => ({
-            day: d,
-            selected: true,
-            allDay: false,
-            start: d === "saturday" ? 10 : 3,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Jordan: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "wednesday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Taylor: DAYS.map((d) => ({
-            day: d,
-            selected: d !== "thursday",
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Morgan: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "wednesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Casey: DAYS.map((d) => ({
-            day: d,
-            selected: ["tuesday", "thursday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
-          Riley: DAYS.map((d) => ({
-            day: d,
-            selected: ["monday", "tuesday", "saturday"].includes(d),
-            allDay: true,
-            start: d === "saturday" ? 10 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          })),
+        const patterns = {
+          Alex:   () => true,
+          Jordan: (dk) => dk !== "wednesday",
+          Taylor: (dk) => dk !== "thursday",
+          Morgan: (dk) => ["monday", "wednesday", "saturday"].includes(dk),
+          Casey:  (dk) => ["tuesday", "thursday"].includes(dk),
+          Riley:  (dk) => ["monday", "tuesday", "saturday"].includes(dk),
         };
+        const priByName = {};
+        DEMO_WORKERS.forEach((w) => { priByName[w.name] = w.priority; });
+        const out = {};
+        for (const name in patterns) {
+          const pr = priByName[name] ?? 0;
+          out[name] = SCHED.days.map((dk) => ({
+            day: dk,
+            selected: patterns[name](dk),
+            allDay: true,
+            blocks: clientDefaultBlocks(dk, pr),
+          }));
+        }
+        return out;
       }
 
       function activateDemo() {
@@ -802,11 +854,8 @@
         if (!mondayStr) return {};
         const base = new Date(mondayStr + "T00:00:00");
         const offsets = {
-          monday: 0,
-          tuesday: 1,
-          wednesday: 2,
-          thursday: 3,
-          saturday: 5,
+          monday: 0, tuesday: 1, wednesday: 2, thursday: 3,
+          friday: 4, saturday: 5, sunday: 6,
         };
         const result = {};
         for (const [day, offset] of Object.entries(offsets)) {
@@ -876,41 +925,27 @@
           .catch(e => console.warn("Could not reload submissions:", e.message));
       }
 
-      function timeOptions(isSaturday) {
-        const options = [];
-        const start = isSaturday ? 10 : 3;
-        const end = isSaturday ? 14 : 8;
-        for (let h = start; h <= end; h++) {
-          for (let m of [0, 30]) {
-            if (h === end && m === 30) break;
-            const totalMins = h * 60 + m;
-            const displayH = h > 12 ? h - 12 : h;
-            const displayM = m === 0 ? "00" : "30";
-            const ampm = isSaturday ? (h >= 12 ? "PM" : "AM") : "PM";
-            options.push({
-              value: totalMins,
-              hour: h,
-              minute: m,
-              label: `${displayH}:${displayM} ${ampm}`,
-            });
-          }
-        }
-        return options;
+      // Time options (canonical minutes) within a single operating block.
+      function blockTimeOpts(startMin, endMin) {
+        const out = [];
+        for (let m = startMin; m <= endMin; m += 30) out.push({ value: m, label: minToLabel(m) });
+        return out;
       }
-
-      function minsToHour(mins) { return Math.floor(mins / 60); }
-      function minsToMinute(mins) { return mins % 60; }
-      function hourMinToMins(h, m) { return h * 60 + (m || 0); }
+      function blockName(startMin) {
+        if (startMin < 12 * 60) return "Morning";
+        if (startMin < 17 * 60) return "Afternoon";
+        return "Evening";
+      }
 
       function buildClipboardText() {
         let text = "";
         for (const day of scheduleData) {
           if (day.assignments.length === 0) continue;
           const dateStr = day.date ? ` (${day.date})` : "";
-          text += `Hours for ${day.day}${dateStr}:\n`;
+          text += `Hours for ${day.dayName}${dateStr}:\n`;
           for (const a of day.assignments) {
             const name = a.name.charAt(0).toUpperCase() + a.name.slice(1);
-            text += `${name}: ${a.start}-${a.end}\n`;
+            text += `${name}: ${minToLabel(a.start)}-${minToLabel(a.end)}\n`;
           }
           text += "\n";
         }
@@ -920,23 +955,14 @@
       function getOutOfBoundsWorkers() {
         const warnings = [];
         for (const day of scheduleData) {
-          const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            if (a.availStart === null || a.availEnd === null) {
-              warnings.push(
-                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
-              );
+            const where = `${a.name} on ${day.dayName}${day.date ? " (" + day.date + ")" : ""}`;
+            if (a.availStart === null || a.availEnd === null || a.availStart === undefined) {
+              warnings.push(where);
               continue;
             }
-            const shiftStart = timeToIndex(a.start, isSat);
-            const shiftEnd = timeToIndex(a.end, isSat);
-            const avStartIdx = timeToIndex(a.availStart.toString(), isSat);
-            const avEndIdx = timeToIndex(a.availEnd.toString(), isSat);
-            if (shiftStart < avStartIdx || shiftEnd > avEndIdx) {
-              warnings.push(
-                `${a.name} on ${day.day}${day.date ? " (" + day.date + ")" : ""}`,
-              );
-            }
+            // Shift extends beyond the worker's availability within its block.
+            if (a.start < a.availStart || a.end > a.availEnd) warnings.push(where);
           }
         }
         return warnings;
@@ -1014,17 +1040,33 @@
       function buildAvailability() {
         workers.forEach((w) => {
           if (availability[w.name]) return;
-          availability[w.name] = DAYS.map((d) => ({
-            day: d,
-            selected: false,
-            allDay: true,
-            start: d === "saturday" ? 10 : w.priority === 2 ? 3 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          }));
+          availability[w.name] = manualDays(w.name, w.priority);
         });
         renderAvailability();
+      }
+
+      // Normalize a worker's manual availability to a full SCHED.days-aligned
+      // array in the canonical per-block shape: { day, selected, allDay, blocks }.
+      function manualDays(name, priority) {
+        const existing = availability[name] || [];
+        const byDay = {};
+        existing.forEach((d) => { byDay[d.day] = d; });
+        availability[name] = SCHED.days.map((dk) => {
+          const e = byDay[dk];
+          if (e) {
+            const hasBlocks = e.blocks && e.blocks.length;
+            return {
+              day: dk,
+              selected: !!e.selected,
+              allDay: e.allDay !== false,
+              blocks: hasBlocks
+                ? e.blocks.map((b) => ({ start: b.start, end: b.end }))
+                : clientDefaultBlocks(dk, priority),
+            };
+          }
+          return { day: dk, selected: false, allDay: true, blocks: clientDefaultBlocks(dk, priority) };
+        });
+        return availability[name];
       }
 
       function setAvMode(mode) {
@@ -1051,18 +1093,14 @@
           const section = document.createElement("div");
           section.className = "av-section";
 
-          const selectedDays = sub ? sub.filter(d => d.selected) : [];
+          const selectedDays = sub ? sub.filter((d) => d.selected) : [];
           const daysHtml = selectedDays.length
-            ? selectedDays.map(d => {
-                const isSat = d.day === "saturday";
-                let hoursStr;
-                if (d.allDay) {
-                  hoursStr = isSat ? "10 AM – 2 PM" : (w.priority === 2 ? "3 – 8 PM" : "4 – 8 PM");
-                } else {
-                  hoursStr = `${formatHour(d.start, d.startMinute, isSat)} – ${formatHour(d.end, d.endMinute, isSat)}`;
-                }
+            ? selectedDays.map((d) => {
+                const hoursStr = (d.blocks || [])
+                  .map((b) => `${minToLabel(b.start)} – ${minToLabel(b.end)}`)
+                  .join(", ") || "—";
                 return `<div class="av-form-day">
-                  <span class="av-form-day-name">${DAY_FULL[d.day]}</span>
+                  <span class="av-form-day-name">${SCHED.dayFull(d.day)}</span>
                   <span class="av-form-day-hours">${hoursStr}</span>
                 </div>`;
               }).join("")
@@ -1079,18 +1117,10 @@
         });
       }
 
-      function formatHour(h, min, isSat) {
-        const displayH = h > 12 ? h - 12 : h;
-        const displayM = (min || 0) === 30 ? ":30" : "";
-        const ampm = isSat ? (h >= 12 ? "PM" : "AM") : "PM";
-        return `${displayH}${displayM} ${ampm}`;
-      }
-
       function renderAvailabilityManual(list) {
         _sortedWorkers().forEach((w) => {
-          const av = availability[w.name];
-          if (!av) return;
-          const allSelected = av.every((d) => d.selected);
+          const av = manualDays(w.name, w.priority);
+          const allSelected = av.length > 0 && av.every((d) => d.selected);
           const section = document.createElement("div");
           section.className = "av-section";
           section.innerHTML = `
@@ -1105,87 +1135,40 @@
               </label>
             </div>
             <div class="av-days">
-              ${av
-                .map(
-                  (d, di) => `
+              ${av.map((d, di) => {
+                const hoursStr = (d.blocks || [])
+                  .map((b) => `${minToLabel(b.start)} – ${minToLabel(b.end)}`)
+                  .join(", ") || "—";
+                return `
                 <div class="av-day-row ${d.selected ? "selected" : ""}">
                   <label class="av-day-check">
                     <input type="checkbox" ${d.selected ? "checked" : ""} onchange="toggleDay('${w.name}', ${di}, this.checked)">
-                    <span class="av-day-label">${DAY_FULL[d.day]}</span>
+                    <span class="av-day-label">${SCHED.dayFull(d.day)}</span>
                   </label>
-                  ${
-                    d.selected
-                      ? `
+                  ${d.selected ? `
                     <div class="av-hours">
-                      <label class="av-hours-check">
-                        <input type="checkbox" ${d.allDay ? "checked" : ""} onchange="toggleAllDay('${w.name}', ${di}, this.checked)">
-                        <span>Default hours</span>
-                      </label>
-                      ${
-                        !d.allDay
-                          ? `
-                        <div class="av-time-inputs">
-                          <select aria-label="${w.name} ${DAY_FULL[d.day]} start time" onchange="updateHour('${w.name}', ${di}, 'start', this.value)">
-                            ${timeOptions(d.day === "saturday")
-                              .map(
-                                (o) =>
-                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.start, d.startMinute || 0) ? "selected" : ""}>${o.label}</option>`,
-                              )
-                              .join("")}
-                          </select>
-                          <span>–</span>
-                          <select aria-label="${w.name} ${DAY_FULL[d.day]} end time" onchange="updateHour('${w.name}', ${di}, 'end', this.value)">
-                            ${timeOptions(d.day === "saturday")
-                              .map(
-                                (o) =>
-                                  `<option value="${o.value}" ${o.value === hourMinToMins(d.end, d.endMinute || 0) ? "selected" : ""}>${o.label}</option>`,
-                              )
-                              .join("")}
-                          </select>
-                        </div>`
-                          : ""
-                      }
-                    </div>`
-                      : ""
-                  }
-                </div>`,
-                )
-                .join("")}
+                      <span class="av-form-day-hours">${hoursStr}</span>
+                    </div>` : ""}
+                </div>`;
+              }).join("")}
             </div>`;
           list.appendChild(section);
         });
       }
 
+      function _workerPriority(name) {
+        const w = workers.find((x) => x.name === name);
+        return w ? w.priority : 0;
+      }
+
       function toggleAllDays(name, checked) {
-        availability[name].forEach((d) => (d.selected = checked));
+        manualDays(name, _workerPriority(name)).forEach((d) => (d.selected = checked));
         renderAvailability();
         markStale();
       }
       function toggleDay(name, di, checked) {
-        availability[name][di].selected = checked;
+        manualDays(name, _workerPriority(name))[di].selected = checked;
         renderAvailability();
-        markStale();
-      }
-      function toggleAllDay(name, di, checked) {
-        availability[name][di].allDay = checked;
-        renderAvailability();
-        markStale();
-      }
-
-      function updateHour(name, di, field, val) {
-        const totalMins = parseInt(val);
-        const d = availability[name][di];
-        if (field === "start") {
-          const endMins = hourMinToMins(d.end, d.endMinute || 0);
-          if (totalMins >= endMins) { renderAvailability(); return; }
-        }
-        if (field === "end") {
-          const startMins = hourMinToMins(d.start, d.startMinute || 0);
-          if (totalMins <= startMins) { renderAvailability(); return; }
-        }
-        d[field] = minsToHour(totalMins);
-        if (field === "start") d.startMinute = minsToMinute(totalMins);
-        if (field === "end") d.endMinute = minsToMinute(totalMins);
         markStale();
       }
 
@@ -1386,28 +1369,23 @@
       slotTooltip.style.display = "none";
       document.body.appendChild(slotTooltip);
 
-      function showSlotTooltip(e, dayIndex, slotTime) {
+      function showSlotTooltip(e, dayIndex, slotMin) {
         const day = scheduleData[dayIndex];
         if (!day) return;
-        const isSat = day.day === "Saturday";
-        const dayKey = day.day.toLowerCase();
+        const dayKey = day.dayKey;
         const students = lastStudentData
-          ? (lastStudentData[dayKey]?.[slotTime] ?? 0)
+          ? (lastStudentData[dayKey]?.[slotMin] ?? 0)
           : "—";
-        const isOneOnOne =
-          lastOneOnOneData?.[day.day.toLowerCase()]?.[slotTime] || false;
-        const slotIdx = timeToIndex(slotTime, isSat);
-        const workersHere = day.assignments.filter((a) => {
-          const si = timeToIndex(a.start, isSat);
-          const ei = timeToIndex(a.end, isSat);
-          return slotIdx >= si && slotIdx < ei;
-        });
+        const isOneOnOne = lastOneOnOneData?.[dayKey]?.[slotMin] || false;
+        const workersHere = day.assignments.filter(
+          (a) => slotMin >= a.start && slotMin < a.end,
+        );
         const needed = students === "—" ? "—" : Math.ceil(students / 3);
         const oneOnOneTag = isOneOnOne
           ? ' <span class="tooltip-tag ooo">1-on-1</span>'
           : "";
         slotTooltip.innerHTML = `
-          <div class="tooltip-time">${slotTime}${isSat ? "" : " PM"}</div>
+          <div class="tooltip-time">${minToLabel(slotMin)}</div>
           <div class="tooltip-row"><span class="tooltip-label">Students</span><span class="tooltip-val">${students}${oneOnOneTag}</span></div>
           <div class="tooltip-row"><span class="tooltip-label">Needed</span><span class="tooltip-val">${needed}</span></div>
           <div class="tooltip-row"><span class="tooltip-label">Assigned</span><span class="tooltip-val">${workersHere.length > 0 ? workersHere.map((w) => w.name).join(", ") : "none"}</span></div>`;
@@ -1435,6 +1413,14 @@
       let lastOneOnOneData = null;
 
       // ── Generate ───────────────────────────────────────────
+      // The availability source for a worker: submissions in form mode,
+      // the manual editor's data in manual mode. Both are the canonical
+      // per-block shape { day, selected, allDay, blocks:[{start,end}] }.
+      function workerAvailDays(w) {
+        if (avMode === "form") return submissionsByEmployeeId[w._id?.toString()] || [];
+        return availability[w.name] || [];
+      }
+
       async function generate() {
         // During the tour, generating is only unlocked once the user reaches
         // the "Try Generating a Schedule" step (global 17). This also blocks
@@ -1446,31 +1432,11 @@
 
         const payload = workers
           .map((w) => {
-            let days;
-            if (avMode === "form") {
-              const sub = submissionsByEmployeeId[w._id?.toString()];
-              days = sub
-                ? sub.filter(d => d.selected).map(d => ({
-                    day: d.day,
-                    allDay: d.allDay,
-                    start: d.start,
-                    end: d.end,
-                    startMinute: d.startMinute || 0,
-                    endMinute: d.endMinute || 0,
-                  }))
-                : [];
-            } else {
-              days = (availability[w.name] || [])
-                .filter((d) => d.selected)
-                .map((d) => ({
-                  day: d.day,
-                  allDay: d.allDay,
-                  start: d.start,
-                  end: d.end,
-                  startMinute: d.startMinute || 0,
-                  endMinute: d.endMinute || 0,
-                }));
-            }
+            const source = workerAvailDays(w);
+            const days = source
+              .filter((d) => d.selected)
+              .map((d) => ({ day: d.day, blocks: (d.blocks || []).map((b) => ({ start: b.start, end: b.end })) }))
+              .filter((d) => d.blocks.length > 0);
             return { name: w.name, priority: w.priority, days, submittedAt: w.submittedAt || null };
           })
           .filter((w) => w.days.length > 0);
@@ -1528,17 +1494,18 @@
         const dates = getDatesForWeek(mondayVal);
         scheduleData = data.schedule.map((d) => ({
           ...d,
-          date: dates[d.day.toLowerCase()] || "",
+          date: dates[d.dayKey] || "",
           assignments: d.assignments.map((a) => {
             const worker = workers.find((w) => w.name === a.name);
-            const av = worker ? availability[worker.name] : null;
-            const avDay = av
-              ? av.find((x) => x.day === d.day.toLowerCase())
-              : null;
+            const source = worker ? workerAvailDays(worker) : [];
+            const avDay = source.find((x) => x.day === d.dayKey);
+            const avBlocks = avDay && avDay.selected ? avDay.blocks || [] : [];
+            // The availability block this shift sits within (for OOB shading).
+            const cover = avBlocks.find((b) => a.start < b.end && a.end > b.start);
             return {
               ...a,
-              availStart: avDay && avDay.selected ? avDay.start : null,
-              availEnd: avDay && avDay.selected ? avDay.end : null,
+              availStart: cover ? cover.start : null,
+              availEnd: cover ? cover.end : null,
             };
           }),
         }));
@@ -1573,11 +1540,8 @@
       function computeWorkerHours() {
         const totals = {};
         for (const day of scheduleData) {
-          const isSat = day.day === "Saturday";
           for (const a of day.assignments) {
-            const si = timeToIndex(a.start, isSat);
-            const ei = timeToIndex(a.end, isSat);
-            totals[a.name] = (totals[a.name] || 0) + (ei - si) * 0.5;
+            totals[a.name] = (totals[a.name] || 0) + (a.end - a.start) / 60;
           }
         }
         return Object.entries(totals)
@@ -1608,21 +1572,46 @@
         el.style.display = "block";
       }
 
-      function computeOobRects(si, ei, availStart, availEnd, isSat) {
-        if (availStart === null || availEnd === null) {
-          return [{ top: 0, height: (ei - si) * SLOT_H }];
+      // ── Pixel model (per-day slot axis with a two-block break) ──
+      const BREAK_H = 22; // pixels of visual break between two operating blocks
+      function dayGapIndex(dayKey) {
+        const s = SCHED.slots(dayKey);
+        for (let i = 0; i < s.length - 1; i++) if (SCHED.gapAfterSlot(dayKey, i)) return i;
+        return -1;
+      }
+      function slotTopPx(dayKey, idx) {
+        const g = dayGapIndex(dayKey);
+        return idx * SLOT_H + (g >= 0 && idx > g ? BREAK_H : 0);
+      }
+      function colHeightPx(dayKey) {
+        const s = SCHED.slots(dayKey);
+        return s.length * SLOT_H + (dayGapIndex(dayKey) >= 0 ? BREAK_H : 0);
+      }
+      function nearestSlotIndex(dayKey, y) {
+        const s = SCHED.slots(dayKey);
+        let best = 0, bd = Infinity;
+        for (let i = 0; i < s.length; i++) {
+          const d = Math.abs(slotTopPx(dayKey, i) - y);
+          if (d < bd) { bd = d; best = i; }
         }
-        const avSi = timeToIndex(availStart.toString(), isSat);
-        const avEi = timeToIndex(availEnd.toString(), isSat);
+        return best;
+      }
+
+      // OOB shading rectangles, in pixels relative to the worker block's top.
+      // A shift sits within one operating block, so time→pixel is linear inside it.
+      function computeOobRects(a) {
+        const H = ((a.end - a.start) / 30) * SLOT_H;
+        if (a.availStart === null || a.availEnd === null || a.availStart === undefined) {
+          return [{ top: 0, height: H }];
+        }
         const rects = [];
-        if (si < avSi) {
-          rects.push({ top: 0, height: Math.min(avSi - si, ei - si) * SLOT_H });
+        if (a.start < a.availStart) {
+          const to = Math.min(a.availStart, a.end);
+          rects.push({ top: 0, height: ((to - a.start) / 30) * SLOT_H });
         }
-        if (ei > avEi) {
-          rects.push({
-            top: Math.max(avEi - si, 0) * SLOT_H,
-            height: (ei - Math.max(avEi, si)) * SLOT_H,
-          });
+        if (a.end > a.availEnd) {
+          const from = Math.max(a.availEnd, a.start);
+          rects.push({ top: ((from - a.start) / 30) * SLOT_H, height: ((a.end - from) / 30) * SLOT_H });
         }
         return rects;
       }
@@ -1630,51 +1619,63 @@
       function buildTimelineHTML(data, isEdit) {
         let html = `<div class="timeline${isEdit ? " timeline-edit" : ""}">`;
         data.forEach((day, di) => {
-          const isSat = day.day === "Saturday";
-          const slots = slotList(isSat);
-          const boundaries = [...slots, isSat ? "2" : "8"];
-          const slotLabels = boundaries
-            .map((s, i) => {
-              const isLast = i === boundaries.length - 1;
-              const slotKey = slots[i];
-              const handler = !isLast
-                ? `onmouseenter="showSlotTooltip(event,${di},'${slotKey}')" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`
-                : "";
-              return `<div class="timeline-line-label${!isLast ? " tooltip-sensor" : ""}" style="top:${i * SLOT_H}px;" ${handler}>${s}</div>`;
+          const dk = day.dayKey;
+          const slots = SCHED.slots(dk);
+          const gap = dayGapIndex(dk);
+          const totalH = colHeightPx(dk);
+
+          // Slot labels (start of each slot) + final block-end boundary label.
+          let slotLabels = slots
+            .map((min, i) => {
+              const handler = `onmouseenter="showSlotTooltip(event,${di},${min})" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`;
+              return `<div class="timeline-line-label tooltip-sensor" style="top:${slotTopPx(dk, i)}px;" ${handler}>${minToClock(min)}</div>`;
             })
             .join("");
+          // Final boundary (end of last block) label
+          if (slots.length) {
+            const lastEnd = slots[slots.length - 1] + 30;
+            slotLabels += `<div class="timeline-line-label" style="top:${totalH}px;">${minToClock(lastEnd)}</div>`;
+          }
+
+          // Labeled break band between the two operating blocks.
+          let breakBand = "";
+          if (gap >= 0) {
+            const block1End = slots[gap] + 30;
+            const block2Start = slots[gap + 1];
+            const bandTop = (gap + 1) * SLOT_H;
+            breakBand = `<div class="timeline-break" style="top:${bandTop}px; height:${BREAK_H}px;">
+              <span>${minToClock(block1End)}–${minToClock(block2Start)} break</span>
+            </div>`;
+          }
+
           const gridLines = slots
             .map(() => '<div class="timeline-grid-line"></div>')
             .join("");
-          const totalSlots = slots.length;
 
           const workerCols = day.assignments
             .map((a, ai) => {
-              const si = timeToIndex(a.start, isSat);
-              const ei = timeToIndex(a.end, isSat);
+              const startIdx = slots.indexOf(a.start);
+              const top = startIdx >= 0 ? slotTopPx(dk, startIdx) : 0;
+              const height = ((a.end - a.start) / 30) * SLOT_H;
               const color = _getWorkerColor(a.name);
-              const draggable = isEdit
-                ? `data-day="${di}" data-ai="${ai}"`
-                : "";
+              const draggable = isEdit ? `data-day="${di}" data-ai="${ai}"` : "";
               const resizable = isEdit
                 ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
                 : "";
               const removable = isEdit
-                ? `<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.day}" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</button>`
+                ? `<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.dayName}" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</button>`
                 : "";
-
               const oobOverlay = isEdit
-                ? computeOobRects(si, ei, a.availStart, a.availEnd, isSat)
+                ? computeOobRects(a)
                     .map((r) => `<div class="oob-overlay" style="top:${r.top}px; height:${r.height}px;"></div>`)
                     .join("")
                 : "";
-
               return `
               <div class="timeline-worker-col">
                 <div class="timeline-grid-lines">${gridLines}</div>
                 <div class="worker-block ${isEdit ? "draggable" : ""}"
-                  style="top:${si * SLOT_H}px; height:${(ei - si) * SLOT_H}px; background:${color};"
-                  title="${a.name}: ${a.start}–${a.end}" ${draggable}>
+                  style="top:${top}px; height:${height}px; background:${color};"
+                  title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
                   ${a.name}${oobOverlay}${resizable}${removable}
                 </div>
               </div>`;
@@ -1684,16 +1685,14 @@
           const addBtn = isEdit
             ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>`
             : "";
-          const dateStr = day.date
-            ? ` <span class="day-date">${day.date}</span>`
-            : "";
+          const dateStr = day.date ? ` <span class="day-date">${day.date}</span>` : "";
 
           html += `
             <div class="timeline-day">
-              <div class="timeline-day-header">${day.day}${dateStr}</div>
+              <div class="timeline-day-header">${day.dayName}${dateStr}</div>
               <div class="timeline-body">
-                <div class="timeline-slots" style="height:${totalSlots * SLOT_H}px;">${slotLabels}</div>
-                <div class="timeline-workers" style="height:${totalSlots * SLOT_H}px;">${workerCols}</div>
+                <div class="timeline-slots" style="height:${totalH}px;">${slotLabels}${breakBand}</div>
+                <div class="timeline-workers" style="height:${totalH}px;">${workerCols}</div>
               </div>
               ${addBtn}
             </div>`;
@@ -1737,6 +1736,22 @@
           );
       }
 
+      function shiftBlockMeta(di, ai) {
+        const day = scheduleData[di];
+        const dk = day.dayKey;
+        const a = day.assignments[ai];
+        const slots = SCHED.slots(dk);
+        const startIdx = Math.max(0, slots.indexOf(a.start));
+        const durSlots = Math.max(1, Math.round((a.end - a.start) / 30));
+        const bi = SCHED.blockIndexAt(dk, a.start);
+        const ob = SCHED.blocks(dk)[bi] || { start: slots[0], end: slots[slots.length - 1] + 30 };
+        return {
+          dk, slots, startIdx, durSlots,
+          blockLoIdx: slots.indexOf(ob.start),
+          blockHiIdx: slots.indexOf(ob.end - 30),
+        };
+      }
+
       function onBlockMouseDown(e) {
         if (e.target.classList.contains("resize-handle")) return;
         if (e.target.classList.contains("remove-btn")) return;
@@ -1745,13 +1760,11 @@
         const block = e.currentTarget;
         const di = parseInt(block.dataset.day);
         const ai = parseInt(block.dataset.ai);
+        const meta = shiftBlockMeta(di, ai);
         dragState = {
-          type: "move",
-          block,
-          di,
-          ai,
-          startY: e.clientY,
-          startTop: parseInt(block.style.top),
+          type: "move", block, di, ai,
+          startY: e.clientY, startTop: parseInt(block.style.top),
+          ...meta, curStartIdx: meta.startIdx, curDur: meta.durSlots,
         };
         document.addEventListener("mousemove", onDragMove);
         window.addEventListener("mouseup", cancelDrag);
@@ -1763,13 +1776,11 @@
         const di = parseInt(e.currentTarget.dataset.day);
         const ai = parseInt(e.currentTarget.dataset.ai);
         const block = e.currentTarget.closest(".worker-block");
+        const meta = shiftBlockMeta(di, ai);
         dragState = {
-          type: "resize",
-          block,
-          di,
-          ai,
-          startY: e.clientY,
-          startHeight: parseInt(block.style.height),
+          type: "resize", block, di, ai,
+          startY: e.clientY, startHeight: parseInt(block.style.height),
+          ...meta, curStartIdx: meta.startIdx, curDur: meta.durSlots,
         };
         document.addEventListener("mousemove", onDragMove);
         window.addEventListener("mouseup", cancelDrag);
@@ -1777,20 +1788,18 @@
 
       function onDragMove(e) {
         if (!dragState) return;
-        const isSat = scheduleData[dragState.di].day === "Saturday";
-        const totalSlots = slotList(isSat).length;
+        const dk = dragState.dk;
         const dy = e.clientY - dragState.startY;
         if (dragState.type === "move") {
-          let newTop = Math.round((dragState.startTop + dy) / SLOT_H) * SLOT_H;
-          const blockH = parseInt(dragState.block.style.height);
-          newTop = Math.max(0, Math.min(newTop, totalSlots * SLOT_H - blockH));
-          dragState.block.style.top = newTop + "px";
+          let idx = nearestSlotIndex(dk, dragState.startTop + dy);
+          idx = Math.max(dragState.blockLoIdx, Math.min(idx, dragState.blockHiIdx - dragState.curDur + 1));
+          dragState.curStartIdx = idx;
+          dragState.block.style.top = slotTopPx(dk, idx) + "px";
         } else {
-          let newH = Math.round((dragState.startHeight + dy) / SLOT_H) * SLOT_H;
-          newH = Math.max(SLOT_H, newH);
-          const top = parseInt(dragState.block.style.top);
-          newH = Math.min(newH, totalSlots * SLOT_H - top);
-          dragState.block.style.height = newH + "px";
+          let dur = Math.round((dragState.startHeight + dy) / SLOT_H);
+          dur = Math.max(1, Math.min(dur, dragState.blockHiIdx - dragState.startIdx + 1));
+          dragState.curDur = dur;
+          dragState.block.style.height = dur * SLOT_H + "px";
         }
         updateLiveOobOverlay();
       }
@@ -1799,14 +1808,10 @@
         if (!dragState) return;
         const { block, di, ai } = dragState;
         const a = scheduleData[di].assignments[ai];
-        const isSat = scheduleData[di].day === "Saturday";
-        const top = parseInt(block.style.top);
-        const height = parseInt(block.style.height);
-        const si = Math.round(top / SLOT_H);
-        const ei = Math.round((top + height) / SLOT_H);
+        const start = dragState.slots[dragState.curStartIdx];
+        const temp = { start, end: start + dragState.curDur * 30, availStart: a.availStart, availEnd: a.availEnd };
         block.querySelectorAll(".oob-overlay").forEach((el) => el.remove());
-        const rects = computeOobRects(si, ei, a.availStart, a.availEnd, isSat);
-        for (const r of rects) {
+        for (const r of computeOobRects(temp)) {
           const overlay = document.createElement("div");
           overlay.className = "oob-overlay";
           overlay.style.top = r.top + "px";
@@ -1817,14 +1822,10 @@
 
       function cancelDrag() {
         if (!dragState) return;
-        const { di, ai, block } = dragState;
-        const isSat = scheduleData[di].day === "Saturday";
-        const top = parseInt(block.style.top);
-        const height = parseInt(block.style.height);
-        const si = Math.round(top / SLOT_H);
-        const ei = Math.round((top + height) / SLOT_H);
-        scheduleData[di].assignments[ai].start = indexToTime(si, isSat);
-        scheduleData[di].assignments[ai].end = indexToTime(ei, isSat);
+        const { di, ai } = dragState;
+        const start = dragState.slots[dragState.curStartIdx];
+        scheduleData[di].assignments[ai].start = start;
+        scheduleData[di].assignments[ai].end = start + dragState.curDur * 30;
         document.removeEventListener("mousemove", onDragMove);
         window.removeEventListener("mouseup", cancelDrag);
         dragState = null;
@@ -1834,40 +1835,36 @@
 
       function removeShift(di, ai) {
         const name = scheduleData[di].assignments[ai].name;
-        if (!confirm(`Remove ${name} from ${scheduleData[di].day}?`)) return;
+        if (!confirm(`Remove ${name} from ${scheduleData[di].dayName}?`)) return;
         scheduleData[di].assignments.splice(ai, 1);
         renderEditScreen();
         renderSchedule();
       }
 
       // ── Add Shift Modal ────────────────────────────────────
+      // Default the shift to the worker's availability block for the day, else
+      // the day's first operating block clamped by the priority default window.
       function computeAddShiftDefaultTimes(worker, day) {
-        const isSat = day.day === "Saturday";
-        const dayKey = day.day.toLowerCase();
-        const av = worker ? availability[worker.name] : null;
-        const avDay = av ? av.find((x) => x.day === dayKey) : null;
-
-        const priorityDefaultStart = isSat ? 10 : worker && worker.priority === 2 ? 3 : 4;
-        const priorityDefaultEnd = isSat ? 14 : 8;
-
-        let startH, startM, endH, endM;
-        if (avDay && avDay.selected && !avDay.allDay) {
-          startH = avDay.start;
-          startM = avDay.startMinute || 0;
-          endH = avDay.end;
-          endM = avDay.endMinute || 0;
-        } else {
-          startH = priorityDefaultStart;
-          startM = 0;
-          endH = priorityDefaultEnd;
-          endM = 0;
+        const dk = day.dayKey;
+        const source = worker ? workerAvailDays(worker) : [];
+        const avDay = source.find((x) => x.day === dk);
+        if (avDay && avDay.selected && (avDay.blocks || []).length) {
+          const b = avDay.blocks[0];
+          return { start: b.start, end: b.end };
         }
+        const def = worker ? clientDefaultBlocks(dk, worker.priority) : SCHED.blocks(dk);
+        if (def.length) return { start: def[0].start, end: def[0].end };
+        const ops = SCHED.blocks(dk);
+        return ops.length ? { start: ops[0].start, end: ops[0].end } : { start: 0, end: 0 };
+      }
 
-        const fmt = (h, m) => {
-          const displayH = isSat && h > 12 ? h - 12 : h;
-          return m ? `${displayH}:30` : `${displayH}`;
-        };
-        return { start: fmt(startH, startM), end: fmt(endH, endM) };
+      function dayTimePoints(dk) {
+        // Every half-hour boundary across the day's operating blocks (inclusive ends).
+        const pts = [];
+        for (const b of SCHED.blocks(dk)) {
+          for (let m = b.start; m <= b.end; m += 30) pts.push(m);
+        }
+        return pts;
       }
 
       function updateAddShiftDefaultTimes() {
@@ -1877,12 +1874,11 @@
         const name = document.getElementById("add-shift-worker").value;
         const worker = workers.find((w) => w.name === name);
         const { start, end } = computeAddShiftDefaultTimes(worker, day);
-
         const startSel = document.getElementById("add-shift-start");
         const endSel = document.getElementById("add-shift-end");
         const setIfPresent = (sel, val) => {
-          const opt = Array.from(sel.options).find((o) => o.value === val);
-          if (opt) sel.value = val;
+          const opt = Array.from(sel.options).find((o) => o.value === String(val));
+          if (opt) sel.value = String(val);
         };
         setIfPresent(startSel, start);
         setIfPresent(endSel, end);
@@ -1891,9 +1887,8 @@
       function openAddShiftModal(di) {
         addShiftTarget = di;
         const day = scheduleData[di];
-        const isSat = day.day === "Saturday";
-        const slots = slotList(isSat);
-        document.getElementById("add-shift-day-name").textContent = day.day;
+        const dk = day.dayKey;
+        document.getElementById("add-shift-day-name").textContent = day.dayName;
         const assigned = new Set(day.assignments.map((a) => a.name));
         const unassigned = workers.filter((w) => !assigned.has(w.name));
 
@@ -1903,22 +1898,13 @@
         } else {
           workerSelect.innerHTML = unassigned
             .map((w) => {
-              const av = availability[w.name];
-              const avDay = av
-                ? av.find((x) => x.day === day.day.toLowerCase())
-                : null;
-              let avLabel = "";
-              if (!avDay || !avDay.selected) {
+              const source = workerAvailDays(w);
+              const avDay = source.find((x) => x.day === dk);
+              let avLabel;
+              if (!avDay || !avDay.selected || !(avDay.blocks || []).length) {
                 avLabel = " — unavailable";
-              } else if (avDay.allDay) {
-                avLabel = " — all day";
               } else {
-                const fmt = (h, m) => {
-                  const displayH = h > 12 ? h - 12 : h;
-                  const suffix = isSat ? (h >= 12 ? " PM" : " AM") : " PM";
-                  return m ? `${displayH}:30${suffix}` : `${displayH}${suffix}`;
-                };
-                avLabel = ` — ${fmt(avDay.start, avDay.startMinute || 0)}–${fmt(avDay.end, avDay.endMinute || 0)}`;
+                avLabel = " — " + avDay.blocks.map((b) => `${minToLabel(b.start)}–${minToLabel(b.end)}`).join(", ");
               }
               const isUnavailable = !avDay || !avDay.selected;
               return `<option value="${w.name}" ${isUnavailable ? 'data-unavailable="true"' : ""}>${w.name}${avLabel}</option>`;
@@ -1926,24 +1912,17 @@
             .join("");
         }
 
-        workerSelect
-          .querySelectorAll("option[data-unavailable]")
-          .forEach((opt) => {
-            opt.style.color = "#c0392b";
-          });
+        workerSelect.querySelectorAll("option[data-unavailable]").forEach((opt) => {
+          opt.style.color = "#c0392b";
+        });
 
-        const boundary = isSat ? "2" : "8";
-        const timePoints = [...slots, boundary];
-        const toOpt = (s) => `<option value="${s}">${s}</option>`;
-        document.getElementById("add-shift-start").innerHTML = timePoints
-          .map(toOpt)
-          .join("");
+        const points = dayTimePoints(dk);
+        const toOpt = (m) => `<option value="${m}">${minToLabel(m)}</option>`;
+        document.getElementById("add-shift-start").innerHTML = points.map(toOpt).join("");
         const endSel = document.getElementById("add-shift-end");
-        endSel.innerHTML = timePoints.map(toOpt).join("");
-        endSel.selectedIndex = Math.min(2, timePoints.length - 1);
+        endSel.innerHTML = points.map(toOpt).join("");
 
         updateAddShiftDefaultTimes();
-
         document.getElementById("add-shift-modal").classList.add("open");
       }
 
@@ -1955,25 +1934,26 @@
       function confirmAddShift() {
         const name = document.getElementById("add-shift-worker").value;
         if (!name) return alert("No employee selected.");
-        const start = document.getElementById("add-shift-start").value;
-        const end = document.getElementById("add-shift-end").value;
+        const start = parseInt(document.getElementById("add-shift-start").value, 10);
+        const end = parseInt(document.getElementById("add-shift-end").value, 10);
         const di = addShiftTarget;
-        const isSat = scheduleData[di].day === "Saturday";
-        if (timeToIndex(start, isSat) >= timeToIndex(end, isSat))
-          return alert("End time must be after start time.");
+        const dk = scheduleData[di].dayKey;
+        if (start >= end) return alert("End time must be after start time.");
+        // The shift must fit within a single operating block.
+        const fits = SCHED.blocks(dk).some((b) => start >= b.start && end <= b.end);
+        if (!fits) return alert("A shift must fit within one operating block.");
+
         const worker = workers.find((w) => w.name === name);
-        const av = availability[name];
-        const avDay = av
-          ? av.find((x) => x.day === scheduleData[di].day.toLowerCase())
-          : null;
+        const source = worker ? workerAvailDays(worker) : [];
+        const avDay = source.find((x) => x.day === dk);
+        const avBlocks = avDay && avDay.selected ? avDay.blocks || [] : [];
+        const cover = avBlocks.find((b) => start < b.end && end > b.start);
         closeAddShiftModal();
         scheduleData[di].assignments.push({
-          name,
-          start,
-          end,
+          name, start, end,
           priority: worker ? worker.priority : 0,
-          availStart: avDay && avDay.selected ? avDay.start : null,
-          availEnd: avDay && avDay.selected ? avDay.end : null,
+          availStart: cover ? cover.start : null,
+          availEnd: cover ? cover.end : null,
         });
         setTimeout(() => {
           renderEditScreen();
@@ -2423,6 +2403,7 @@
 
       // Load employees and reconstruct availability from saved days
       loadEmployees().then(async () => {
+        await loadSchedule();
         if (settings.demo) {
           document.body.classList.add("demo-active");
           activateDemo();

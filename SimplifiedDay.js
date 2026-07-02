@@ -1,159 +1,110 @@
+// ── SimplifiedDay.js ────────────────────────────────────────────────────────
+// Block-based scheduling mode. Extends Day. Shift-block templates are derived
+// from the day's OPERATING blocks plus the per-priority default start times
+// (passed as shiftStarts, weekday-only). For each operating block [s, e]:
+//   - a long shift [st, e] for each candidate start st (s and any default
+//     start strictly inside the block) — longest first, so e.g. a 3–8 block
+//     yields both 3–8 (adults) and 4–8 (after-school) shifts
+//   - early/late halves of the "common" (latest-start) long shift
+// A worker may be assigned to at most one shift per operating block, but CAN be
+// assigned in more than one operating block on a two-block day. working[di] is
+// a list of assigned shifts. All times are canonical minutes since midnight.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const Day = require("./Day");
 
 class SimplifiedDay extends Day {
-  constructor(dayName, isSaturday = false) {
-    super(dayName, isSaturday); // calls Day's constructor which sets up slots
-
-    // define shift blocks based on day type
-    if (!isSaturday) {
-      // weekdays — wider blocks first so workers aren't locked into short shifts
-      // before the algorithm has a chance to assign them to a longer block
-      this.blocks = [
-        { name: "adult", start: "3", end: "8" },
-        { name: "full", start: "4", end: "8" },
-        { name: "early", start: "4", end: "6" },
-        { name: "late", start: "6", end: "8" },
-      ];
-    } else {
-      // saturday — full block first for same reason
-      this.blocks = [
-        { name: "full", start: "10", end: "2" },
-        { name: "early", start: "10", end: "12" },
-        { name: "late", start: "12", end: "2" },
-      ];
-    }
+  constructor(dayKey = "", dayName = "", slots = [], operatingBlocks = [], shiftStarts = []) {
+    super(dayKey, dayName, slots);
+    this.operatingBlocks = (operatingBlocks || []).map((b) => ({ start: b.start, end: b.end }));
+    this.blocks = SimplifiedDay.buildShiftBlocks(this.operatingBlocks, shiftStarts || []);
   }
 
-  findPeak(day, block) {
-    let peak = 0;
-
-    for (let slot of day.slots) {
-      // check if this slot falls within the block's time range
-      let toNum = day.isSaturday
-        ? (t) => this.saturdayTimeToNum(t)
-        : (t) => this.timeToNum(t);
-
-      let slotNum = toNum(slot.time);
-      let blockStart = toNum(block.start);
-      let blockEnd = toNum(block.end);
-
-      if (slotNum >= blockStart && slotNum < blockEnd) {
-        let students = slot.students;
-        let workersNeeded;
-
-        if (slot.oneOnOne) {
-          // one on one detected - one worker is pulled out for the one on one
-          // check if remaining workers can cover at 1:4 ratio
-          let remainingWorkers = peak - 1;
-          if (remainingWorkers * 4 < students) peak++; // remaining can't cover, need extra
-          workersNeeded = Math.ceil(students / 4); // use 1:4 ratio for remaining workers
-        } else {
-          // normal ratio 1:3
-          workersNeeded = Math.ceil(students / 3);
-        }
-
-        if (workersNeeded > peak) {
-          peak = workersNeeded; // update peak if this slot needs more workers
-        }
+  static buildShiftBlocks(operatingBlocks, shiftStarts = []) {
+    const out = [];
+    for (const b of operatingBlocks) {
+      // Candidate starts: operating open + any default start strictly inside.
+      const starts = [...new Set([b.start, ...shiftStarts.filter((s) => s > b.start && s < b.end)])]
+        .sort((a, z) => a - z);
+      // Long shifts from each start to the block end (longest first).
+      for (const st of starts) out.push({ name: "full", start: st, end: b.end });
+      // Early/late halves based on the common (latest) start.
+      const primary = starts[starts.length - 1];
+      if (b.end - primary > 120) {
+        let mid = primary + Math.round(((b.end - primary) / 2) / 30) * 30;
+        if (mid <= primary) mid = primary + 30;
+        if (mid >= b.end) mid = b.end - 30;
+        out.push({ name: "early", start: primary, end: mid });
+        out.push({ name: "late", start: mid, end: b.end });
       }
     }
+    return out;
+  }
 
+  // Peak simultaneous workers needed anywhere inside a shift block.
+  findPeak(day, block) {
+    let peak = 0;
+    for (const slot of day.slots) {
+      if (slot.time >= block.start && slot.time < block.end) {
+        const students = slot.students;
+        let workersNeeded;
+        if (slot.oneOnOne) {
+          const remaining = peak - 1;
+          if (remaining * 4 < students) peak++;
+          workersNeeded = Math.ceil(students / 4);
+        } else {
+          workersNeeded = Math.ceil(students / 3);
+        }
+        if (workersNeeded > peak) peak = workersNeeded;
+      }
+    }
     return peak;
   }
 
-  saturdayTimeToNum(t) {
-    let [h, m] = t.split(":");
-    let hour = parseInt(h);
-    // saturday afternoon hours 1-2 are PM, convert to 13-14
-    if (hour < 10) hour += 12;
-    return hour + (m === "30" ? 0.5 : 0);
-  }
-
   willWork(week) {
-    for (let k = 0; k < week.length; k++) {
-      // for each day
-      let day = week[k];
+    for (const day of week) {
+      for (const block of day.blocks) {
+        const peak = this.findPeak(day, block);
+        if (peak === 0) continue;
 
-      // use correct time conversion based on day type
-      let toNum = day.isSaturday
-        ? (t) => this.saturdayTimeToNum(t)
-        : (t) => this.timeToNum(t);
-
-      for (let block of day.blocks) {
-        // for each shift block
-        let peak = this.findPeak(day, block);
-        if (peak === 0) continue; // skip blocks with no students
-
-        // count how many already-assigned workers cover this block
-        let alreadyCovered = day.totalWorkers.filter((worker) => {
-          let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
-          if (worker.working[dayIndex][0] === undefined) return false;
-          let assignedStart = toNum(worker.working[dayIndex][0]);
-          let assignedEnd = toNum(worker.working[dayIndex][1]);
-          return (
-            assignedStart <= toNum(block.start) &&
-            assignedEnd >= toNum(block.end)
-          );
+        // Workers already assigned a shift that fully covers this block.
+        const alreadyCovered = day.totalWorkers.filter((worker) => {
+          const di = worker.days.indexOf(day.dayKey);
+          return (worker.working[di] || []).some((s) => s.start <= block.start && s.end >= block.end);
         }).length;
+        if (alreadyCovered >= peak) continue;
 
-        if (alreadyCovered >= peak) continue; // block already staffed, skip it
-        let stillNeeded = peak - alreadyCovered;
+        const stillNeeded = peak - alreadyCovered;
 
-        // find workers available for this entire block and not yet assigned
-        let availableWorkers = [];
-        for (let worker of day.totalWorkers) {
-          let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
-          let workerStart = toNum(worker.hours[dayIndex][0]);
-          let workerEnd = toNum(
-            worker.hours[dayIndex][worker.hours[dayIndex].length - 1],
-          );
-
-          let blockStart = toNum(block.start);
-          let blockEnd = toNum(block.end);
-
-          // check if worker covers the entire block AND is not yet assigned
-          if (
-            workerStart <= blockStart &&
-            workerEnd >= blockEnd &&
-            worker.working[dayIndex][0] === undefined
-          ) {
-            availableWorkers.push(worker); // only add if both conditions met
-          }
+        // Unassigned-for-this-block workers whose availability covers the whole block.
+        const available = [];
+        for (const worker of day.totalWorkers) {
+          const di = worker.days.indexOf(day.dayKey);
+          if (worker.hasShiftOverlapping(di, block.start, block.end)) continue;
+          if (worker.coversWindow(di, block.start, block.end)) available.push(worker);
         }
 
-        // Sort by points first (highest priority = lowest points value).
-        // Within the same points value, earlier submittedAt wins (first-come-
-        // first-served). Workers with no submittedAt go last within their level.
-        availableWorkers.sort((a, b) => {
-          if (a.points !== b.points) return a.points - b.points;
-          if (a.submittedAt && b.submittedAt) return new Date(a.submittedAt) - new Date(b.submittedAt);
-          if (a.submittedAt) return -1;
-          if (b.submittedAt) return 1;
-          return 0;
-        });
+        this._sortByPriority(available);
 
-        // assign workers up to stillNeeded
         let assigned = 0;
-        for (let worker of availableWorkers) {
-          if (assigned >= stillNeeded) break; // stop if we have enough workers
-          let dayIndex = worker.days.indexOf(day.dayName.toLowerCase());
-          worker.working[dayIndex][0] = block.start; // set start time
-          worker.working[dayIndex][1] = block.end; // set end time
+        for (const worker of available) {
+          if (assigned >= stillNeeded) break;
+          const di = worker.days.indexOf(day.dayKey);
+          worker.working[di].push({ start: block.start, end: block.end });
           assigned++;
         }
       }
 
-      // assign one-on-one workers to flagged slots
-      for (let slot of day.slots) {
+      // Assign one-on-one slots to the highest-priority worker already on that day.
+      for (const slot of day.slots) {
         if (!slot.oneOnOne) continue;
-        // find lowest points worker already assigned to this day (priority 2 first)
-        let candidates = day.totalWorkers
+        const candidates = day.totalWorkers
           .filter((w) => {
-            let di = w.days.indexOf(day.dayName.toLowerCase());
-            return w.working[di][0] !== undefined; // only already assigned workers
+            const di = w.days.indexOf(day.dayKey);
+            return (w.working[di] || []).length > 0;
           })
           .sort((a, b) => a.points - b.points);
-        if (candidates.length > 0) slot.oneOnOneWorker = candidates[0]; // assign highest priority worker
+        if (candidates.length > 0) slot.oneOnOneWorker = candidates[0];
       }
     }
   }

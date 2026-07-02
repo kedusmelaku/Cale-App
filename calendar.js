@@ -1,31 +1,40 @@
 const { google } = require("googleapis");
-const { getAuth }  = require("./auth");
+const { getAuth } = require("./auth");
 
-const LESSON_KEYWORDS     = ["HS", "MS", "ES"];
+// Google Calendar → student/one-on-one counts bucketed by day and by canonical
+// minute since midnight (24-hour). No AM/PM inference: the slot minute is taken
+// straight from the event's local wall-clock time. The scheduling engine maps
+// these onto whatever slots the center's config actually defines, so events
+// outside operating hours are simply ignored downstream.
+
+const LESSON_KEYWORDS = ["HS", "MS", "ES"];
 const ONE_ON_ONE_KEYWORDS = ["1-on-1", "one-on-one"];
+const DAYS = [
+  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+];
 
 function classifyEvent(title) {
   if (!title) return "other";
   const lower = title.toLowerCase();
   if (ONE_ON_ONE_KEYWORDS.some((k) => lower.includes(k))) return "oneOnOne";
-  if (LESSON_KEYWORDS.some((k) => title.includes(k))) return "lesson"; // case-sensitive for HS/MS/ES
+  if (LESSON_KEYWORDS.some((k) => title.includes(k))) return "lesson"; // case-sensitive HS/MS/ES
   return "other";
 }
 
+// Returns { day: "monday", minutes: <canonical minutes since midnight> }.
+// hour/minute come directly from the local wall-clock in the dateTime string;
+// the UTC offset is only used to resolve the day of week.
 function parseEventTime(dateTimeStr) {
-  // Parse the local time directly from the string (e.g. "2026-04-07T16:00:00-05:00")
-  // so it works regardless of what timezone the server is running in
-  const [datePart, timePart] = dateTimeStr.split("T");
+  const [, timePart] = dateTimeStr.split("T");
   const [hourStr, minuteStr] = timePart.split(":");
-  const hour = parseInt(hourStr);
-  const minute = parseInt(minuteStr);
+  const hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr, 10);
 
-  // Get the day from the date part directly, accounting for the UTC offset
   const date = new Date(dateTimeStr);
   const offsetMatch = dateTimeStr.match(/([+-]\d{2}):(\d{2})$/);
   let localDate;
   if (offsetMatch) {
-    const offsetMins = parseInt(offsetMatch[1]) * 60 + parseInt(offsetMatch[2]);
+    const offsetMins = parseInt(offsetMatch[1], 10) * 60 + parseInt(offsetMatch[2], 10);
     localDate = new Date(
       date.getTime() + offsetMins * 60000 - date.getTimezoneOffset() * 60000,
     );
@@ -33,27 +42,16 @@ function parseEventTime(dateTimeStr) {
     localDate = date;
   }
 
-  const days = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  return { day: days[localDate.getDay()], hour, minute };
+  return { day: DAYS[localDate.getDay()], minutes: hour * 60 + minute };
 }
 
-function toSlotTime(hour, minute, isSaturday) {
-  let h = hour;
-  if (isSaturday && h > 12) h -= 12;
-  if (!isSaturday && h > 12) h -= 12; // ← add this line
-  return minute >= 30 ? `${h}:30` : `${h}`;
+// Floors a canonical minute to its 30-minute slot start.
+function toSlot(minutes) {
+  return Math.floor(minutes / 30) * 30;
 }
 
 async function getWeekEvents(mondayDate, calendarId = "primary") {
-  const auth     = getAuth();
+  const auth = getAuth();
   const calendar = google.calendar({ version: "v3", auth });
 
   const timeMin = new Date(mondayDate);
@@ -71,42 +69,28 @@ async function getWeekEvents(mondayDate, calendarId = "primary") {
   });
 
   const events = response.data.items || [];
-  const validDays = ["monday","tuesday","wednesday","thursday","saturday"];
-  const studentData  = Object.fromEntries(validDays.map((d) => [d, {}]));
-  const oneOnOneData = Object.fromEntries(validDays.map((d) => [d, {}]));
+  const studentData = {};
+  const oneOnOneData = {};
+  for (const d of DAYS) {
+    studentData[d] = {};
+    oneOnOneData[d] = {};
+  }
 
   for (const event of events) {
-    console.log(
-      "EVENT:",
-      event.summary,
-      "|",
-      event.start?.dateTime,
-      "| type:",
-      classifyEvent(event.summary),
-    );
     if (!event.start?.dateTime) continue;
     const type = classifyEvent(event.summary);
     if (type === "other") continue;
 
-    const { day, hour, minute } = parseEventTime(event.start.dateTime);
-    if (!validDays.includes(day)) continue;
-
-    const isSat    = day === "saturday";
-    const slotTime = toSlotTime(hour, minute, isSat);
+    const { day, minutes } = parseEventTime(event.start.dateTime);
+    const slot = toSlot(minutes);
 
     if (type === "lesson") {
-      // Record start slot
-      studentData[day][slotTime] = (studentData[day][slotTime] || 0) + 1;
-      // All lessons are 60 min — also record the second half-hour slot
-      const nh2 = minute >= 30 ? hour + 1 : hour;
-      const nm2 = minute >= 30 ? 0 : 30;
-      const slotTime2 = toSlotTime(nh2, nm2, isSat);
-      studentData[day][slotTime2] = (studentData[day][slotTime2] || 0) + 1;
+      // All lessons are 60 min → occupy this slot and the next half hour.
+      studentData[day][slot] = (studentData[day][slot] || 0) + 1;
+      studentData[day][slot + 30] = (studentData[day][slot + 30] || 0) + 1;
     } else {
-      oneOnOneData[day][slotTime] = true;
-      const nh = minute >= 30 ? hour + 1 : hour;
-      const nm = minute >= 30 ? 0 : 30;
-      oneOnOneData[day][toSlotTime(nh, nm, isSat)] = true;
+      oneOnOneData[day][slot] = true;
+      oneOnOneData[day][slot + 30] = true;
     }
   }
 
