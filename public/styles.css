@@ -533,7 +533,7 @@ body.dark .wcard {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--accent);
   border-radius: 14px;
   padding: 28px;
   width: min(100%, 420px);
@@ -556,8 +556,12 @@ body.dark .intro-modal-card {
   font-family: "Sora", sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text);
   margin-bottom: 12px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
 }
 
 .intro-modal-copy {
