@@ -94,6 +94,9 @@ const centerSettingsSchema = new mongoose.Schema({
 
   // Tutorial completion status for the center's onboarding tour.
   tutorialCompleted: { type: Boolean, default: false },
+
+  // Whether the first-time intro modal has already been dismissed or taken.
+  introSeen: { type: Boolean, default: false },
 });
 
 const CenterSettings = mongoose.model("CenterSettings", centerSettingsSchema);

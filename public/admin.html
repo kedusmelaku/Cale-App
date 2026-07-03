@@ -319,6 +319,17 @@
             </button>
           </div>
           <div class="stat-card">
+            <div class="stat-label">Intro Modal</div>
+            <div class="stat-value" id="d-intro-val">—</div>
+            <div class="stat-sub" id="d-intro-sub"></div>
+            <button
+              class="admin-btn-edit"
+              id="d-intro-btn"
+              onclick="toggleIntroStatus()">
+              Mark seen
+            </button>
+          </div>
+          <div class="stat-card">
             <div class="stat-label">Last Submission</div>
             <div
               class="stat-value"
@@ -525,6 +536,9 @@
           "d-tut-val",
           "d-tut-sub",
           "d-tut-btn",
+          "d-intro-val",
+          "d-intro-sub",
+          "d-intro-btn",
           "d-activity-val",
           "d-activity-sub",
         ].forEach((id) => {
@@ -534,6 +548,10 @@
             el.textContent = "Mark completed";
             el.disabled = false;
             el.dataset.completed = "0";
+          } else if (id === "d-intro-btn") {
+            el.textContent = "Mark seen";
+            el.disabled = false;
+            el.dataset.seen = "0";
           } else {
             el.textContent = "—";
           }
@@ -607,12 +625,51 @@
         }
       }
 
+      function renderIntroStatus(seen) {
+        const valEl = document.getElementById("d-intro-val");
+        const subEl = document.getElementById("d-intro-sub");
+        const btnEl = document.getElementById("d-intro-btn");
+        if (!valEl || !subEl || !btnEl) return;
+
+        const isSeen = !!seen;
+        valEl.innerHTML = isSeen
+          ? `<span class="admin-dot dot-green"></span>Seen`
+          : `<span class="admin-dot dot-gray"></span>Not seen`;
+        subEl.textContent = isSeen
+          ? "This center has already seen the intro modal"
+          : "The intro modal is still available for this center";
+        btnEl.textContent = isSeen ? "Mark as not seen" : "Mark seen";
+        btnEl.dataset.seen = isSeen ? "1" : "0";
+      }
+
+      async function toggleIntroStatus() {
+        const btn = document.getElementById("d-intro-btn");
+        if (!btn || !_detailCenterId) return;
+        const nextValue = btn.dataset.seen !== "1";
+        btn.disabled = true;
+        try {
+          const res = await fetch(
+            `/api/admin/centers/${_detailCenterId}/intro`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ introSeen: nextValue }),
+            },
+          );
+          if (!res.ok) throw new Error();
+          await openDetail(_detailCenterId);
+        } catch {
+          btn.disabled = false;
+        }
+      }
+
       function renderDetail(d) {
         const {
           center,
           employees,
           settings,
           tutorialCompleted,
+          introSeen,
           calendarConnected,
           weekOf,
           submissionCount,
@@ -651,6 +708,9 @@
         renderTutorialStatus(
           tutorialCompleted ?? settings?.tutorialCompleted ?? false,
         );
+
+        // Intro modal
+        renderIntroStatus(introSeen ?? settings?.introSeen ?? false);
 
         // Form window
         const now = new Date();
