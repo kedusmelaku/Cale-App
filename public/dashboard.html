@@ -1038,8 +1038,12 @@
         if (ring) ring.remove();
       }
 
+      let _tutorialCompletionPending = false;
+
       function applyTutorialCompletionState(settingsDoc) {
-        const completed = !!(settingsDoc && settingsDoc.tutorialCompleted);
+        const completed = _tutorialCompletionPending
+          ? true
+          : !!(settingsDoc && settingsDoc.tutorialCompleted);
         localStorage.setItem(TUT_COMPLETED_KEY, completed ? "1" : "0");
         document.body.classList.toggle("tut-completed", completed);
         localStorage.removeItem(TUT_STORAGE_KEY);
@@ -1049,6 +1053,27 @@
         } else if (!tut.active) {
           tutStopPulseRing();
           tutStartPulseRing();
+        }
+      }
+
+      async function persistTutorialCompletionState(completed) {
+        _tutorialCompletionPending = !!completed;
+        applyTutorialCompletionState({ tutorialCompleted: completed });
+        try {
+          const res = await fetch("/center-settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tutorialCompleted: completed }),
+          });
+          const data = await res.json();
+          if (res.ok && data && data.data) {
+            _centerSettings = data.data;
+            applyTutorialCompletionState(data.data);
+          }
+        } catch (e) {
+          console.warn("Could not save tutorial completion state:", e.message);
+        } finally {
+          _tutorialCompletionPending = false;
         }
       }
 
@@ -1076,9 +1101,7 @@
       const tut = { active: false, step: 0 };
 
       function tutMarkCompleted() {
-        localStorage.setItem(TUT_COMPLETED_KEY, "1");
-        document.body.classList.add("tut-completed");
-        tutStopPulseRing();
+        persistTutorialCompletionState(true);
       }
 
       const TUT_DASHBOARD_STEPS = [
