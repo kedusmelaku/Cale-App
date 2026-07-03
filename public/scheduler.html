@@ -1190,7 +1190,7 @@
               <div class="av-color" style="background:${_getWorkerColor(w.name)}"></div>
               <span class="av-name">${w.name}</span>
               <span class="av-priority ${PRIORITY_CLASSES[w.priority]}">${PRIORITY_LABELS[w.priority]}</span>
-              <span class="info-tag" tabindex="0" aria-label="${PRIORITY_TOOLTIP_ARIA_LABEL}">i<span class="info-tooltip">${PRIORITY_TOOLTIP_HTML}</span></span>
+              <span class="info-tag" tabindex="0" aria-label="${priorityTooltipAria(SCHED_DEFAULTS)}">i<span class="info-tooltip">${priorityTooltipHTML(SCHED_DEFAULTS)}</span></span>
               <label class="av-select-all">
                 <input type="checkbox" ${allSelected ? "checked" : ""} onchange="toggleAllDays('${w.name}', this.checked)">
                 <span>All days</span>

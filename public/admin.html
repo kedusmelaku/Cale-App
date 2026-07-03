@@ -62,6 +62,17 @@
     .admin-page .sched-defaults-title { font-weight: 600; margin-bottom: 4px; }
     .admin-page .sched-defaults-note { font-size: 0.8rem; color: var(--text-muted, #8891a0); margin-bottom: 12px; }
     .admin-page .sched-default-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .admin-page .sched-warnings { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .admin-page .sched-warn-row {
+      font-size: 0.83rem; line-height: 1.35; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid transparent;
+    }
+    .admin-page .sched-warn-row.error {
+      color: #b42318; background: #fef3f2; border-color: #fda29b;
+    }
+    .admin-page .sched-warn-row.warning {
+      color: #93601a; background: #fffaeb; border-color: #fedf89;
+    }
     .admin-page .sched-default-name { min-width: 104px; font-size: 0.86rem; font-weight: 500; }
     .admin-page .sched-default-row select {
       padding: 5px 8px; border: 1px solid var(--border, #d5dae6); border-radius: 7px;
@@ -467,6 +478,12 @@
             errorEl.textContent = "Center ID can only contain lowercase letters, numbers, and hyphens.";
             btn.disabled = false; return;
           }
+          const schedErr = firstSchedError(_createSchedule);
+          if (schedErr) {
+            refreshSchedWarnings();
+            errorEl.textContent = "Please fix the highlighted schedule issue(s) before creating the center.";
+            btn.disabled = false; return;
+          }
           const res = await fetch("/api/admin/centers", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ centerId, name, password, schedule: _createSchedule }),
@@ -598,6 +615,111 @@
       return document.getElementById(_schedTarget === "create" ? "sched-body-create" : "sched-body-detail");
     }
 
+    // ── Schedule sanity checks (client-side, on top of the server's) ──────────
+    // Catches logically-broken but individually-valid entries the server's
+    // field validation doesn't flag — chiefly default hours that fall outside
+    // the weekday open hours (so "available all day" would silently expand to
+    // nothing / fall back to full hours), plus touching blocks and a few others.
+    // Returns [{ level: "error" | "warning", msg }]. Errors block saving.
+    const SCHED_WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+    const SCHED_LEVEL_NAMES = ["Normal", "Priority", "High Priority"];
+
+    function schedIssues(schedule) {
+      const issues = [];
+      if (!schedule) return issues;
+
+      // Auto mode must have both summer dates or neither.
+      if (schedule.mode !== "manual") {
+        const hasStart = schedule.summerStart && schedule.summerStart.month != null;
+        const hasEnd = schedule.summerEnd && schedule.summerEnd.month != null;
+        if (!!hasStart !== !!hasEnd) {
+          issues.push({ level: "error", msg: "Auto mode: set both a summer start and end date, or clear both." });
+        }
+      }
+
+      for (const vName of ["schoolYear", "summer"]) {
+        const v = schedule[vName];
+        if (!v) continue;
+        const label = vName === "summer" ? "Summer" : "School-year";
+
+        // Operating blocks on weekdays — what the priority defaults get clipped to.
+        const weekdayBlocks = [];
+        for (const dk of SCHED_WEEKDAYS) {
+          const d = v[dk];
+          if (d && d.open) for (const b of (d.blocks || [])) weekdayBlocks.push(b);
+        }
+        const anyWeekdayOpen = weekdayBlocks.length > 0;
+
+        let anyOpen = false;
+        for (const dk of SCHED_DAY_KEYS) {
+          if (v[dk] && v[dk].open && (v[dk].blocks || []).length) anyOpen = true;
+        }
+        if (!anyOpen) {
+          issues.push({ level: "error", msg: `${label}: no open days — the schedule needs at least one.` });
+        }
+
+        // Per-day block sanity.
+        for (const dk of SCHED_DAY_KEYS) {
+          const d = v[dk];
+          if (!d || !d.open) continue;
+          const bl = (d.blocks || []).slice().sort((a, b) => a.start - b.start);
+          for (const b of bl) {
+            if (b.start >= b.end) {
+              issues.push({ level: "error", msg: `${label}: ${SCHED_DAY_NAMES[dk]} has a time block that ends at or before it starts.` });
+            }
+          }
+          for (let i = 1; i < bl.length; i++) {
+            if (bl[i].start < bl[i - 1].end) {
+              issues.push({ level: "error", msg: `${label}: ${SCHED_DAY_NAMES[dk]}'s two blocks overlap.` });
+            } else if (bl[i].start === bl[i - 1].end) {
+              issues.push({ level: "warning", msg: `${label}: ${SCHED_DAY_NAMES[dk]}'s two blocks touch with no gap — combine them into one block, or leave a gap between them.` });
+            }
+          }
+        }
+
+        // Priority default windows.
+        const defs = Array.isArray(v.defaults) ? v.defaults : [];
+        defs.forEach((w, i) => {
+          if (!w || w.start == null || w.end == null) return;
+          if (w.start >= w.end) {
+            issues.push({ level: "error", msg: `${label}: ${SCHED_LEVEL_NAMES[i]} default start must be before its end.` });
+            return;
+          }
+          if (anyWeekdayOpen) {
+            const overlaps = weekdayBlocks.some((b) => w.start < b.end && w.end > b.start);
+            if (!overlaps) {
+              issues.push({
+                level: "error",
+                msg: `${label}: ${SCHED_LEVEL_NAMES[i]} default hours (${schedMinToLabel(w.start)}–${schedMinToLabel(w.end)}) fall outside the weekday open hours, so “available all day” has nothing to use.`,
+              });
+            }
+          }
+        });
+      }
+      return issues;
+    }
+
+    function warningsBoxHTML(schedule) {
+      const issues = schedIssues(schedule);
+      const rows = issues
+        .map((x) => `<div class="sched-warn-row ${x.level}">${esc(x.msg)}</div>`)
+        .join("");
+      return `<div class="sched-warnings">${rows}</div>`;
+    }
+
+    function refreshSchedWarnings() {
+      const c = schedContainer();
+      if (!c) return;
+      const box = c.querySelector(".sched-warnings");
+      if (box) box.outerHTML = warningsBoxHTML(_sched);
+    }
+
+    // Returns the first blocking error (or null) — used to gate saving.
+    function firstSchedError(schedule) {
+      const err = schedIssues(schedule).find((x) => x.level === "error");
+      return err ? err.msg : null;
+    }
+
     function openScheduleEditor(schedule, target) {
       _sched = schedule;
       _schedTarget = target;
@@ -721,7 +843,7 @@
             </div>`).join("")}
         </div>`;
 
-      schedContainer().innerHTML = modeHTML + tabsHTML + daysHTML + defaultsHTML;
+      schedContainer().innerHTML = modeHTML + tabsHTML + daysHTML + defaultsHTML + warningsBoxHTML(s);
     }
 
     // Editor mutations (operate on _sched, then re-render where structure changes)
@@ -733,6 +855,7 @@
       const key = which === "start" ? "summerStart" : "summerEnd";
       if (!_sched[key]) _sched[key] = { month: null, day: null };
       _sched[key][field] = val === "" ? null : parseInt(val, 10);
+      refreshSchedWarnings();
     }
     function schedToggleDay(dk, open) {
       const d = _sched[_schedTab][dk];
@@ -758,17 +881,26 @@
     }
     function schedSetBlockTime(dk, i, field, val) {
       _sched[_schedTab][dk].blocks[i][field] = parseInt(val, 10);
+      refreshSchedWarnings();
     }
 
     function schedSetDefault(level, field, val) {
       const v = _sched[_schedTab];
       if (!Array.isArray(v.defaults) || v.defaults.length !== 3) v.defaults = schedDefaultWindows();
       v.defaults[level][field] = parseInt(val, 10);
+      refreshSchedWarnings();
     }
 
     async function saveDetailSchedule() {
       const msg = document.getElementById("sched-save-msg-detail");
       msg.textContent = ""; msg.className = "sched-save-msg";
+      const err = firstSchedError(_sched);
+      if (err) {
+        refreshSchedWarnings();
+        msg.textContent = "Please fix the highlighted issue(s) before saving.";
+        msg.className = "sched-save-msg err";
+        return;
+      }
       try {
         const res = await fetch(`/api/admin/centers/${_detailCenterId}/schedule`, {
           method: "PUT", headers: { "Content-Type": "application/json" },
