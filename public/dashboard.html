@@ -52,6 +52,30 @@
       <button onclick="reconnectCalendarBanner()">Connect Now</button>
     </div>
 
+    <div class="intro-modal-overlay" id="intro-modal" style="display: none">
+      <div
+        class="intro-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="intro-modal-title">
+        <div class="intro-modal-title" id="intro-modal-title">
+          Welcome to Cale
+        </div>
+        <div class="intro-modal-copy">
+          You’re ready to start building your schedule. Take the quick tour to
+          learn the basics, or continue right away.
+        </div>
+        <div class="intro-modal-actions">
+          <button class="btn-primary" onclick="startIntroTour()">
+            Take the tour
+          </button>
+          <button class="btn-secondary" onclick="dismissIntroModal()">
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Screen 1: Employees ── -->
     <div id="screen-workers" class="screen active">
       <!-- ── Top bar ── -->
@@ -1107,6 +1131,48 @@
         } finally {
           _tutorialCompletionPending = false;
         }
+      }
+
+      function showIntroModal() {
+        const modal = document.getElementById("intro-modal");
+        if (!modal) return;
+        modal.style.display = "flex";
+        modal.classList.add("open");
+      }
+
+      function hideIntroModal() {
+        const modal = document.getElementById("intro-modal");
+        if (!modal) return;
+        modal.style.display = "none";
+        modal.classList.remove("open");
+      }
+
+      async function persistIntroSeen(seen) {
+        const nextSeen = !!seen;
+        _centerSettings = { ...(_centerSettings || {}), introSeen: nextSeen };
+        hideIntroModal();
+        try {
+          const res = await fetch("/center-settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ introSeen: nextSeen }),
+          });
+          const data = await res.json();
+          if (res.ok && data && data.data) {
+            _centerSettings = data.data;
+          }
+        } catch (e) {
+          console.warn("Could not save intro modal state:", e.message);
+        }
+      }
+
+      function startIntroTour() {
+        persistIntroSeen(true);
+        tutStart();
+      }
+
+      function dismissIntroModal() {
+        persistIntroSeen(true);
       }
 
       // ── Gear nudge init ─────────────────────────────────────────────
@@ -2514,6 +2580,9 @@
           const data = await res.json();
           _centerSettings = data.data;
           applyTutorialCompletionState(_centerSettings);
+          if (_centerSettings && !_centerSettings.introSeen && !tut.active) {
+            showIntroModal();
+          }
           updateFormCard();
           updateStatusPills();
           loadSubmissions(true);

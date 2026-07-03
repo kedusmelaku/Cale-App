@@ -483,6 +483,7 @@ app.get("/center-settings", requireAuth, async (req, res) => {
         windowOpen: null,
         windowClose: null,
         tutorialCompleted: false,
+        introSeen: false,
       };
     res.json({ data: doc });
   } catch (err) {
@@ -516,6 +517,7 @@ app.get("/center-settings/:centerId", async (req, res) => {
         windowOpen: null,
         windowClose: null,
         tutorialCompleted: false,
+        introSeen: false,
       };
     res.json({ data: doc });
   } catch (err) {
@@ -896,6 +898,7 @@ app.get(
           })),
           settings: settings || null,
           tutorialCompleted: !!(settings && settings.tutorialCompleted),
+          introSeen: !!(settings && settings.introSeen),
           calendarConnected: !!(
             oauthDoc &&
             oauthDoc.token &&
@@ -908,6 +911,31 @@ app.get(
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+app.put(
+  "/api/admin/centers/:centerId/intro",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { centerId } = req.params;
+      const { introSeen } = req.body;
+
+      const doc = await CenterSettings.findOneAndUpdate(
+        { centerId },
+        { centerId, introSeen: !!introSeen },
+        { new: true, upsert: true },
+      );
+
+      res.json({
+        data: { centerId, introSeen: !!doc.introSeen },
+      });
+    } catch (err) {
+      console.error("PUT intro status:", err.message);
+      res.status(500).json({ error: "Could not update intro status." });
     }
   },
 );
