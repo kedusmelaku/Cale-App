@@ -10,57 +10,10 @@
       content="A scheduling tool for tutoring centers — generates weekly staff schedules based on availability and student bookings from Google Calendar"
     />
     <link rel="stylesheet" href="styles.css" />
-    <style>
-      /* Break between two operating blocks — an absolutely-positioned hatched
-         band drawn identically in the label gutter and across the worker area,
-         both at top:bandTop, so they line up exactly regardless of grid-line
-         flow. */
-      .timeline-break {
-        position: absolute;
-        left: 0;
-        right: 0;
-        pointer-events: none;
-        box-sizing: border-box;
-        background-image: repeating-linear-gradient(
-          45deg,
-          var(--border, #d6dae2) 0,
-          var(--border, #d6dae2) 1px,
-          transparent 1px,
-          transparent 6px
-        );
-        border-top: 1px solid var(--border, #d6dae2);
-        border-bottom: 1px solid var(--border, #d6dae2);
-      }
-      /* Transparent spacer in the grid-line flow: no visual of its own, it just
-         reserves the break height so block-2 grid lines stay under block-2
-         shifts. The visible band above is what the user sees. */
-      .timeline-grid-break {
-        width: 100%;
-        box-sizing: border-box;
-      }
-      /* Single centered label across the worker area. */
-      .timeline-break-label {
-        position: absolute;
-        left: 0;
-        right: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none;
-        z-index: 1;
-      }
-      .timeline-break-label span {
-        background: var(--surface, #fff);
-        padding: 1px 8px;
-        border-radius: 999px;
-        border: 1px solid var(--border, #d6dae2);
-        font-size: 9px;
-        line-height: 1.5;
-        letter-spacing: 0.02em;
-        color: var(--text-muted, #8a93a3);
-        white-space: nowrap;
-      }
-      /* Two-block day grouping inside the manual availability editor */
+        <style>
+      /* Manual availability editor: two-block grouping. Kept inline (NOT moved
+         to styles.css) because availability.html defines .av-block-group and
+         .av-sub-indent with different values — sharing them would collide. */
       .av-block-group + .av-block-group {
         margin-top: 8px;
         padding-top: 8px;
@@ -1772,28 +1725,12 @@
       }
 
       // ── Pixel model (per-day slot axis with a two-block break) ──
-      const BREAK_H = 22; // pixels of visual break between two operating blocks
-      function dayGapIndex(dayKey) {
-        const s = SCHED.slots(dayKey);
-        for (let i = 0; i < s.length - 1; i++) if (SCHED.gapAfterSlot(dayKey, i)) return i;
-        return -1;
-      }
-      function slotTopPx(dayKey, idx) {
-        const g = dayGapIndex(dayKey);
-        return idx * SLOT_H + (g >= 0 && idx > g ? BREAK_H : 0);
-      }
-      function colHeightPx(dayKey) {
-        const s = SCHED.slots(dayKey);
-        return s.length * SLOT_H + (dayGapIndex(dayKey) >= 0 ? BREAK_H : 0);
-      }
-      function nearestSlotIndex(dayKey, y) {
-        const s = SCHED.slots(dayKey);
-        let best = 0, bd = Infinity;
-        for (let i = 0; i < s.length; i++) {
-          const d = Math.abs(slotTopPx(dayKey, i) - y);
-          if (d < bd) { bd = d; best = i; }
-        }
-        return best;
+      // Panels are per-block (0-based), so a shift's pixel position is simply
+      // its slot index within its block × SLOT_H — no break-offset math.
+      function blockSlots(block) {
+        const out = [];
+        for (let m = block.start; m < block.end; m += 30) out.push(m);
+        return out;
       }
 
       // OOB shading rectangles, in pixels relative to the worker block's top.
@@ -1819,74 +1756,76 @@
         let html = `<div class="timeline${isEdit ? " timeline-edit" : ""}">`;
         data.forEach((day, di) => {
           const dk = day.dayKey;
-          const slots = SCHED.slots(dk);
-          const gap = dayGapIndex(dk);
-          const totalH = colHeightPx(dk);
+          const ops = SCHED.blocks(dk); // one or two operating blocks
 
-          // Slot labels (start of each slot) + final block-end boundary label.
-          let slotLabels = slots
-            .map((min, i) => {
-              const handler = `onmouseenter="showSlotTooltip(event,${di},${min})" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`;
-              return `<div class="timeline-line-label tooltip-sensor" style="top:${slotTopPx(dk, i)}px;" ${handler}>${minToClock(min)}</div>`;
-            })
-            .join("");
-          // Final boundary (end of last block) label
-          if (slots.length) {
-            const lastEnd = slots[slots.length - 1] + 30;
-            slotLabels += `<div class="timeline-line-label" style="top:${totalH}px;">${minToClock(lastEnd)}</div>`;
-          }
+          let panelsHtml = "";
+          ops.forEach((ob, bi) => {
+            const bslots = blockSlots(ob);
+            const panelH = bslots.length * SLOT_H;
 
-          // Break band between the two operating blocks.
-          let breakBand = "";
-          let breakLabel = "";
-          if (gap >= 0) {
-            const block1End = slots[gap] + 30;
-            const block2Start = slots[gap + 1];
-            const bandTop = (gap + 1) * SLOT_H;
-            // Identical hatched band, drawn absolutely at the same top in both
-            // the gutter and the worker area so the two line up exactly.
-            breakBand = `<div class="timeline-break" style="top:${bandTop}px; height:${BREAK_H}px;"></div>`;
-            breakLabel = `<div class="timeline-break-label" style="top:${bandTop}px; height:${BREAK_H}px;"><span>${minToClock(block1End)}–${minToClock(block2Start)} break</span></div>`;
-          }
+            // Slot-start labels + the final block-end boundary label.
+            let slotLabels = bslots
+              .map((min, i) => {
+                const handler = `onmouseenter="showSlotTooltip(event,${di},${min})" onmouseleave="hideSlotTooltip()" onmousemove="positionTooltip(event)"`;
+                return `<div class="timeline-line-label tooltip-sensor" style="top:${i * SLOT_H}px;" ${handler}>${minToClock(min)}</div>`;
+              })
+              .join("");
+            slotLabels += `<div class="timeline-line-label" style="top:${panelH}px;">${minToClock(ob.end)}</div>`;
 
-          // Grid lines, with a transparent spacer at the gap so block-2 lines
-          // (and the shifts sitting on them) stay aligned under the break.
-          const gridLines = slots
-            .map((min, i) =>
-              '<div class="timeline-grid-line"></div>' +
-              (i === gap ? `<div class="timeline-grid-break" style="height:${BREAK_H}px;"></div>` : ""),
-            )
-            .join("");
+            const gridLines = bslots
+              .map(() => '<div class="timeline-grid-line"></div>')
+              .join("");
 
-          const workerCols = day.assignments
-            .map((a, ai) => {
-              const startIdx = slots.indexOf(a.start);
-              const top = startIdx >= 0 ? slotTopPx(dk, startIdx) : 0;
-              const height = ((a.end - a.start) / 30) * SLOT_H;
-              const color = _getWorkerColor(a.name);
-              const draggable = isEdit ? `data-day="${di}" data-ai="${ai}"` : "";
-              const resizable = isEdit
-                ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
-                : "";
-              const removable = isEdit
-                ? `<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.dayName}" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</button>`
-                : "";
-              const oobOverlay = isEdit
-                ? computeOobRects(a)
-                    .map((r) => `<div class="oob-overlay" style="top:${r.top}px; height:${r.height}px;"></div>`)
-                    .join("")
-                : "";
-              return `
-              <div class="timeline-worker-col">
-                <div class="timeline-grid-lines">${gridLines}</div>
-                <div class="worker-block ${isEdit ? "draggable" : ""}"
-                  style="top:${top}px; height:${height}px; background:${color};"
-                  title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
-                  ${a.name}${oobOverlay}${resizable}${removable}
+            // One column per shift that falls in THIS block, keeping each
+            // shift's original index in day.assignments so the edit handlers
+            // (drag/resize/remove) stay valid.
+            const workerCols = day.assignments
+              .map((a, ai) => ({ a, ai }))
+              .filter(({ a }) => SCHED.blockIndexAt(dk, a.start) === bi)
+              .map(({ a, ai }) => {
+                const startIdx = bslots.indexOf(a.start);
+                const top = startIdx >= 0 ? startIdx * SLOT_H : 0;
+                const height = ((a.end - a.start) / 30) * SLOT_H;
+                const color = _getWorkerColor(a.name);
+                const draggable = isEdit ? `data-day="${di}" data-ai="${ai}"` : "";
+                const resizable = isEdit
+                  ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
+                  : "";
+                const removable = isEdit
+                  ? `<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.dayName}" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</button>`
+                  : "";
+                const oobOverlay = isEdit
+                  ? computeOobRects(a)
+                      .map((r) => `<div class="oob-overlay" style="top:${r.top}px; height:${r.height}px;"></div>`)
+                      .join("")
+                  : "";
+                return `
+                <div class="timeline-worker-col">
+                  <div class="timeline-grid-lines">${gridLines}</div>
+                  <div class="worker-block ${isEdit ? "draggable" : ""}"
+                    style="top:${top}px; height:${height}px; background:${color};"
+                    title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
+                    ${a.name}${oobOverlay}${resizable}${removable}
+                  </div>
+                </div>`;
+              })
+              .join("");
+
+            panelsHtml += `
+              <div class="timeline-panel">
+                <div class="timeline-panel-head">${minToLabel(ob.start)} – ${minToLabel(ob.end)}</div>
+                <div class="timeline-body">
+                  <div class="timeline-slots" style="height:${panelH}px;">${slotLabels}</div>
+                  <div class="timeline-workers" style="height:${panelH}px;">${workerCols}</div>
                 </div>
               </div>`;
-            })
-            .join("");
+
+            // Slim break divider between consecutive blocks.
+            if (bi < ops.length - 1) {
+              const nextStart = ops[bi + 1].start;
+              panelsHtml += `<div class="timeline-break-divider">break · ${minToClock(ob.end)}–${minToClock(nextStart)}</div>`;
+            }
+          });
 
           const addBtn = isEdit
             ? `<button class="add-shift-btn" onmousedown="event.stopPropagation()" onclick="openAddShiftModal(${di})">+ Add Employee</button>`
@@ -1896,10 +1835,7 @@
           html += `
             <div class="timeline-day">
               <div class="timeline-day-header">${day.dayName}${dateStr}</div>
-              <div class="timeline-body">
-                <div class="timeline-slots" style="height:${totalH}px;">${slotLabels}${breakBand}</div>
-                <div class="timeline-workers" style="height:${totalH}px;">${workerCols}${breakBand}${breakLabel}</div>
-              </div>
+              <div class="timeline-day-stack">${panelsHtml}</div>
               ${addBtn}
             </div>`;
         });
@@ -1946,15 +1882,15 @@
         const day = scheduleData[di];
         const dk = day.dayKey;
         const a = day.assignments[ai];
-        const slots = SCHED.slots(dk);
+        const bi = SCHED.blockIndexAt(dk, a.start);
+        const ob = SCHED.blocks(dk)[bi] || { start: a.start, end: a.end };
+        const slots = blockSlots(ob); // 0-based within this block's panel
         const startIdx = Math.max(0, slots.indexOf(a.start));
         const durSlots = Math.max(1, Math.round((a.end - a.start) / 30));
-        const bi = SCHED.blockIndexAt(dk, a.start);
-        const ob = SCHED.blocks(dk)[bi] || { start: slots[0], end: slots[slots.length - 1] + 30 };
         return {
           dk, slots, startIdx, durSlots,
-          blockLoIdx: slots.indexOf(ob.start),
-          blockHiIdx: slots.indexOf(ob.end - 30),
+          blockLoIdx: 0,
+          blockHiIdx: slots.length - 1,
         };
       }
 
@@ -1994,13 +1930,13 @@
 
       function onDragMove(e) {
         if (!dragState) return;
-        const dk = dragState.dk;
         const dy = e.clientY - dragState.startY;
         if (dragState.type === "move") {
-          let idx = nearestSlotIndex(dk, dragState.startTop + dy);
+          // Panel coordinates are 0-based, so top = idx × SLOT_H (linear).
+          let idx = Math.round((dragState.startTop + dy) / SLOT_H);
           idx = Math.max(dragState.blockLoIdx, Math.min(idx, dragState.blockHiIdx - dragState.curDur + 1));
           dragState.curStartIdx = idx;
-          dragState.block.style.top = slotTopPx(dk, idx) + "px";
+          dragState.block.style.top = idx * SLOT_H + "px";
         } else {
           let dur = Math.round((dragState.startHeight + dy) / SLOT_H);
           dur = Math.max(1, Math.min(dur, dragState.blockHiIdx - dragState.startIdx + 1));
