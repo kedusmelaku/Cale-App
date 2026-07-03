@@ -11,11 +11,16 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <style>
-      /* Break between two operating blocks — a hatched band that spans the
-         whole timeline row (label gutter + every worker column) so the two
-         blocks read as clearly, cleanly separated. */
-      .timeline-break,
-      .timeline-grid-break {
+      /* Break between two operating blocks — an absolutely-positioned hatched
+         band drawn identically in the label gutter and across the worker area,
+         both at top:bandTop, so they line up exactly regardless of grid-line
+         flow. */
+      .timeline-break {
+        position: absolute;
+        left: 0;
+        right: 0;
+        pointer-events: none;
+        box-sizing: border-box;
         background-image: repeating-linear-gradient(
           45deg,
           var(--border, #d6dae2) 0,
@@ -25,20 +30,13 @@
         );
         border-top: 1px solid var(--border, #d6dae2);
         border-bottom: 1px solid var(--border, #d6dae2);
-        box-sizing: border-box;
       }
-      /* Gutter band (inside .timeline-slots, absolutely positioned). */
-      .timeline-break {
-        position: absolute;
-        left: 0;
-        right: 0;
-        pointer-events: none;
-      }
-      /* Per-column band (in the grid-line flow); the top border is supplied by
-         the last grid line of block 1, so suppress it here to avoid doubling. */
+      /* Transparent spacer in the grid-line flow: no visual of its own, it just
+         reserves the break height so block-2 grid lines stay under block-2
+         shifts. The visible band above is what the user sees. */
       .timeline-grid-break {
         width: 100%;
-        border-top: none;
+        box-sizing: border-box;
       }
       /* Single centered label across the worker area. */
       .timeline-break-label {
@@ -1845,14 +1843,14 @@
             const block1End = slots[gap] + 30;
             const block2Start = slots[gap + 1];
             const bandTop = (gap + 1) * SLOT_H;
-            // Hatched band in the label gutter …
+            // Identical hatched band, drawn absolutely at the same top in both
+            // the gutter and the worker area so the two line up exactly.
             breakBand = `<div class="timeline-break" style="top:${bandTop}px; height:${BREAK_H}px;"></div>`;
-            // … and one centered label across the (wide) worker area.
             breakLabel = `<div class="timeline-break-label" style="top:${bandTop}px; height:${BREAK_H}px;"><span>${minToClock(block1End)}–${minToClock(block2Start)} break</span></div>`;
           }
 
-          // Grid lines, with a matching hatched spacer at the gap so block-2
-          // lines (and the blocks sitting on them) stay aligned.
+          // Grid lines, with a transparent spacer at the gap so block-2 lines
+          // (and the shifts sitting on them) stay aligned under the break.
           const gridLines = slots
             .map((min, i) =>
               '<div class="timeline-grid-line"></div>' +
@@ -1900,7 +1898,7 @@
               <div class="timeline-day-header">${day.dayName}${dateStr}</div>
               <div class="timeline-body">
                 <div class="timeline-slots" style="height:${totalH}px;">${slotLabels}${breakBand}</div>
-                <div class="timeline-workers" style="height:${totalH}px;">${workerCols}${breakLabel}</div>
+                <div class="timeline-workers" style="height:${totalH}px;">${workerCols}${breakBand}${breakLabel}</div>
               </div>
               ${addBtn}
             </div>`;
