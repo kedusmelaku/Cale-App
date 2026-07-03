@@ -964,7 +964,7 @@ input[type="date"]:focus-visible {
 /* ── Timeline ── */
 .timeline { display: flex; gap: 10px; min-width: 500px; }
 
-.timeline-day { flex: 1; min-width: 120px; }
+.timeline-day { flex: 1; min-width: 148px; } /* 148 (was 120) to fit the per-block panel headers; .timeline-day is used only by scheduler.html */
 
 .timeline-day-header {
   background: var(--accent);
@@ -1069,6 +1069,59 @@ input[type="date"]:focus-visible {
 .edit-body { flex: 1; overflow: auto; padding: 20px 24px; }
 .edit-timeline-wrap { min-width: 800px; }
 .timeline-edit .timeline-day { min-width: 160px; }
+
+/* Two-block days render as stacked per-block panels inside the day card
+   (scheduler.html only). Each panel is a self-contained mini-schedule; a
+   single-block day is just one panel. */
+.timeline-day-stack {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
+  padding: 8px;
+}
+.timeline-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.timeline-panel-head {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface2);
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+/* Inside a panel the body drops its standalone border/radius (the panel
+   supplies them). Scoped, so the base .timeline-body is untouched. */
+.timeline-panel .timeline-body {
+  border: none;
+  border-radius: 0;
+}
+/* Slim "break" divider between two stacked panels. */
+.timeline-break-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.timeline-break-divider::before,
+.timeline-break-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed var(--border);
+}
 
 .worker-block.draggable { cursor: grab; user-select: none; }
 .worker-block.draggable:active { cursor: grabbing; }
