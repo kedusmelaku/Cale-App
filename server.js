@@ -478,7 +478,12 @@ app.get("/center-settings", requireAuth, async (req, res) => {
     await connectDB();
     let doc = await CenterSettings.findOne({ centerId: req.centerId });
     if (!doc)
-      doc = { centerId: req.centerId, windowOpen: null, windowClose: null };
+      doc = {
+        centerId: req.centerId,
+        windowOpen: null,
+        windowClose: null,
+        tutorialCompleted: false,
+      };
     res.json({ data: doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -505,7 +510,13 @@ app.get("/center-settings/:centerId", async (req, res) => {
     await connectDB();
     const { centerId } = req.params;
     let doc = await CenterSettings.findOne({ centerId });
-    if (!doc) doc = { centerId, windowOpen: null, windowClose: null };
+    if (!doc)
+      doc = {
+        centerId,
+        windowOpen: null,
+        windowClose: null,
+        tutorialCompleted: false,
+      };
     res.json({ data: doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
