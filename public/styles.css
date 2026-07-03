@@ -2228,13 +2228,14 @@ body.tut-completed .btn-gear::after {
    contracts back to the gear — drawing the eye toward it.    */
 #tut-gear-ripple {
   position: fixed;
-  top: 28px;
-  right: 28px;
+  left: 0;
+  top: 0;
   width: 1px;
   height: 1px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
+  transform: translate(-50%, -50%);
   animation: tut-ripple-intro 2s ease-in-out forwards;
 }
 
