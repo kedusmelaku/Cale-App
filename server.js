@@ -64,9 +64,14 @@ function requireAuth(req, res, next) {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
       req.centerId = payload.centerId;
       return next();
-    } catch { /* invalid or expired — fall through */ }
+    } catch {
+      /* invalid or expired — fall through */
+    }
   }
-  if (req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"))) {
+  if (
+    req.xhr ||
+    (req.headers.accept && req.headers.accept.includes("application/json"))
+  ) {
     return res.status(401).json({ error: "Not authenticated." });
   }
   res.redirect("/login");
@@ -81,7 +86,10 @@ function requireAdmin(req, res, next) {
       if (payload.admin) return next();
     } catch {}
   }
-  if (req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"))) {
+  if (
+    req.xhr ||
+    (req.headers.accept && req.headers.accept.includes("application/json"))
+  ) {
     return res.status(401).json({ error: "Not authenticated." });
   }
   res.redirect("/admin/login");
@@ -118,16 +126,34 @@ app.post("/api/login", async (req, res) => {
   try {
     await connectDB();
     const { centerId, password } = req.body;
-    if (!centerId || !password) return res.status(400).json({ error: "Center ID and password required." });
+    if (!centerId || !password)
+      return res
+        .status(400)
+        .json({ error: "Center ID and password required." });
 
-    const center = await Center.findOne({ centerId: centerId.trim().toLowerCase() });
-    if (!center) return res.status(401).json({ error: "Incorrect Center ID or password." });
+    const center = await Center.findOne({
+      centerId: centerId.trim().toLowerCase(),
+    });
+    if (!center)
+      return res
+        .status(401)
+        .json({ error: "Incorrect Center ID or password." });
 
     const match = await bcrypt.compare(password, center.passwordHash);
-    if (!match) return res.status(401).json({ error: "Incorrect Center ID or password." });
+    if (!match)
+      return res
+        .status(401)
+        .json({ error: "Incorrect Center ID or password." });
 
-    const token = jwt.sign({ centerId: center.centerId }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.setHeader("Set-Cookie", `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+    const token = jwt.sign(
+      { centerId: center.centerId },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+    res.setHeader(
+      "Set-Cookie",
+      `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`,
+    );
     res.json({ ok: true });
   } catch (err) {
     console.error("/api/login:", err.message);
@@ -136,7 +162,10 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.post("/api/logout", (req, res) => {
-  res.setHeader("Set-Cookie", "token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
+  res.setHeader(
+    "Set-Cookie",
+    "token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0",
+  );
   res.json({ ok: true });
 });
 
@@ -301,18 +330,64 @@ app.get("/events/mock", requireAuth, (req, res) => {
   // the default operating slots (Mon–Thu 3–8 PM = 900–1170, Sat 10–2 = 600–810).
   res.json({
     studentData: {
-      monday:    { 960: 3, 990: 4, 1020: 6, 1050: 5, 1080: 4, 1110: 3, 1140: 2, 1170: 1 },
-      tuesday:   { 960: 2, 990: 3, 1020: 5, 1050: 6, 1080: 5, 1110: 4, 1140: 3, 1170: 2 },
-      wednesday: { 900: 1, 930: 2, 960: 4, 990: 5, 1020: 4, 1050: 3, 1080: 5, 1110: 6, 1140: 3 },
-      thursday:  { 960: 3, 990: 5, 1020: 6, 1050: 5, 1080: 4, 1110: 6, 1140: 4, 1170: 2 },
-      saturday:  { 600: 4, 630: 5, 660: 6, 690: 5, 720: 4, 750: 3, 780: 4, 810: 3 },
+      monday: {
+        960: 3,
+        990: 4,
+        1020: 6,
+        1050: 5,
+        1080: 4,
+        1110: 3,
+        1140: 2,
+        1170: 1,
+      },
+      tuesday: {
+        960: 2,
+        990: 3,
+        1020: 5,
+        1050: 6,
+        1080: 5,
+        1110: 4,
+        1140: 3,
+        1170: 2,
+      },
+      wednesday: {
+        900: 1,
+        930: 2,
+        960: 4,
+        990: 5,
+        1020: 4,
+        1050: 3,
+        1080: 5,
+        1110: 6,
+        1140: 3,
+      },
+      thursday: {
+        960: 3,
+        990: 5,
+        1020: 6,
+        1050: 5,
+        1080: 4,
+        1110: 6,
+        1140: 4,
+        1170: 2,
+      },
+      saturday: {
+        600: 4,
+        630: 5,
+        660: 6,
+        690: 5,
+        720: 4,
+        750: 3,
+        780: 4,
+        810: 3,
+      },
     },
     oneOnOneData: {
-      monday:    { 1020: true, 1050: true },
-      tuesday:   {},
+      monday: { 1020: true, 1050: true },
+      tuesday: {},
       wednesday: { 1080: true, 1110: true },
-      thursday:  {},
-      saturday:  { 660: true, 690: true },
+      thursday: {},
+      saturday: { 660: true, 690: true },
     },
   });
 });
@@ -351,13 +426,13 @@ app.get("/events", requireAuth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMPLOYEES
 // ─────────────────────────────────────────────────────────────────────────────
-app.get("/employees", requireAuth, async (req,res) => {
-  try{  
+app.get("/employees", requireAuth, async (req, res) => {
+  try {
     await connectDB();
     const result = await Employee.find({ centerId: req.centerId });
-    res.json({data: result})
+    res.json({ data: result });
   } catch (err) {
-    res.status(500).json({error: err.message});
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -385,7 +460,9 @@ app.delete("/employees/:id", requireAuth, async (req, res) => {
 app.put("/employees/:id", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
     res.json({ data: employee });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -400,7 +477,8 @@ app.get("/center-settings", requireAuth, async (req, res) => {
   try {
     await connectDB();
     let doc = await CenterSettings.findOne({ centerId: req.centerId });
-    if (!doc) doc = { centerId: req.centerId, windowOpen: null, windowClose: null };
+    if (!doc)
+      doc = { centerId: req.centerId, windowOpen: null, windowClose: null };
     res.json({ data: doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -413,7 +491,7 @@ app.put("/center-settings", requireAuth, async (req, res) => {
     const doc = await CenterSettings.findOneAndUpdate(
       { centerId: req.centerId },
       { ...req.body, centerId: req.centerId },
-      { new: true, upsert: true }
+      { new: true, upsert: true },
     );
     res.json({ data: doc });
   } catch (err) {
@@ -465,16 +543,28 @@ app.post("/submissions", async (req, res) => {
     const settings = await CenterSettings.findOne({ centerId });
     const now = new Date();
     if (settings && settings.windowOpen && settings.windowClose) {
-      if (now < new Date(settings.windowOpen) || now > new Date(settings.windowClose)) {
-        return res.status(403).json({ error: "The availability window is not currently open." });
+      if (
+        now < new Date(settings.windowOpen) ||
+        now > new Date(settings.windowClose)
+      ) {
+        return res
+          .status(403)
+          .json({ error: "The availability window is not currently open." });
       }
     }
 
     // Upsert — replace any existing submission for this employee+week
     const submission = await Submission.findOneAndUpdate(
       { centerId, employeeId, weekOf },
-      { centerId, employeeId, employeeName, weekOf, days, submittedAt: new Date() },
-      { new: true, upsert: true }
+      {
+        centerId,
+        employeeId,
+        employeeName,
+        weekOf,
+        days,
+        submittedAt: new Date(),
+      },
+      { new: true, upsert: true },
     );
     res.json({ data: submission });
   } catch (err) {
@@ -507,17 +597,26 @@ app.post("/availability/lookup", async (req, res) => {
   try {
     await connectDB();
     const { pin, centerId } = req.body;
-    if (!pin || !centerId) return res.status(400).json({ error: "PIN and center ID required." });
+    if (!pin || !centerId)
+      return res.status(400).json({ error: "PIN and center ID required." });
 
     const employee = await Employee.findOne({ centerId, pin: pin.toString() });
-    if (!employee) return res.status(404).json({ error: "No employee found with that PIN." });
+    if (!employee)
+      return res
+        .status(404)
+        .json({ error: "No employee found with that PIN." });
 
-    res.json({ data: { _id: employee._id, name: employee.name, priority: employee.priority } });
+    res.json({
+      data: {
+        _id: employee._id,
+        name: employee.name,
+        priority: employee.priority,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 app.post("/generate", requireAuth, async (req, res) => {
   try {
@@ -594,8 +693,14 @@ app.post("/generate", requireAuth, async (req, res) => {
 app.get("/api/me", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const center = await Center.findOne({ centerId: req.centerId }, { name: 1 });
-    res.json({ centerId: req.centerId, centerName: center ? center.name : req.centerId });
+    const center = await Center.findOne(
+      { centerId: req.centerId },
+      { name: 1 },
+    );
+    res.json({
+      centerId: req.centerId,
+      centerName: center ? center.name : req.centerId,
+    });
   } catch {
     res.json({ centerId: req.centerId, centerName: req.centerId });
   }
@@ -627,8 +732,13 @@ app.post("/api/admin/login", async (req, res) => {
     if (!password) return res.status(400).json({ error: "Password required." });
     const match = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
     if (!match) return res.status(401).json({ error: "Incorrect password." });
-    const token = jwt.sign({ admin: true }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.setHeader("Set-Cookie", `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+    const token = jwt.sign({ admin: true }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.setHeader(
+      "Set-Cookie",
+      `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`,
+    );
     res.json({ ok: true });
   } catch (err) {
     console.error("/api/admin/login:", err.message);
@@ -653,10 +763,17 @@ app.post("/api/admin/centers", requireAdmin, async (req, res) => {
     await connectDB();
     const { centerId, name, password } = req.body;
     if (!centerId || !name || !password) {
-      return res.status(400).json({ error: "centerId, name, and password are required." });
+      return res
+        .status(400)
+        .json({ error: "centerId, name, and password are required." });
     }
-    const existing = await Center.findOne({ centerId: centerId.trim().toLowerCase() });
-    if (existing) return res.status(409).json({ error: "A center with that ID already exists." });
+    const existing = await Center.findOne({
+      centerId: centerId.trim().toLowerCase(),
+    });
+    if (existing)
+      return res
+        .status(409)
+        .json({ error: "A center with that ID already exists." });
 
     // Schedule is set at creation. Fall back to the default (which reproduces
     // the app's original Mon–Thu 3–8 / Sat 10–2 behavior) if none was sent.
@@ -694,7 +811,7 @@ app.put("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
     const center = await Center.findOneAndUpdate(
       { centerId: req.params.centerId },
       update,
-      { new: true, projection: { passwordHash: 0 } }
+      { new: true, projection: { passwordHash: 0 } },
     );
     if (!center) return res.status(404).json({ error: "Center not found." });
     res.json({ data: center });
@@ -720,99 +837,154 @@ app.delete("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
 });
 
 // Center detail view — returns everything the admin needs in one call
-app.get("/api/admin/centers/:centerId/details", requireAdmin, async (req, res) => {
-  try {
-    await connectDB();
-    const { centerId } = req.params;
+app.get(
+  "/api/admin/centers/:centerId/details",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { centerId } = req.params;
 
-    const center = await Center.findOne({ centerId }, { passwordHash: 0 });
-    if (!center) return res.status(404).json({ error: "Center not found." });
+      const center = await Center.findOne({ centerId }, { passwordHash: 0 });
+      if (!center) return res.status(404).json({ error: "Center not found." });
 
-    const employees = await Employee.find({ centerId });
-    const settings  = await CenterSettings.findOne({ centerId });
-    const oauthDoc  = await OAuthToken.findOne({ centerId });
+      const employees = await Employee.find({ centerId });
+      const settings = await CenterSettings.findOne({ centerId });
+      const oauthDoc = await OAuthToken.findOne({ centerId });
 
-    // Current week's Monday (same logic as the frontend uses)
-    const now = new Date();
-    const day = now.getDay();
-    const diffToMon = day === 0 ? -6 : 1 - day;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMon);
-    const weekOf = monday.toISOString().slice(0, 10);
+      // Current week's Monday (same logic as the frontend uses)
+      const now = new Date();
+      const day = now.getDay();
+      const diffToMon = day === 0 ? -6 : 1 - day;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMon);
+      const weekOf = monday.toISOString().slice(0, 10);
 
-    const submissions = await Submission.find({ centerId, weekOf }).sort({ submittedAt: 1 });
-    const lastSub = submissions.length > 0 ? submissions[submissions.length - 1].submittedAt : null;
+      const submissions = await Submission.find({ centerId, weekOf }).sort({
+        submittedAt: 1,
+      });
+      const lastSub =
+        submissions.length > 0
+          ? submissions[submissions.length - 1].submittedAt
+          : null;
 
-    // Also check last submission across all weeks for "last activity"
-    const anyLastSub = await Submission.findOne({ centerId }).sort({ submittedAt: -1 });
+      // Also check last submission across all weeks for "last activity"
+      const anyLastSub = await Submission.findOne({ centerId }).sort({
+        submittedAt: -1,
+      });
 
-    res.json({
-      data: {
-        center,
-        employees: employees.map(e => ({
-          _id: e._id,
-          name: e.name,
-          priority: e.priority,
-          hasPin: !!(e.pin && e.pin.trim()),
-          pin: e.pin,
-        })),
-        settings: settings || null,
-        calendarConnected: !!(oauthDoc && oauthDoc.token &&
-          (oauthDoc.token.access_token || oauthDoc.token.refresh_token)),
-        weekOf,
-        submissionCount: submissions.length,
-        lastActivityAt: anyLastSub ? anyLastSub.submittedAt : null,
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+      res.json({
+        data: {
+          center,
+          employees: employees.map((e) => ({
+            _id: e._id,
+            name: e.name,
+            priority: e.priority,
+            hasPin: !!(e.pin && e.pin.trim()),
+            pin: e.pin,
+          })),
+          settings: settings || null,
+          tutorialCompleted: !!(settings && settings.tutorialCompleted),
+          calendarConnected: !!(
+            oauthDoc &&
+            oauthDoc.token &&
+            (oauthDoc.token.access_token || oauthDoc.token.refresh_token)
+          ),
+          weekOf,
+          submissionCount: submissions.length,
+          lastActivityAt: anyLastSub ? anyLastSub.submittedAt : null,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+app.put(
+  "/api/admin/centers/:centerId/tutorial",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { centerId } = req.params;
+      const { tutorialCompleted } = req.body;
+
+      const doc = await CenterSettings.findOneAndUpdate(
+        { centerId },
+        { centerId, tutorialCompleted: !!tutorialCompleted },
+        { new: true, upsert: true },
+      );
+
+      res.json({
+        data: { centerId, tutorialCompleted: !!doc.tutorialCompleted },
+      });
+    } catch (err) {
+      console.error("PUT tutorial status:", err.message);
+      res.status(500).json({ error: "Could not update tutorial status." });
+    }
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCHEDULE CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Admin: read a center's full schedule config (both variants).
-app.get("/api/admin/centers/:centerId/schedule", requireAdmin, async (req, res) => {
-  try {
-    await connectDB();
-    const { centerId } = req.params;
-    const center = await Center.findOne({ centerId });
-    if (!center) return res.status(404).json({ error: "Center not found." });
+app.get(
+  "/api/admin/centers/:centerId/schedule",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { centerId } = req.params;
+      const center = await Center.findOne({ centerId });
+      if (!center) return res.status(404).json({ error: "Center not found." });
 
-    const settings = await CenterSettings.findOne({ centerId });
-    const schedule = (settings && settings.schedule) || defaultSchedule();
-    res.json({ data: { schedule, activeVariant: resolveActiveName(schedule) } });
-  } catch (err) {
-    console.error("GET schedule:", err.message);
-    res.status(500).json({ error: "Could not load the schedule." });
-  }
-});
+      const settings = await CenterSettings.findOne({ centerId });
+      const schedule = (settings && settings.schedule) || defaultSchedule();
+      res.json({
+        data: { schedule, activeVariant: resolveActiveName(schedule) },
+      });
+    } catch (err) {
+      console.error("GET schedule:", err.message);
+      res.status(500).json({ error: "Could not load the schedule." });
+    }
+  },
+);
 
 // Admin: save a center's full schedule config.
-app.put("/api/admin/centers/:centerId/schedule", requireAdmin, async (req, res) => {
-  try {
-    await connectDB();
-    const { centerId } = req.params;
-    const center = await Center.findOne({ centerId });
-    if (!center) return res.status(404).json({ error: "Center not found." });
+app.put(
+  "/api/admin/centers/:centerId/schedule",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { centerId } = req.params;
+      const center = await Center.findOne({ centerId });
+      if (!center) return res.status(404).json({ error: "Center not found." });
 
-    const schedErr = validateSchedule(req.body.schedule);
-    if (schedErr) return res.status(400).json({ error: schedErr });
-    const schedule = normalizeSchedule(req.body.schedule);
+      const schedErr = validateSchedule(req.body.schedule);
+      if (schedErr) return res.status(400).json({ error: schedErr });
+      const schedule = normalizeSchedule(req.body.schedule);
 
-    const doc = await CenterSettings.findOneAndUpdate(
-      { centerId },
-      { centerId, schedule },
-      { new: true, upsert: true },
-    );
-    res.json({ data: { schedule: doc.schedule, activeVariant: resolveActiveName(doc.schedule) } });
-  } catch (err) {
-    console.error("PUT schedule:", err.message);
-    res.status(500).json({ error: "Could not save the schedule." });
-  }
-});
+      const doc = await CenterSettings.findOneAndUpdate(
+        { centerId },
+        { centerId, schedule },
+        { new: true, upsert: true },
+      );
+      res.json({
+        data: {
+          schedule: doc.schedule,
+          activeVariant: resolveActiveName(doc.schedule),
+        },
+      });
+    } catch (err) {
+      console.error("PUT schedule:", err.message);
+      res.status(500).json({ error: "Could not save the schedule." });
+    }
+  },
+);
 
 // Manager-facing: the current center's resolved active operating schedule.
 // Used by the dashboard and scheduler to build days/hours dynamically.

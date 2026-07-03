@@ -3517,6 +3517,11 @@ body.admin-page .stat-card {
   padding: 16px 18px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
+body.admin-page .stat-card .admin-btn-edit {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+}
 body.admin-page .stat-label {
   font-size: 0.78rem;
   font-weight: 600;
