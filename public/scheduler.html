@@ -11,8 +11,37 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <style>
-      /* Labeled break between two operating blocks in the timeline axis */
+      /* Break between two operating blocks — a hatched band that spans the
+         whole timeline row (label gutter + every worker column) so the two
+         blocks read as clearly, cleanly separated. */
+      .timeline-break,
+      .timeline-grid-break {
+        background-image: repeating-linear-gradient(
+          45deg,
+          var(--border, #d6dae2) 0,
+          var(--border, #d6dae2) 1px,
+          transparent 1px,
+          transparent 6px
+        );
+        border-top: 1px solid var(--border, #d6dae2);
+        border-bottom: 1px solid var(--border, #d6dae2);
+        box-sizing: border-box;
+      }
+      /* Gutter band (inside .timeline-slots, absolutely positioned). */
       .timeline-break {
+        position: absolute;
+        left: 0;
+        right: 0;
+        pointer-events: none;
+      }
+      /* Per-column band (in the grid-line flow); the top border is supplied by
+         the last grid line of block 1, so suppress it here to avoid doubling. */
+      .timeline-grid-break {
+        width: 100%;
+        border-top: none;
+      }
+      /* Single centered label across the worker area. */
+      .timeline-break-label {
         position: absolute;
         left: 0;
         right: 0;
@@ -20,21 +49,16 @@
         align-items: center;
         justify-content: center;
         pointer-events: none;
+        z-index: 1;
       }
-      .timeline-break::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 50%;
-        border-top: 1px dashed var(--border, #d6dae2);
-      }
-      .timeline-break span {
-        position: relative;
+      .timeline-break-label span {
         background: var(--surface, #fff);
-        padding: 0 6px;
-        font-size: 10px;
-        line-height: 1;
+        padding: 1px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border, #d6dae2);
+        font-size: 9px;
+        line-height: 1.5;
+        letter-spacing: 0.02em;
         color: var(--text-muted, #8a93a3);
         white-space: nowrap;
       }
@@ -950,9 +974,21 @@
           if (day.assignments.length === 0) continue;
           const dateStr = day.date ? ` (${day.date})` : "";
           text += `Hours for ${day.dayName}${dateStr}:\n`;
+          // Group each worker's shifts (a two-block day has two) onto one line,
+          // with their time ranges sorted by start and joined by commas.
+          const byWorker = new Map();
           for (const a of day.assignments) {
-            const name = a.name.charAt(0).toUpperCase() + a.name.slice(1);
-            text += `${name}: ${minToLabel(a.start)}-${minToLabel(a.end)}\n`;
+            if (!byWorker.has(a.name)) byWorker.set(a.name, []);
+            byWorker.get(a.name).push(a);
+          }
+          for (const [rawName, shifts] of byWorker) {
+            const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+            const ranges = shifts
+              .slice()
+              .sort((x, y) => x.start - y.start)
+              .map((a) => `${minToClock(a.start)}-${minToClock(a.end)}`)
+              .join(", ");
+            text += `${name}: ${ranges}\n`;
           }
           text += "\n";
         }
@@ -1802,19 +1838,26 @@
             slotLabels += `<div class="timeline-line-label" style="top:${totalH}px;">${minToClock(lastEnd)}</div>`;
           }
 
-          // Labeled break band between the two operating blocks.
+          // Break band between the two operating blocks.
           let breakBand = "";
+          let breakLabel = "";
           if (gap >= 0) {
             const block1End = slots[gap] + 30;
             const block2Start = slots[gap + 1];
             const bandTop = (gap + 1) * SLOT_H;
-            breakBand = `<div class="timeline-break" style="top:${bandTop}px; height:${BREAK_H}px;">
-              <span>${minToClock(block1End)}–${minToClock(block2Start)} break</span>
-            </div>`;
+            // Hatched band in the label gutter …
+            breakBand = `<div class="timeline-break" style="top:${bandTop}px; height:${BREAK_H}px;"></div>`;
+            // … and one centered label across the (wide) worker area.
+            breakLabel = `<div class="timeline-break-label" style="top:${bandTop}px; height:${BREAK_H}px;"><span>${minToClock(block1End)}–${minToClock(block2Start)} break</span></div>`;
           }
 
+          // Grid lines, with a matching hatched spacer at the gap so block-2
+          // lines (and the blocks sitting on them) stay aligned.
           const gridLines = slots
-            .map(() => '<div class="timeline-grid-line"></div>')
+            .map((min, i) =>
+              '<div class="timeline-grid-line"></div>' +
+              (i === gap ? `<div class="timeline-grid-break" style="height:${BREAK_H}px;"></div>` : ""),
+            )
             .join("");
 
           const workerCols = day.assignments
@@ -1857,7 +1900,7 @@
               <div class="timeline-day-header">${day.dayName}${dateStr}</div>
               <div class="timeline-body">
                 <div class="timeline-slots" style="height:${totalH}px;">${slotLabels}${breakBand}</div>
-                <div class="timeline-workers" style="height:${totalH}px;">${workerCols}</div>
+                <div class="timeline-workers" style="height:${totalH}px;">${workerCols}${breakLabel}</div>
               </div>
               ${addBtn}
             </div>`;
