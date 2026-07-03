@@ -671,7 +671,7 @@
         <label class="field-label"
           >Priority
           <span
-            class="info-tag"
+            class="info-tag priority-tip"
             tabindex="0"
             aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
@@ -758,7 +758,7 @@
         <label class="field-label"
           >Priority
           <span
-            class="info-tag"
+            class="info-tag priority-tip"
             tabindex="0"
             aria-label="Priority level info: Normal is for high schoolers or people with limited availability. Priority is for adults with moderate availability. High Priority is for adults who are usually fully available."
             >i<span class="info-tooltip"
@@ -808,10 +808,49 @@
       //    conflicts with its own inline helper functions) ──
       const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
       const PRIORITY_CLASSES = ["", "p1", "p2"];
-      const PRIORITY_TOOLTIP_HTML =
-        "<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.";
-      const PRIORITY_TOOLTIP_ARIA_LABEL =
-        "Priority level info: Normal is for high schoolers or people with limited availability, default hours 4 to 8. Priority is for adults with moderate availability, default hours 4 to 8. High Priority is for adults who are usually fully available, default hours 3 to 8.";
+
+      // Priority-level tooltips built from the center's own per-priority default
+      // windows (SCHED_DEFAULTS), falling back to the built-in 4–8 / 4–8 / 3–8.
+      const PRIORITY_TT_FALLBACK = [
+        { start: 960, end: 1200 },
+        { start: 960, end: 1200 },
+        { start: 900, end: 1200 },
+      ];
+      function ttHour(min) {
+        const h = Math.floor(min / 60), m = min % 60;
+        let dh = h % 12; if (dh === 0) dh = 12;
+        return dh + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? "pm" : "am");
+      }
+      function ttAriaHour(min) {
+        const h = Math.floor(min / 60), m = min % 60;
+        let dh = h % 12; if (dh === 0) dh = 12;
+        return dh + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? " PM" : " AM");
+      }
+      function _ttDefaults(d) {
+        return Array.isArray(d) && d.length === 3 ? d : PRIORITY_TT_FALLBACK;
+      }
+      function priorityTooltipHTML(defaults) {
+        const d = _ttDefaults(defaults);
+        const w = (i) => `${ttHour(d[i].start)}–${ttHour(d[i].end)}`;
+        return `<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: ${w(0)}.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: ${w(1)}.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: ${w(2)}.`;
+      }
+      function priorityTooltipAria(defaults) {
+        const d = _ttDefaults(defaults);
+        const w = (i) => `${ttAriaHour(d[i].start)} to ${ttAriaHour(d[i].end)}`;
+        return `Priority level info: Normal is for high schoolers or people with limited availability, default hours ${w(0)}. Priority is for adults with moderate availability, default hours ${w(1)}. High Priority is for adults who are usually fully available, default hours ${w(2)}.`;
+      }
+      // Populate the static priority tooltips in the add/edit-worker forms with
+      // the current center's default hours. Safe to call repeatedly.
+      function applyPriorityTooltips() {
+        const html = priorityTooltipHTML(SCHED_DEFAULTS);
+        const aria = priorityTooltipAria(SCHED_DEFAULTS);
+        document.querySelectorAll(".info-tag.priority-tip").forEach((tag) => {
+          tag.setAttribute("aria-label", aria);
+          const tip = tag.querySelector(".info-tooltip");
+          if (tip) tip.innerHTML = html;
+        });
+      }
+
       const WORKER_COLORS = [
         "#4f86c6",
         "#e05c5c",
@@ -906,6 +945,7 @@
           SCHED = buildSchedule(CLIENT_DEFAULT_VARIANT);
           SCHED_DEFAULTS = CLIENT_DEFAULT_VARIANT.defaults;
         }
+        applyPriorityTooltips();
       }
 
       // Concrete availability blocks for a day when "available all day" is chosen,
@@ -1651,6 +1691,7 @@
         // Demo never fetches /center-schedule; use the built-in default hours.
         SCHED = buildSchedule(CLIENT_DEFAULT_VARIANT);
         SCHED_DEFAULTS = CLIENT_DEFAULT_VARIANT.defaults;
+        applyPriorityTooltips();
 
         workers = JSON.parse(JSON.stringify(DEMO_WORKERS));
         availability = buildDemoAvailability();

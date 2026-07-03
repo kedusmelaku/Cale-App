@@ -13,10 +13,41 @@ const DAY_FULL = {
 };
 const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
 const PRIORITY_CLASSES = ["", "p1", "p2"];
-const PRIORITY_TOOLTIP_HTML =
-  '<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: 4–8.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: 4–8.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: 3–8.';
-const PRIORITY_TOOLTIP_ARIA_LABEL =
-  "Priority level info: Normal is for high schoolers or people with limited availability, default hours 4 to 8. Priority is for adults with moderate availability, default hours 4 to 8. High Priority is for adults who are usually fully available, default hours 3 to 8.";
+// Priority-level tooltips. The "default hours" shown are the center's own
+// per-priority default windows (the `defaults` array on a schedule variant),
+// falling back to the built-in 4–8 / 4–8 / 3–8 when none are available.
+const PRIORITY_TT_FALLBACK = [
+  { start: 960, end: 1200 },
+  { start: 960, end: 1200 },
+  { start: 900, end: 1200 },
+];
+
+// minutes → compact tooltip label, e.g. 960 → "4pm", 630 → "10:30am"
+function ttHour(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  let dh = h % 12; if (dh === 0) dh = 12;
+  return dh + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? "pm" : "am");
+}
+// minutes → spoken label for aria, e.g. 960 → "4 PM"
+function ttAriaHour(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  let dh = h % 12; if (dh === 0) dh = 12;
+  return dh + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? " PM" : " AM");
+}
+function _ttDefaults(defaults) {
+  return Array.isArray(defaults) && defaults.length === 3 ? defaults : PRIORITY_TT_FALLBACK;
+}
+
+function priorityTooltipHTML(defaults) {
+  const d = _ttDefaults(defaults);
+  const w = (i) => `${ttHour(d[i].start)}–${ttHour(d[i].end)}`;
+  return `<strong>Normal:</strong> High schoolers or people with limited availability. Default hours: ${w(0)}.<br><strong>Priority:</strong> Adults with moderate availability. Default hours: ${w(1)}.<br><strong>High Priority:</strong> Adults who are usually fully available. Default hours: ${w(2)}.`;
+}
+function priorityTooltipAria(defaults) {
+  const d = _ttDefaults(defaults);
+  const w = (i) => `${ttAriaHour(d[i].start)} to ${ttAriaHour(d[i].end)}`;
+  return `Priority level info: Normal is for high schoolers or people with limited availability, default hours ${w(0)}. Priority is for adults with moderate availability, default hours ${w(1)}. High Priority is for adults who are usually fully available, default hours ${w(2)}.`;
+}
 const WORKER_COLORS = [
   "#4f86c6",
   "#e05c5c",
