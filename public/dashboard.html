@@ -98,7 +98,12 @@
         <!-- ── Left rail: Team roster ── -->
         <aside class="db-rail">
           <div class="db-rail-header">
-            <span class="db-rail-title">Team</span>
+            <span class="db-rail-title">
+              Team
+              <span class="db-rail-title-count" id="team-count-badge">
+                (<span id="team-count-value" class="db-rail-title-count-value">0</span>)
+              </span>
+            </span>
             <button
               class="db-add-btn"
               onclick="openModal()"
@@ -1846,6 +1851,10 @@
       // ── Screen 1: Employees ────────────────────────────────
       function renderWorkers() {
         const grid = document.getElementById("worker-grid");
+        const countValue = document.getElementById("team-count-value");
+        if (countValue) {
+          countValue.textContent = workers.length;
+        }
         if (!grid) return;
         grid.innerHTML = "";
         if (workers.length === 0) {

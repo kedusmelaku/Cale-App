@@ -2572,6 +2572,14 @@ body.dark .db-rail {
   letter-spacing: 0.07em;
   color: var(--text-muted);
 }
+.db-rail-title-count {
+  margin-left: 4px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.db-rail-title-count-value {
+  opacity: 0.75;
+}
 .db-add-btn {
   width: 26px;
   height: 26px;
