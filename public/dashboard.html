@@ -27,9 +27,7 @@
     <div id="tut-card">
       <div class="tut-card-header">
         <span class="tut-step-badge" id="tut-badge"></span>
-        <button class="tut-skip-btn" onclick="tutSkip()">
-          Skip tutorial
-        </button>
+        <button class="tut-skip-btn" onclick="tutSkip()">Skip tutorial</button>
       </div>
       <div class="tut-title" id="tut-title"></div>
       <div class="tut-body" id="tut-body"></div>
@@ -65,7 +63,7 @@
             justify-content: center;
             gap: 1px;
           ">
-          <a href="/" class="cale-logo-lockup" style="gap:7px;">
+          <a href="/" class="cale-logo-lockup" style="gap: 7px">
             <img src="/logo.svg" alt="Cale logo" />
             <span class="cale-wordmark">Cale</span>
           </a>
@@ -101,7 +99,9 @@
             <span class="db-rail-title">
               Team
               <span class="db-rail-title-count" id="team-count-badge">
-                (<span id="team-count-value" class="db-rail-title-count-value">0</span>)
+                (<span id="team-count-value" class="db-rail-title-count-value"
+                  >0</span
+                >)
               </span>
             </span>
             <button
@@ -127,8 +127,7 @@
                   aria-label="Whether Google Calendar is connected. When connected, Cale reads your student bookings to check schedule coverage."
                   >i<span class="info-tooltip"
                     >Whether your Google Calendar is connected. When connected,
-                    Cale reads student bookings from it to check
-                    coverage.</span
+                    Cale reads student bookings from it to check coverage.</span
                   ></span
                 ></span
               >
@@ -585,8 +584,7 @@
             <div>
               <div class="settings-label">Calendar to Read</div>
               <div class="settings-sublabel">
-                Choose which Google Calendar Cale pulls student bookings
-                from
+                Choose which Google Calendar Cale pulls student bookings from
               </div>
             </div>
             <select
@@ -822,14 +820,26 @@
         { start: 900, end: 1200 },
       ];
       function ttHour(min) {
-        const h = Math.floor(min / 60), m = min % 60;
-        let dh = h % 12; if (dh === 0) dh = 12;
-        return dh + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? "pm" : "am");
+        const h = Math.floor(min / 60),
+          m = min % 60;
+        let dh = h % 12;
+        if (dh === 0) dh = 12;
+        return (
+          dh +
+          (m ? ":" + String(m).padStart(2, "0") : "") +
+          (h >= 12 ? "pm" : "am")
+        );
       }
       function ttAriaHour(min) {
-        const h = Math.floor(min / 60), m = min % 60;
-        let dh = h % 12; if (dh === 0) dh = 12;
-        return dh + (m ? ":" + String(m).padStart(2, "0") : "") + (h >= 12 ? " PM" : " AM");
+        const h = Math.floor(min / 60),
+          m = min % 60;
+        let dh = h % 12;
+        if (dh === 0) dh = 12;
+        return (
+          dh +
+          (m ? ":" + String(m).padStart(2, "0") : "") +
+          (h >= 12 ? " PM" : " AM")
+        );
       }
       function _ttDefaults(d) {
         return Array.isArray(d) && d.length === 3 ? d : PRIORITY_TT_FALLBACK;
@@ -875,22 +885,41 @@
       // Inlined here (the dashboard doesn't load utils.js) so availability is
       // built and displayed in the same per-block minute shape the scheduler,
       // availability form, and server engine all use.
-      const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      const DAY_ORDER = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ];
       const DAY_FULL_ALL = {
-        monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
-        friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+        monday: "Monday",
+        tuesday: "Tuesday",
+        wednesday: "Wednesday",
+        thursday: "Thursday",
+        friday: "Friday",
+        saturday: "Saturday",
+        sunday: "Sunday",
       };
 
       function minToLabel(min) {
-        const h = Math.floor(min / 60), m = min % 60;
+        const h = Math.floor(min / 60),
+          m = min % 60;
         const ampm = h >= 12 && h < 24 ? "PM" : "AM";
-        let dh = h % 12; if (dh === 0) dh = 12;
-        return dh + ":" + (m === 0 ? "00" : String(m).padStart(2, "0")) + " " + ampm;
+        let dh = h % 12;
+        if (dh === 0) dh = 12;
+        return (
+          dh + ":" + (m === 0 ? "00" : String(m).padStart(2, "0")) + " " + ampm
+        );
       }
 
       function slotsForBlocks(blocks) {
         const slots = [];
-        for (const b of (blocks || []).slice().sort((a, b) => a.start - b.start)) {
+        for (const b of (blocks || [])
+          .slice()
+          .sort((a, b) => a.start - b.start)) {
           for (let m = b.start; m < b.end; m += 30) slots.push(m);
         }
         return slots;
@@ -901,36 +930,40 @@
       function buildSchedule(variant) {
         variant = variant || {};
         const days = DAY_ORDER.filter(
-          (k) => variant[k] && variant[k].open && (variant[k].blocks || []).length,
+          (k) =>
+            variant[k] && variant[k].open && (variant[k].blocks || []).length,
         );
         const blocksByDay = {};
         for (const k of days) {
-          blocksByDay[k] = (variant[k].blocks || []).slice().sort((a, b) => a.start - b.start);
+          blocksByDay[k] = (variant[k].blocks || [])
+            .slice()
+            .sort((a, b) => a.start - b.start);
         }
         return {
           variant,
           days,
           isOpen: (k) => days.includes(k),
           dayFull: (k) => DAY_FULL_ALL[k] || k,
-          blocks: (k) => (blocksByDay[k] || []).map((b) => ({ start: b.start, end: b.end })),
+          blocks: (k) =>
+            (blocksByDay[k] || []).map((b) => ({ start: b.start, end: b.end })),
           slots: (k) => slotsForBlocks(blocksByDay[k] || []),
         };
       }
 
       let SCHED = buildSchedule(null); // replaced by loadSchedule(); safe default
-      let SCHED_DEFAULTS = null;       // per-priority default windows [{start,end}x3]
+      let SCHED_DEFAULTS = null; // per-priority default windows [{start,end}x3]
 
       // Mirrors the server's default schedule (Mon–Thu 3–8 PM, Sat 10–2) so a
       // transient /center-schedule failure — or demo mode, which never fetches —
       // still yields a usable schedule.
       const CLIENT_DEFAULT_VARIANT = {
-        monday:    { open: true, blocks: [{ start: 900, end: 1200 }] },
-        tuesday:   { open: true, blocks: [{ start: 900, end: 1200 }] },
+        monday: { open: true, blocks: [{ start: 900, end: 1200 }] },
+        tuesday: { open: true, blocks: [{ start: 900, end: 1200 }] },
         wednesday: { open: true, blocks: [{ start: 900, end: 1200 }] },
-        thursday:  { open: true, blocks: [{ start: 900, end: 1200 }] },
-        friday:    { open: false, blocks: [] },
-        saturday:  { open: true, blocks: [{ start: 600, end: 840 }] },
-        sunday:    { open: false, blocks: [] },
+        thursday: { open: true, blocks: [{ start: 900, end: 1200 }] },
+        friday: { open: false, blocks: [] },
+        saturday: { open: true, blocks: [{ start: 600, end: 840 }] },
+        sunday: { open: false, blocks: [] },
         defaults: [
           { start: 960, end: 1200 },
           { start: 960, end: 1200 },
@@ -961,21 +994,27 @@
         const ops = SCHED.blocks(dayKey);
         const isWeekend = dayKey === "saturday" || dayKey === "sunday";
         const win = SCHED_DEFAULTS ? SCHED_DEFAULTS[priority] : null;
-        if (isWeekend || !win) return ops.map((b) => ({ start: b.start, end: b.end }));
+        if (isWeekend || !win)
+          return ops.map((b) => ({ start: b.start, end: b.end }));
         const out = [];
         for (const b of ops) {
           const s = Math.max(b.start, win.start);
           const e = Math.min(b.end, win.end);
           if (s < e) out.push({ start: s, end: e });
         }
-        return out.length ? out : ops.map((b) => ({ start: b.start, end: b.end }));
+        return out.length
+          ? out
+          : ops.map((b) => ({ start: b.start, end: b.end }));
       }
 
       // True when a day's blocks cover the full operating hours (used for the
       // cosmetic allDay summary flag on availability entries).
       function blocksAreFullOp(blocks, op) {
         if (!blocks.length || blocks.length !== op.length) return false;
-        return op.every((b, i) => blocks[i] && blocks[i].start <= b.start && blocks[i].end >= b.end);
+        return op.every(
+          (b, i) =>
+            blocks[i] && blocks[i].start <= b.start && blocks[i].end >= b.end,
+        );
       }
 
       function tutStartPulseRing() {
@@ -997,6 +1036,20 @@
       function tutStopPulseRing() {
         const ring = document.getElementById("tut-gear-pulse-ring");
         if (ring) ring.remove();
+      }
+
+      function applyTutorialCompletionState(settingsDoc) {
+        const completed = !!(settingsDoc && settingsDoc.tutorialCompleted);
+        localStorage.setItem(TUT_COMPLETED_KEY, completed ? "1" : "0");
+        document.body.classList.toggle("tut-completed", completed);
+        localStorage.removeItem(TUT_STORAGE_KEY);
+        localStorage.removeItem(TUT_DEMO_KEY);
+        if (completed) {
+          tutStopPulseRing();
+        } else if (!tut.active) {
+          tutStopPulseRing();
+          tutStartPulseRing();
+        }
       }
 
       // ── Gear nudge init ─────────────────────────────────────────────
@@ -1479,7 +1532,12 @@
           SCHED.days.map((d) => {
             const selected = typeof sel === "function" ? sel(d) : sel;
             const blocks = clientDefaultBlocks(d, priority);
-            return { day: d, selected, allDay: blocksAreFullOp(blocks, SCHED.blocks(d)), blocks };
+            return {
+              day: d,
+              selected,
+              allDay: blocksAreFullOp(blocks, SCHED.blocks(d)),
+              blocks,
+            };
           });
         return {
           Alex: mk(true, 2),
@@ -1603,7 +1661,10 @@
 
       function setDemo(checked) {
         if (!checked && tut.active) {
-          if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
+          if (_tutWaitTimer) {
+            clearInterval(_tutWaitTimer);
+            _tutWaitTimer = null;
+          }
           localStorage.removeItem(TUT_STORAGE_KEY);
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
@@ -1624,7 +1685,10 @@
 
       function exitDemo() {
         if (tut.active) {
-          if (_tutWaitTimer) { clearInterval(_tutWaitTimer); _tutWaitTimer = null; }
+          if (_tutWaitTimer) {
+            clearInterval(_tutWaitTimer);
+            _tutWaitTimer = null;
+          }
           localStorage.removeItem(TUT_STORAGE_KEY);
           localStorage.removeItem(TUT_DEMO_KEY);
           tut.active = false;
@@ -2392,6 +2456,7 @@
           const res = await fetch("/center-settings");
           const data = await res.json();
           _centerSettings = data.data;
+          applyTutorialCompletionState(_centerSettings);
           updateFormCard();
           updateStatusPills();
           loadSubmissions(true);
@@ -2872,8 +2937,10 @@
       // minutes since midnight → compact popover label (e.g. 960 → "4pm",
       // 630 → "10:30am").
       function subTimeLabel(min) {
-        const h = Math.floor(min / 60), m = min % 60;
-        let dh = h % 12; if (dh === 0) dh = 12;
+        const h = Math.floor(min / 60),
+          m = min % 60;
+        let dh = h % 12;
+        if (dh === 0) dh = 12;
         const ampm = h >= 12 ? "pm" : "am";
         return dh + (m ? ":" + String(m).padStart(2, "0") : "") + ampm;
       }
@@ -3164,11 +3231,16 @@
         }
         function position(tag, t) {
           const r = tag.getBoundingClientRect();
-          const tw = t.offsetWidth, th = t.offsetHeight;
-          const M = 8, GAP = 8;
+          const tw = t.offsetWidth,
+            th = t.offsetHeight;
+          const M = 8,
+            GAP = 8;
           let top = r.top - GAP - th;
           let arrow = "bottom";
-          if (top < M) { top = r.bottom + GAP; arrow = "top"; }
+          if (top < M) {
+            top = r.bottom + GAP;
+            arrow = "top";
+          }
           let left = r.left + r.width / 2 - tw / 2;
           left = Math.max(M, Math.min(left, window.innerWidth - tw - M));
           t.style.top = top + "px";
@@ -3207,10 +3279,17 @@
           const tag = e.target.closest && e.target.closest(".info-tag");
           if (tag) hide();
         });
-        window.addEventListener("scroll", () => { if (activeTag) hide(); }, true);
-        window.addEventListener("resize", () => { if (activeTag) hide(); });
+        window.addEventListener(
+          "scroll",
+          () => {
+            if (activeTag) hide();
+          },
+          true,
+        );
+        window.addEventListener("resize", () => {
+          if (activeTag) hide();
+        });
       })();
-
     </script>
   </body>
 </html>
