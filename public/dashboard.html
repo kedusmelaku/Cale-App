@@ -806,14 +806,6 @@
       // ── Shared constants (mirrored from utils.js; dashboard keeps them
       //    inline rather than loading utils.js to avoid redeclaration
       //    conflicts with its own inline helper functions) ──
-      const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
-      const DAY_FULL = {
-        monday: "Monday",
-        tuesday: "Tuesday",
-        wednesday: "Wednesday",
-        thursday: "Thursday",
-        saturday: "Saturday",
-      };
       const PRIORITY_LABELS = ["Normal", "Priority", "High Priority"];
       const PRIORITY_CLASSES = ["", "p1", "p2"];
       const PRIORITY_TOOLTIP_HTML =
@@ -833,29 +825,113 @@
         "#2a7ac4",
         "#7aaa3a",
       ];
-      const WEEKDAY_SLOTS = [
-        "3",
-        "3:30",
-        "4",
-        "4:30",
-        "5",
-        "5:30",
-        "6",
-        "6:30",
-        "7",
-        "7:30",
-      ];
-      const SAT_SLOTS = [
-        "10",
-        "10:30",
-        "11",
-        "11:30",
-        "12",
-        "12:30",
-        "1",
-        "1:30",
-      ];
       const SLOT_H = 40;
+
+      // ── Canonical schedule layer (minutes since midnight, 24-hour) ──
+      // Inlined here (the dashboard doesn't load utils.js) so availability is
+      // built and displayed in the same per-block minute shape the scheduler,
+      // availability form, and server engine all use.
+      const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      const DAY_FULL_ALL = {
+        monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
+        friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+      };
+
+      function minToLabel(min) {
+        const h = Math.floor(min / 60), m = min % 60;
+        const ampm = h >= 12 && h < 24 ? "PM" : "AM";
+        let dh = h % 12; if (dh === 0) dh = 12;
+        return dh + ":" + (m === 0 ? "00" : String(m).padStart(2, "0")) + " " + ampm;
+      }
+
+      function slotsForBlocks(blocks) {
+        const slots = [];
+        for (const b of (blocks || []).slice().sort((a, b) => a.start - b.start)) {
+          for (let m = b.start; m < b.end; m += 30) slots.push(m);
+        }
+        return slots;
+      }
+
+      // Minimal buildSchedule: the dashboard only needs open days, their blocks,
+      // and display names (no grid geometry).
+      function buildSchedule(variant) {
+        variant = variant || {};
+        const days = DAY_ORDER.filter(
+          (k) => variant[k] && variant[k].open && (variant[k].blocks || []).length,
+        );
+        const blocksByDay = {};
+        for (const k of days) {
+          blocksByDay[k] = (variant[k].blocks || []).slice().sort((a, b) => a.start - b.start);
+        }
+        return {
+          variant,
+          days,
+          isOpen: (k) => days.includes(k),
+          dayFull: (k) => DAY_FULL_ALL[k] || k,
+          blocks: (k) => (blocksByDay[k] || []).map((b) => ({ start: b.start, end: b.end })),
+          slots: (k) => slotsForBlocks(blocksByDay[k] || []),
+        };
+      }
+
+      let SCHED = buildSchedule(null); // replaced by loadSchedule(); safe default
+      let SCHED_DEFAULTS = null;       // per-priority default windows [{start,end}x3]
+
+      // Mirrors the server's default schedule (Mon–Thu 3–8 PM, Sat 10–2) so a
+      // transient /center-schedule failure — or demo mode, which never fetches —
+      // still yields a usable schedule.
+      const CLIENT_DEFAULT_VARIANT = {
+        monday:    { open: true, blocks: [{ start: 900, end: 1200 }] },
+        tuesday:   { open: true, blocks: [{ start: 900, end: 1200 }] },
+        wednesday: { open: true, blocks: [{ start: 900, end: 1200 }] },
+        thursday:  { open: true, blocks: [{ start: 900, end: 1200 }] },
+        friday:    { open: false, blocks: [] },
+        saturday:  { open: true, blocks: [{ start: 600, end: 840 }] },
+        sunday:    { open: false, blocks: [] },
+        defaults: [
+          { start: 960, end: 1200 },
+          { start: 960, end: 1200 },
+          { start: 900, end: 1200 },
+        ],
+      };
+
+      async function loadSchedule() {
+        try {
+          const res = await fetch("/center-schedule");
+          const data = await res.json();
+          const days = (data.data && data.data.days) || CLIENT_DEFAULT_VARIANT;
+          SCHED = buildSchedule(days);
+          SCHED_DEFAULTS = days.defaults || CLIENT_DEFAULT_VARIANT.defaults;
+        } catch (e) {
+          console.warn("Could not load center schedule:", e.message);
+          SCHED = buildSchedule(CLIENT_DEFAULT_VARIANT);
+          SCHED_DEFAULTS = CLIENT_DEFAULT_VARIANT.defaults;
+        }
+      }
+
+      // Concrete availability blocks for a day when "available all day" is chosen,
+      // applying the per-priority default window Mon–Fri (weekends use full hours).
+      // Mirrors scheduleConfig.defaultBlocksFor, with a full-hours fallback so a
+      // selected day is never left with zero availability.
+      function clientDefaultBlocks(dayKey, priority) {
+        const ops = SCHED.blocks(dayKey);
+        const isWeekend = dayKey === "saturday" || dayKey === "sunday";
+        const win = SCHED_DEFAULTS ? SCHED_DEFAULTS[priority] : null;
+        if (isWeekend || !win) return ops.map((b) => ({ start: b.start, end: b.end }));
+        const out = [];
+        for (const b of ops) {
+          const s = Math.max(b.start, win.start);
+          const e = Math.min(b.end, win.end);
+          if (s < e) out.push({ start: s, end: e });
+        }
+        return out.length ? out : ops.map((b) => ({ start: b.start, end: b.end }));
+      }
+
+      // True when a day's blocks cover the full operating hours (used for the
+      // cosmetic allDay summary flag on availability entries).
+      function blocksAreFullOp(blocks, op) {
+        if (!blocks.length || blocks.length !== op.length) return false;
+        return op.every((b, i) => blocks[i] && blocks[i].start <= b.start && blocks[i].end >= b.end);
+      }
 
       function tutStartPulseRing() {
         if (document.getElementById("tut-gear-pulse-ring")) return;
@@ -1331,54 +1407,12 @@
       function showTutLinkBlockedMsg() {}
 
       const DEMO_WORKERS = [
-        {
-          _id: "demo-1",
-          name: "Alex",
-          priority: 2,
-          defaultStart: 3,
-          defaultEnd: 8,
-          pin: "1001",
-        },
-        {
-          _id: "demo-2",
-          name: "Jordan",
-          priority: 1,
-          defaultStart: 4,
-          defaultEnd: 8,
-          pin: "1002",
-        },
-        {
-          _id: "demo-3",
-          name: "Taylor",
-          priority: 0,
-          defaultStart: 4,
-          defaultEnd: 8,
-          pin: "1003",
-        },
-        {
-          _id: "demo-4",
-          name: "Morgan",
-          priority: 0,
-          defaultStart: 4,
-          defaultEnd: 8,
-          pin: "1004",
-        },
-        {
-          _id: "demo-5",
-          name: "Casey",
-          priority: 0,
-          defaultStart: 4,
-          defaultEnd: 8,
-          pin: "1005",
-        },
-        {
-          _id: "demo-6",
-          name: "Riley",
-          priority: 0,
-          defaultStart: 4,
-          defaultEnd: 8,
-          pin: "1006",
-        },
+        { _id: "demo-1", name: "Alex", priority: 2, pin: "1001" },
+        { _id: "demo-2", name: "Jordan", priority: 1, pin: "1002" },
+        { _id: "demo-3", name: "Taylor", priority: 0, pin: "1003" },
+        { _id: "demo-4", name: "Morgan", priority: 0, pin: "1004" },
+        { _id: "demo-5", name: "Casey", priority: 0, pin: "1005" },
+        { _id: "demo-6", name: "Riley", priority: 0, pin: "1006" },
       ];
 
       function buildDemoSubmissions() {
@@ -1396,27 +1430,19 @@
       }
 
       function buildDemoAvailability() {
-        const mk = (sel, start, end) =>
-          DAYS.map((d) => ({
-            day: d,
-            selected: typeof sel === "function" ? sel(d) : sel,
-            allDay: true,
-            start: d === "saturday" ? 10 : start,
-            end: d === "saturday" ? 14 : end,
-            startMinute: 0,
-            endMinute: 0,
-          }));
+        const mk = (sel, priority) =>
+          SCHED.days.map((d) => {
+            const selected = typeof sel === "function" ? sel(d) : sel;
+            const blocks = clientDefaultBlocks(d, priority);
+            return { day: d, selected, allDay: blocksAreFullOp(blocks, SCHED.blocks(d)), blocks };
+          });
         return {
-          Alex: mk(true, 3, 8),
-          Jordan: mk((d) => d !== "wednesday", 4, 8),
-          Taylor: mk((d) => d !== "thursday", 4, 8),
-          Morgan: mk(
-            (d) => ["monday", "wednesday", "saturday"].includes(d),
-            4,
-            8,
-          ),
-          Casey: mk((d) => ["tuesday", "thursday"].includes(d), 4, 8),
-          Riley: mk((d) => ["monday", "tuesday", "saturday"].includes(d), 4, 8),
+          Alex: mk(true, 2),
+          Jordan: mk((d) => d !== "wednesday", 1),
+          Taylor: mk((d) => d !== "thursday", 0),
+          Morgan: mk((d) => ["monday", "wednesday", "saturday"].includes(d), 0),
+          Casey: mk((d) => ["tuesday", "thursday"].includes(d), 0),
+          Riley: mk((d) => ["monday", "tuesday", "saturday"].includes(d), 0),
         };
       }
 
@@ -1622,6 +1648,10 @@
         _realWorkers = JSON.parse(JSON.stringify(workers));
         _realSubmissions = JSON.parse(JSON.stringify(_submissions));
 
+        // Demo never fetches /center-schedule; use the built-in default hours.
+        SCHED = buildSchedule(CLIENT_DEFAULT_VARIANT);
+        SCHED_DEFAULTS = CLIENT_DEFAULT_VARIANT.defaults;
+
         workers = JSON.parse(JSON.stringify(DEMO_WORKERS));
         availability = buildDemoAvailability();
         _submissions = buildDemoSubmissions();
@@ -1735,6 +1765,12 @@
       }
 
       async function _doGoToSchedule() {
+        // buildAvailability() needs the center's operating blocks; make sure
+        // they're loaded (init fetches them, but guard against a race or a
+        // transient earlier failure).
+        if (!settings.demo && SCHED.days.length === 0) {
+          await loadSchedule();
+        }
         if (
           Object.keys(availability).length === 0 ||
           !workers.every((w) => availability[w.name])
@@ -1971,15 +2007,15 @@
       function buildAvailability() {
         workers.forEach((w) => {
           if (availability[w.name]) return; // already configured — preserve it
-          availability[w.name] = DAYS.map((d) => ({
-            day: d,
-            selected: false,
-            allDay: true,
-            start: d === "saturday" ? 10 : w.priority === 2 ? 3 : 4,
-            end: d === "saturday" ? 14 : 8,
-            startMinute: 0,
-            endMinute: 0,
-          }));
+          availability[w.name] = SCHED.days.map((d) => {
+            const blocks = clientDefaultBlocks(d, w.priority);
+            return {
+              day: d,
+              selected: false,
+              allDay: blocksAreFullOp(blocks, SCHED.blocks(d)),
+              blocks,
+            };
+          });
         });
       }
 
@@ -2783,11 +2819,13 @@
         updateReadinessPill();
       }
 
-      function fmtSubHour(h, min, isSat) {
-        const displayH = h > 12 ? h - 12 : h;
-        const displayM = (min || 0) === 30 ? ":30" : "";
-        const ampm = isSat ? (h >= 12 ? "pm" : "am") : "pm";
-        return `${displayH}${displayM}${ampm}`;
+      // minutes since midnight → compact popover label (e.g. 960 → "4pm",
+      // 630 → "10:30am").
+      function subTimeLabel(min) {
+        const h = Math.floor(min / 60), m = min % 60;
+        let dh = h % 12; if (dh === 0) dh = 12;
+        const ampm = h >= 12 ? "pm" : "am";
+        return dh + (m ? ":" + String(m).padStart(2, "0") : "") + ampm;
       }
 
       const DAY_LABELS = {
@@ -2818,13 +2856,13 @@
         }
         const days = submission.days || [];
         const rows = days
-          .filter((d) => d.selected)
-          .map(
-            (d) => {
-              const isSat = d.day === "saturday";
-              return `<div class="db-sub-pop-row"><span class="db-sub-pop-day">${DAY_LABELS[d.day] || d.day}</span><span class="db-sub-pop-time">${fmtSubHour(d.start, d.startMinute, isSat)}–${fmtSubHour(d.end, d.endMinute, isSat)}</span></div>`;
-            },
-          )
+          .filter((d) => d.selected && (d.blocks || []).length)
+          .map((d) => {
+            const times = d.blocks
+              .map((b) => `${subTimeLabel(b.start)}–${subTimeLabel(b.end)}`)
+              .join(", ");
+            return `<div class="db-sub-pop-row"><span class="db-sub-pop-day">${DAY_LABELS[d.day] || d.day}</span><span class="db-sub-pop-time">${times}</span></div>`;
+          })
           .join("");
         const pop = document.createElement("div");
         pop.className = "db-sub-pop";
@@ -2928,8 +2966,6 @@
             return {
               name: s.employeeName,
               priority: emp ? emp.priority : 0,
-              defaultStart: emp ? emp.defaultStart : 4,
-              defaultEnd: emp ? emp.defaultEnd : 8,
               days: s.days,
               submittedAt: s.submittedAt,
             };
@@ -2979,33 +3015,26 @@
           }
           const genData = await genRes.json();
 
-          // Detect true gaps: slots with students > 0 but no assigned workers
+          // Detect true gaps: slots with students > 0 but no assigned workers.
+          // Assignments and studentData are both keyed in canonical minutes.
           const gaps = [];
           for (const day of genData.schedule) {
-            const evDay =
-              (evData.studentData || {})[day.day.toLowerCase()] || {};
+            const evDay = (evData.studentData || {})[day.dayKey] || {};
             const hasStudents = Object.values(evDay).some((v) => v > 0);
             if (!hasStudents) continue;
-            // Check if any slot with students has no coverage
             let hasGap = false;
             for (const [time, count] of Object.entries(evDay)) {
               if (count <= 0) continue;
-              const covered = day.assignments.some((a) => {
-                const toNum = (t) => {
-                  const [h, m] = t.split(":");
-                  let hr = parseInt(h);
-                  if (day.day === "Saturday" && hr < 10) hr += 12;
-                  return hr + (m === "30" ? 0.5 : 0);
-                };
-                const tNum = toNum(time);
-                return toNum(a.start) <= tNum && toNum(a.end) > tNum;
-              });
+              const tMin = Number(time);
+              const covered = day.assignments.some(
+                (a) => a.start <= tMin && a.end > tMin,
+              );
               if (!covered) {
                 hasGap = true;
                 break;
               }
             }
-            if (hasGap) gaps.push(day.day);
+            if (hasGap) gaps.push(day.dayName);
           }
           _lastReadinessCheck = { gaps };
           updateReadinessPill();
@@ -3024,6 +3053,10 @@
         document.body.classList.add("demo-active");
         activateDemo();
       } else {
+        // Load the operating schedule so availability can be built in the
+        // correct per-block shape when the manager moves to the scheduler.
+        loadSchedule();
+
         // Load centerId for availability link construction
         fetch("/api/me")
           .then((r) => r.json())
