@@ -1,9 +1,9 @@
 // ── utils.js ──────────────────────────────────────────────────────────────
-// Shared constants and pure helpers used by both dashboard.html and
-// scheduler.html. Must be loaded before either page's inline script.
+// Shared constants and pure helpers used by scheduler.html and
+// availability.html. Must be loaded before either page's inline script.
+// (dashboard.html mirrors these inline instead of loading this file.)
 // ─────────────────────────────────────────────────────────────────────────
 
-const DAYS = ["monday", "tuesday", "wednesday", "thursday", "saturday"];
 const DAY_FULL = {
   monday: "Monday",
   tuesday: "Tuesday",
@@ -30,12 +30,6 @@ const WORKER_COLORS = [
   "#2a7ac4",
   "#7aaa3a",
 ];
-const WEEKDAY_SLOTS = [
-  "3", "3:30", "4", "4:30", "5", "5:30", "6", "6:30", "7", "7:30",
-];
-const SAT_SLOTS = [
-  "10", "10:30", "11", "11:30", "12", "12:30", "1", "1:30",
-];
 const SLOT_H = 40;
 
 // Returns the color assigned to a worker by name, given the current workers array.
@@ -52,41 +46,10 @@ function sortedWorkers(workers) {
   });
 }
 
-// Returns the slot list for a Saturday or weekday.
-function slotList(isSat) {
-  return isSat ? SAT_SLOTS : WEEKDAY_SLOTS;
-}
-
-// Converts a time string (e.g. "4", "4:30") to a slot index.
-function timeToIndex(time, isSat) {
-  const parts = time.split(":");
-  let hour = parseInt(parts[0]);
-  const mins = parts[1] ? parseInt(parts[1]) : 0;
-  if (isSat && hour < 10) hour += 12;
-  return (hour - (isSat ? 10 : 3)) * 2 + (mins === 30 ? 1 : 0);
-}
-
-// Converts a slot index back to a time string.
-function indexToTime(idx, isSat) {
-  const base = isSat ? 10 : 3;
-  const totalHalfHours = base * 2 + idx;
-  const h = Math.floor(totalHalfHours / 2);
-  const m = totalHalfHours % 2 === 1 ? 30 : 0;
-  const maxH = isSat ? 14 : 8;
-  if (h >= maxH) return isSat ? "2" : "8";
-  if (isSat && h > 12) return h - 12 + (m ? ":30" : "");
-  return h + (m ? ":30" : "");
-}
-
 // ─────────────────────────────────────────────────────────────────────────
 // CANONICAL SCHEDULE LAYER (config-driven; minutes since midnight, 24-hour)
 //
-// Added for per-center schedules. Everything above this line is the LEGACY
-// fixed-window API (DAYS, WEEKDAY_SLOTS, SAT_SLOTS, slotList, timeToIndex,
-// indexToTime) that assumes Mon–Thu 3–8 PM + Sat 10–2. It stays in place until
-// every page is migrated to buildSchedule(); Section 8 removes it once unused.
-//
-// New model: a "variant" is the `days` object returned by /center-schedule —
+// A "variant" is the `days` object returned by /center-schedule —
 //   { monday: { open, blocks: [{start,end}] }, … sunday }
 // with all times in minutes since midnight (9:00 AM = 540, 3:30 PM = 930).
 // A day may have up to two blocks (a two-block day with a gap). AM/PM lives
@@ -130,8 +93,8 @@ function slotsForBlocks(blocks) {
 }
 
 // Builds a runtime view of one schedule variant. This is the single helper the
-// dashboard, availability form, and scheduler use to render days/hours instead
-// of the hardcoded DAYS / slot arrays.
+// dashboard, availability form, and scheduler use to render days/hours from the
+// center's configured operating blocks.
 function buildSchedule(variant) {
   variant = variant || {};
   const days = DAY_ORDER.filter(

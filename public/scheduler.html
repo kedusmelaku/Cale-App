@@ -38,6 +38,13 @@
         color: var(--text-muted, #8a93a3);
         white-space: nowrap;
       }
+      /* Two-block day grouping inside the manual availability editor */
+      .av-block-group + .av-block-group {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--border, #d6dae2);
+      }
+      .av-sub-indent { margin-left: 22px; }
     </style>
     <script src="/analytics.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
@@ -781,12 +788,12 @@
 
       // ── Demo ───────────────────────────────────────────────
       const DEMO_WORKERS = [
-        { _id: "demo-1", name: "Alex",   priority: 2, defaultStart: 3, defaultEnd: 8, pin: "1001" },
-        { _id: "demo-2", name: "Jordan", priority: 1, defaultStart: 4, defaultEnd: 8, pin: "1002" },
-        { _id: "demo-3", name: "Taylor", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1003" },
-        { _id: "demo-4", name: "Morgan", priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1004" },
-        { _id: "demo-5", name: "Casey",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1005" },
-        { _id: "demo-6", name: "Riley",  priority: 0, defaultStart: 4, defaultEnd: 8, pin: "1006" },
+        { _id: "demo-1", name: "Alex",   priority: 2, pin: "1001" },
+        { _id: "demo-2", name: "Jordan", priority: 1, pin: "1002" },
+        { _id: "demo-3", name: "Taylor", priority: 0, pin: "1003" },
+        { _id: "demo-4", name: "Morgan", priority: 0, pin: "1004" },
+        { _id: "demo-5", name: "Casey",  priority: 0, pin: "1005" },
+        { _id: "demo-6", name: "Riley",  priority: 0, pin: "1006" },
       ];
 
       function buildDemoAvailability() {
@@ -1045,28 +1052,83 @@
         renderAvailability();
       }
 
+      // ── Manual per-block edit state ────────────────────────
+      // Each day carries a parallel `edit` array, one entry per operating
+      // block: { on, allBlock, start, end }. This is the editor's source of
+      // truth (it preserves the "whole block" vs "custom range that happens to
+      // be full" distinction that raw blocks can't). `blocks` is always derived
+      // from `edit` via syncDay(), so downstream (generate, save) is unchanged.
+
+      // Best-effort reconstruction of edit state from a stored blocks array.
+      function deriveEditFromBlocks(blocks, op) {
+        return op.map((b) => {
+          const sb = (blocks || []).find((x) => x.start < b.end && x.end > b.start);
+          if (!sb) return { on: false, allBlock: false, start: b.start, end: b.end };
+          const start = Math.max(sb.start, b.start);
+          const end = Math.min(sb.end, b.end);
+          const allBlock = start <= b.start && end >= b.end;
+          return { on: true, allBlock, start, end };
+        });
+      }
+
+      // Concrete blocks from edit state (whole block → full operating hours).
+      function blocksFromEdit(edit, op) {
+        const out = [];
+        edit.forEach((s, i) => {
+          if (!s.on || !op[i]) return;
+          const start = s.allBlock ? op[i].start : s.start;
+          const end = s.allBlock ? op[i].end : s.end;
+          if (start < end) out.push({ start, end });
+        });
+        return out;
+      }
+
+      // True when the worker is available the center's full operating hours.
+      function isAllDay(edit, op) {
+        return edit.length === op.length && edit.every((s) => s.on && s.allBlock);
+      }
+
+      // Recompute a day's derived fields (blocks, allDay) from its edit state.
+      function syncDay(d) {
+        const op = SCHED.blocks(d.day);
+        d.blocks = blocksFromEdit(d.edit, op);
+        d.allDay = isAllDay(d.edit, op);
+      }
+
       // Normalize a worker's manual availability to a full SCHED.days-aligned
-      // array in the canonical per-block shape: { day, selected, allDay, blocks }.
+      // array in the canonical per-block shape: { day, selected, allDay, blocks,
+      // edit }. Preserves an existing edit array when it still matches the day's
+      // operating-block count; otherwise reconstructs it from stored blocks
+      // (falling back to the priority-default window for unset days).
       function manualDays(name, priority) {
         const existing = availability[name] || [];
         const byDay = {};
         existing.forEach((d) => { byDay[d.day] = d; });
         availability[name] = SCHED.days.map((dk) => {
+          const op = SCHED.blocks(dk);
           const e = byDay[dk];
           if (e) {
-            const hasBlocks = e.blocks && e.blocks.length;
-            return {
-              day: dk,
-              selected: !!e.selected,
-              allDay: e.allDay !== false,
-              blocks: hasBlocks
-                ? e.blocks.map((b) => ({ start: b.start, end: b.end }))
-                : clientDefaultBlocks(dk, priority),
-            };
+            const seed = (e.blocks && e.blocks.length)
+              ? e.blocks
+              : clientDefaultBlocks(dk, priority);
+            const edit = Array.isArray(e.edit) && e.edit.length === op.length
+              ? e.edit.map((s) => ({ on: s.on, allBlock: s.allBlock, start: s.start, end: s.end }))
+              : deriveEditFromBlocks(seed, op);
+            const day = { day: dk, selected: !!e.selected, allDay: false, edit, blocks: [] };
+            syncDay(day);
+            return day;
           }
-          return { day: dk, selected: false, allDay: true, blocks: clientDefaultBlocks(dk, priority) };
+          const edit = deriveEditFromBlocks(clientDefaultBlocks(dk, priority), op);
+          const day = { day: dk, selected: false, allDay: false, edit, blocks: [] };
+          syncDay(day);
+          return day;
         });
         return availability[name];
+      }
+
+      // Resolve a single manual day object for a worker by day index.
+      function _manualDay(name, di) {
+        return manualDays(name, _workerPriority(name))[di];
       }
 
       function setAvMode(mode) {
@@ -1135,25 +1197,69 @@
               </label>
             </div>
             <div class="av-days">
-              ${av.map((d, di) => {
-                const hoursStr = (d.blocks || [])
-                  .map((b) => `${minToLabel(b.start)} – ${minToLabel(b.end)}`)
-                  .join(", ") || "—";
-                return `
-                <div class="av-day-row ${d.selected ? "selected" : ""}">
-                  <label class="av-day-check">
-                    <input type="checkbox" ${d.selected ? "checked" : ""} onchange="toggleDay('${w.name}', ${di}, this.checked)">
-                    <span class="av-day-label">${SCHED.dayFull(d.day)}</span>
-                  </label>
-                  ${d.selected ? `
-                    <div class="av-hours">
-                      <span class="av-form-day-hours">${hoursStr}</span>
-                    </div>` : ""}
-                </div>`;
-              }).join("")}
+              ${av.map((d, di) => renderManualDayRow(w.name, d, di)).join("")}
             </div>`;
           list.appendChild(section);
         });
+      }
+
+      // One day row in the manual editor: a select checkbox plus, when selected,
+      // a per-operating-block editor mirroring the availability form — on/off
+      // (two-block days only), "whole block", and custom start/end selects.
+      function renderManualDayRow(name, d, di) {
+        const op = SCHED.blocks(d.day);
+        const multi = op.length > 1;
+
+        let hoursHtml = "";
+        if (d.selected) {
+          hoursHtml = op.map((b, i) => {
+            const es = d.edit[i] || { on: true, allBlock: true, start: b.start, end: b.end };
+            const on = multi ? es.on : true;
+            const opts = blockTimeOpts(b.start, b.end);
+            const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
+
+            const onToggle = multi ? `
+              <label class="av-hours-check">
+                <input type="checkbox" ${on ? "checked" : ""} onchange="toggleManualBlockOn('${name}',${di},${i},this.checked)">
+                <span>${blockName(b.start)} block (${rangeLabel})</span>
+              </label>` : "";
+
+            let inner = "";
+            if (on) {
+              const fullCheck = `
+                <label class="av-hours-check ${multi ? "av-sub-indent" : ""}">
+                  <input type="checkbox" ${es.allBlock ? "checked" : ""} onchange="toggleManualFull('${name}',${di},${i},this.checked)">
+                  <span>${multi ? "Available the whole block" : `Available all hours (${rangeLabel})`}</span>
+                </label>`;
+              let custom = "";
+              if (!es.allBlock) {
+                const startOpts = opts.filter((o) => o.value < b.end);
+                const endOpts = opts.filter((o) => o.value > b.start);
+                custom = `
+                  <div class="av-time-inputs ${multi ? "av-sub-indent" : ""}">
+                    <select aria-label="Start time" onchange="updateManualTime('${name}',${di},${i},'start',this.value)">
+                      ${startOpts.map((o) => `<option value="${o.value}" ${o.value === es.start ? "selected" : ""}>${o.label}</option>`).join("")}
+                    </select>
+                    <span>–</span>
+                    <select aria-label="End time" onchange="updateManualTime('${name}',${di},${i},'end',this.value)">
+                      ${endOpts.map((o) => `<option value="${o.value}" ${o.value === es.end ? "selected" : ""}>${o.label}</option>`).join("")}
+                    </select>
+                  </div>`;
+              }
+              inner = fullCheck + custom;
+            }
+            return `<div class="av-block-group">${onToggle}${inner}</div>`;
+          }).join("");
+        }
+
+        return `
+          <div class="av-day-row ${d.selected ? "selected" : ""}">
+            <label class="av-day-check">
+              <input type="checkbox" ${d.selected ? "checked" : ""} onchange="toggleDay('${name}', ${di}, this.checked)">
+              <span class="av-day-label">${SCHED.dayFull(d.day)}</span>
+            </label>
+            ${d.selected ? `<div class="av-hours">${hoursHtml}</div>` : ""}
+          </div>`;
       }
 
       function _workerPriority(name) {
@@ -1161,13 +1267,72 @@
         return w ? w.priority : 0;
       }
 
+      // When (re)selecting a day whose blocks are all turned off, seed it with
+      // the priority-default hours so a selected day is never left empty.
+      function _reseedIfEmpty(d, priority) {
+        if (d.edit.every((s) => !s.on)) {
+          d.edit = deriveEditFromBlocks(clientDefaultBlocks(d.day, priority), SCHED.blocks(d.day));
+          syncDay(d);
+        }
+      }
+
       function toggleAllDays(name, checked) {
-        manualDays(name, _workerPriority(name)).forEach((d) => (d.selected = checked));
+        const pr = _workerPriority(name);
+        manualDays(name, pr).forEach((d) => {
+          d.selected = checked;
+          if (checked) _reseedIfEmpty(d, pr);
+        });
         renderAvailability();
         markStale();
       }
       function toggleDay(name, di, checked) {
-        manualDays(name, _workerPriority(name))[di].selected = checked;
+        const pr = _workerPriority(name);
+        const d = manualDays(name, pr)[di];
+        d.selected = checked;
+        if (checked) _reseedIfEmpty(d, pr);
+        renderAvailability();
+        markStale();
+      }
+
+      // Two-block days: turn one operating block on or off.
+      function toggleManualBlockOn(name, di, i, checked) {
+        const d = _manualDay(name, di);
+        d.edit[i].on = checked;
+        syncDay(d);
+        renderAvailability();
+        markStale();
+      }
+
+      // Toggle "available the whole block" for one operating block. Turning it
+      // on snaps the range to the full operating hours; turning it off keeps the
+      // current range so the custom selects open pre-filled.
+      function toggleManualFull(name, di, i, checked) {
+        const d = _manualDay(name, di);
+        const op = SCHED.blocks(d.day);
+        const s = d.edit[i];
+        s.on = true;
+        s.allBlock = checked;
+        if (checked && op[i]) { s.start = op[i].start; s.end = op[i].end; }
+        syncDay(d);
+        renderAvailability();
+        markStale();
+      }
+
+      // Custom start/end change within one operating block. Rejects inverted
+      // ranges (re-renders to restore the select) and drops the whole-block flag.
+      function updateManualTime(name, di, i, field, val) {
+        const d = _manualDay(name, di);
+        const s = d.edit[i];
+        const m = parseInt(val, 10);
+        if (field === "start") {
+          if (m >= s.end) { renderAvailability(); return; }
+          s.start = m;
+        } else {
+          if (m <= s.start) { renderAvailability(); return; }
+          s.end = m;
+        }
+        s.allBlock = false;
+        syncDay(d);
         renderAvailability();
         markStale();
       }

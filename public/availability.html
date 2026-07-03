@@ -388,6 +388,14 @@
       let _windowOpen = null;
       let _windowClose = null;
       let _sched = null; // buildSchedule() view of the center's active variant
+      let _defaults = null; // per-priority default windows [{start,end} x3]
+
+      // Pull the three per-priority default windows off a variant's days object.
+      function readDefaults(days) {
+        return days && Array.isArray(days.defaults) && days.defaults.length === 3
+          ? days.defaults
+          : null;
+      }
 
       // Extract centerId from URL path: /availability/arlington-heights
       const _centerId = window.location.pathname.split("/").filter(Boolean)[1] || "";
@@ -418,7 +426,9 @@
         try {
           const res = await fetch(`/center-schedule/${_centerId}`);
           const data = await res.json();
-          _sched = buildSchedule(data.data && data.data.days);
+          const days = data.data && data.data.days;
+          _sched = buildSchedule(days);
+          _defaults = readDefaults(days);
         } catch (e) {
           console.warn("Could not load center schedule:", e.message);
           _sched = buildSchedule(null);
@@ -538,10 +548,12 @@
         }
 
         // Make sure we have the operating schedule before showing the form.
-        if (!_sched || _sched.days.length === 0) {
+        if (!_sched || _sched.days.length === 0 || !_defaults) {
           try {
             const sc = await fetch(`/center-schedule/${_centerId}`).then(r => r.json());
-            _sched = buildSchedule(sc.data && sc.data.days);
+            const days = sc.data && sc.data.days;
+            _sched = buildSchedule(days);
+            _defaults = readDefaults(days);
           } catch (e) {
             console.warn("Could not refresh center schedule:", e.message);
           }
@@ -609,12 +621,51 @@
       // blocks runs parallel to the center's operating blocks for that day.
       const dayState = {};
 
+      // The active employee's priority-default window (null → fall back to full
+      // operating hours). Mirrors scheduleConfig.DEFAULT_PRIORITY_WINDOWS use.
+      function priorityWindow() {
+        const p = _employee && typeof _employee.priority === "number" ? _employee.priority : 0;
+        return _defaults && _defaults[p] ? _defaults[p] : null;
+      }
+
+      // Client mirror of scheduleConfig.defaultBlocksFor: Mon–Fri clip each
+      // operating block to the priority window; Sat/Sun use full hours. Falls
+      // back to full hours if the clip would leave the day empty, so a selected
+      // day is never seeded with zero availability.
+      function defaultBlocksFor(dayKey, operatingBlocks, win) {
+        const ops = (operatingBlocks || []).map((b) => ({ start: b.start, end: b.end }));
+        const isWeekend = dayKey === "saturday" || dayKey === "sunday";
+        if (isWeekend || !win) return ops;
+        const out = [];
+        for (const b of ops) {
+          const s = Math.max(b.start, win.start);
+          const e = Math.min(b.end, win.end);
+          if (s < e) out.push({ start: s, end: e });
+        }
+        return out.length ? out : ops;
+      }
+
+      // Reconstruct per-operating-block edit state from a concrete blocks array.
+      // A block fully covered by its default → allBlock; a partial cover → a
+      // custom range pre-filled to the default window.
+      function deriveBlockState(blocks, op) {
+        return op.map((b) => {
+          const sb = (blocks || []).find((x) => x.start < b.end && x.end > b.start);
+          if (!sb) return { on: false, allBlock: false, start: b.start, end: b.end };
+          const start = Math.max(sb.start, b.start);
+          const end = Math.min(sb.end, b.end);
+          const allBlock = start <= b.start && end >= b.end;
+          return { on: true, allBlock, start, end };
+        });
+      }
+
       function ensureDayState(d) {
         const op = _sched.blocks(d);
         if (!dayState[d] || dayState[d].blocks.length !== op.length) {
+          const seed = defaultBlocksFor(d, op, priorityWindow());
           dayState[d] = {
             selected: dayState[d] ? dayState[d].selected : false,
-            blocks: op.map((b) => ({ on: true, allBlock: true, start: b.start, end: b.end })),
+            blocks: deriveBlockState(seed, op),
           };
         }
         return dayState[d];
