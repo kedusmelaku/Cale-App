@@ -1017,20 +1017,52 @@
         );
       }
 
+      let _tutorialPulseObserver = null;
+
+      function positionTutorialPulseElements() {
+        const gear = document.getElementById("btn-gear");
+        const ring = document.getElementById("tut-gear-pulse-ring");
+        const ripple = document.getElementById("tut-gear-ripple");
+        if (!gear) return;
+
+        const r = gear.getBoundingClientRect();
+        if (ring) {
+          ring.style.top = r.top - 4 + "px";
+          ring.style.left = r.left - 4 + "px";
+          ring.style.width = r.width + 8 + "px";
+          ring.style.height = r.height + 8 + "px";
+        }
+        if (ripple) {
+          const dotX = r.right - 5;
+          const dotY = r.top + 5;
+          ripple.style.left = dotX + "px";
+          ripple.style.top = dotY + "px";
+          ripple.style.transform = "translate(-50%, -50%)";
+        }
+      }
+
+      function ensureTutorialPulseObservers() {
+        if (_tutorialPulseObserver || typeof ResizeObserver === "undefined")
+          return;
+        _tutorialPulseObserver = new ResizeObserver(() => {
+          positionTutorialPulseElements();
+        });
+        _tutorialPulseObserver.observe(document.body);
+        window.addEventListener("resize", positionTutorialPulseElements);
+        window.addEventListener("scroll", positionTutorialPulseElements, true);
+      }
+
       function tutStartPulseRing() {
         if (document.getElementById("tut-gear-pulse-ring")) return;
         const gear = document.getElementById("btn-gear");
         if (!gear) return;
-        const r = gear.getBoundingClientRect();
+        ensureTutorialPulseObservers();
         const ring = document.createElement("div");
         ring.id = "tut-gear-pulse-ring";
-        ring.style.top = r.top - 4 + "px";
-        ring.style.left = r.left - 4 + "px";
-        ring.style.width = r.width + 8 + "px";
-        ring.style.height = r.height + 8 + "px";
         if (typeof tut !== "undefined" && tut.active)
           ring.style.display = "none";
         document.body.appendChild(ring);
+        positionTutorialPulseElements();
       }
 
       function tutStopPulseRing() {
@@ -1078,6 +1110,7 @@
       }
 
       // ── Gear nudge init ─────────────────────────────────────────────
+      ensureTutorialPulseObservers();
       if (localStorage.getItem("scheduler-tut-completed") === "1") {
         document.body.classList.add("tut-completed");
       } else {
@@ -1085,6 +1118,7 @@
         const ripple = document.createElement("div");
         ripple.id = "tut-gear-ripple";
         document.body.appendChild(ripple);
+        positionTutorialPulseElements();
         ripple.addEventListener("animationend", function () {
           ripple.remove();
           tutStartPulseRing();
