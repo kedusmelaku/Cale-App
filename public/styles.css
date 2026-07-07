@@ -1429,10 +1429,26 @@ input[type="date"]:focus-visible {
   border-radius: 0 0 4px 4px;
 }
 
+/* Top resize handle: mirrors .resize-handle on the top edge. The remove (X)
+   button has a higher z-index and its own hit area, so grabbing the top edge
+   to resize never conflicts with clicking X. */
+.resize-handle-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  cursor: ns-resize;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px 4px 0 0;
+  z-index: 1;
+}
+
 .remove-btn {
   position: absolute;
-  top: 3px;
-  right: 4px;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
   font-size: 0.65rem;
   color: white;
   cursor: pointer;
@@ -1440,7 +1456,7 @@ input[type="date"]:focus-visible {
   line-height: 1;
   background: none;
   border: none;
-  padding: 0;
+  padding: 2px 3px;
   font-family: inherit;
   writing-mode: horizontal-tb;
 }
