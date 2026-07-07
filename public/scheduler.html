@@ -1943,6 +1943,9 @@
                 const resizable = isEdit
                   ? `<div class="resize-handle" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
                   : "";
+                const resizableTop = isEdit
+                  ? `<div class="resize-handle-top" onmousedown="event.stopPropagation()" data-day="${di}" data-ai="${ai}"></div>`
+                  : "";
                 const removable = isEdit
                   ? `<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.dayName}" onmousedown="event.stopPropagation()" onclick="removeShift(${di},${ai})">✕</button>`
                   : "";
@@ -1960,7 +1963,7 @@
                   <div class="worker-block ${isEdit ? "draggable" : ""}"
                     style="top:${top}px; height:${height}px; background:${color};"
                     title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
-                    ${a.name}${oobOverlay}${resizable}${removable}
+                    ${a.name}${oobOverlay}${resizableTop}${resizable}${removable}
                   </div>
                 </div>`;
               })
@@ -2033,6 +2036,11 @@
           .forEach((handle) =>
             handle.addEventListener("mousedown", onResizeMouseDown),
           );
+        document
+          .querySelectorAll(".resize-handle-top")
+          .forEach((handle) =>
+            handle.addEventListener("mousedown", onResizeTopMouseDown),
+          );
       }
 
       function shiftBlockMeta(di, ai) {
@@ -2056,6 +2064,7 @@
 
       function onBlockMouseDown(e) {
         if (e.target.classList.contains("resize-handle")) return;
+        if (e.target.classList.contains("resize-handle-top")) return;
         if (e.target.classList.contains("remove-btn")) return;
         e.preventDefault();
         e.stopPropagation();
@@ -2100,6 +2109,31 @@
         window.addEventListener("mouseup", cancelDrag);
       }
 
+      // Resize from the top edge: the bottom (end) stays pinned while the start
+      // moves. fixedEndIdx is the exclusive end slot index that stays put.
+      function onResizeTopMouseDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const di = parseInt(e.currentTarget.dataset.day);
+        const ai = parseInt(e.currentTarget.dataset.ai);
+        const block = e.currentTarget.closest(".worker-block");
+        const meta = shiftBlockMeta(di, ai);
+        dragState = {
+          type: "resize-top",
+          block,
+          di,
+          ai,
+          startY: e.clientY,
+          startTop: parseInt(block.style.top),
+          ...meta,
+          curStartIdx: meta.startIdx,
+          curDur: meta.durSlots,
+          fixedEndIdx: meta.startIdx + meta.durSlots,
+        };
+        document.addEventListener("mousemove", onDragMove);
+        window.addEventListener("mouseup", cancelDrag);
+      }
+
       function onDragMove(e) {
         if (!dragState) return;
         const dy = e.clientY - dragState.startY;
@@ -2112,6 +2146,17 @@
           );
           dragState.curStartIdx = idx;
           dragState.block.style.top = idx * SLOT_H + "px";
+        } else if (dragState.type === "resize-top") {
+          // Move the top/start edge; the end stays pinned at fixedEndIdx.
+          let idx = Math.round((dragState.startTop + dy) / SLOT_H);
+          idx = Math.max(
+            dragState.blockLoIdx,
+            Math.min(idx, dragState.fixedEndIdx - 1),
+          );
+          dragState.curStartIdx = idx;
+          dragState.curDur = dragState.fixedEndIdx - idx;
+          dragState.block.style.top = idx * SLOT_H + "px";
+          dragState.block.style.height = dragState.curDur * SLOT_H + "px";
         } else {
           let dur = Math.round((dragState.startHeight + dy) / SLOT_H);
           dur = Math.max(
@@ -2489,7 +2534,7 @@
           target: "#edit-btn",
           pos: "below",
           title: "Try Editing the Schedule",
-          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. Drag blocks vertically to move start times, drag the bottom handle to resize, and click <strong>✕</strong> to remove a shift.",
+          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. Drag a block to move it, drag its <strong>top or bottom edge</strong> to change the start or end time, and click <strong>✕</strong> to remove a shift.",
           hint: "Click Edit Schedule to open the editor",
           waitFor: "#screen-edit",
           waitForClass: "active",
@@ -2499,7 +2544,7 @@
           target: "#screen-edit .edit-body",
           pos: "left",
           title: "Edit Mode",
-          body: "Each block is draggable. The <strong>bottom handle</strong> resizes the end time. <strong>✕</strong> removes the shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually. Click <strong>← Schedule</strong> when you're done.",
+          body: "Each block is draggable. Drag the <strong>top edge</strong> to change the start time and the <strong>bottom edge</strong> to change the end. <strong>✕</strong> removes the shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually. Click <strong>← Schedule</strong> when you're done.",
           hint: "Click ← Back to return to the schedule",
           waitFor: "#screen-edit",
           waitForClass: "active",
