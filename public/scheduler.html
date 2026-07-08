@@ -21,6 +21,45 @@
       .av-sub-indent {
         margin-left: 22px;
       }
+      /* "Default hours / Custom" segmented toggle — replaces a checkbox that used
+         to read "Available the whole block" sitting right under another
+         checkbox ("Morning block"), which tested as confusing since both
+         looked like independent yes/no availability toggles. This is really a
+         2-way mode choice, not a boolean, so it's a button pair instead.
+         Labeled "Default hours" (not "Full hours") to match the wording used
+         for priority-default windows elsewhere (dashboard/scheduler tooltips) —
+         this is the manager-facing control; the employee-facing form
+         (availability.html) has no toggle at all, see that file.
+         New class names — check availability.html before reusing there. */
+      .av-mode-toggle {
+        display: inline-flex;
+        border: 1px solid var(--border, #d6dae2);
+        border-radius: 6px;
+        overflow: hidden;
+        margin: 4px 0 6px;
+      }
+      .av-mode-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-mid, #4a4a4a);
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 5px 12px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .av-mode-btn + .av-mode-btn {
+        border-left: 1px solid var(--border, #d6dae2);
+      }
+      .av-mode-btn.active {
+        background: var(--accent-light, #e8f1ff);
+        color: var(--accent-on-tint, var(--accent, #0d7bff));
+        font-weight: 700;
+      }
+      .av-mode-btn:focus-visible {
+        outline: 2px solid var(--accent-on-tint, var(--accent, #0d7bff));
+        outline-offset: -2px;
+      }
     </style>
     <script src="/analytics.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
@@ -1293,7 +1332,7 @@
 
       // One day row in the manual editor: a select checkbox plus, when selected,
       // a per-operating-block editor mirroring the availability form — on/off
-      // (two-block days only), "whole block", and custom start/end selects.
+      // (two-block days only), "default hours", and custom start/end selects.
       function renderManualDayRow(name, d, di) {
         const op = SCHED.blocks(d.day);
         const multi = op.length > 1;
@@ -1323,10 +1362,10 @@
               let inner = "";
               if (on) {
                 const fullCheck = `
-                <label class="av-hours-check ${multi ? "av-sub-indent" : ""}">
-                  <input type="checkbox" ${es.allBlock ? "checked" : ""} onchange="toggleManualFull('${name}',${di},${i},this.checked)">
-                  <span>${multi ? "Available the whole block" : `Available all hours (${rangeLabel})`}</span>
-                </label>`;
+                <div class="av-mode-toggle ${multi ? "av-sub-indent" : ""}" role="group" aria-label="${multi ? `${blockName(b.start)} block hours` : "Hours"}">
+                  <button type="button" class="av-mode-btn ${es.allBlock ? "active" : ""}" aria-pressed="${es.allBlock ? "true" : "false"}" onclick="toggleManualFull('${name}',${di},${i},true)">Default hours${multi ? "" : ` (${rangeLabel})`}</button>
+                  <button type="button" class="av-mode-btn ${!es.allBlock ? "active" : ""}" aria-pressed="${!es.allBlock ? "true" : "false"}" onclick="toggleManualFull('${name}',${di},${i},false)">Custom</button>
+                </div>`;
                 let custom = "";
                 if (!es.allBlock) {
                   const startOpts = opts.filter((o) => o.value < b.end);
@@ -1403,9 +1442,11 @@
         markStale();
       }
 
-      // Toggle "available the whole block" for one operating block. Turning it
-      // on snaps the range to the full operating hours; turning it off keeps the
-      // current range so the custom selects open pre-filled.
+      // Toggle "default hours" for one operating block. Turning it on snaps
+      // the range back to the priority-based default for this block (server
+      // re-derives it from allDay/priority regardless — this just keeps the
+      // manager's live preview in sync); turning it off keeps the current
+      // range so the custom selects open pre-filled.
       function toggleManualFull(name, di, i, checked) {
         const d = _manualDay(name, di);
         const op = SCHED.blocks(d.day);
@@ -1422,7 +1463,7 @@
       }
 
       // Custom start/end change within one operating block. Rejects inverted
-      // ranges (re-renders to restore the select) and drops the whole-block flag.
+      // ranges (re-renders to restore the select) and drops the default-hours flag.
       function updateManualTime(name, di, i, field, val) {
         const d = _manualDay(name, di);
         const s = d.edit[i];
@@ -2457,12 +2498,12 @@
       }
 
       // ══════════════════════════════════════════════════════════════════
-      // TUTORIAL ENGINE — SCHEDULER (steps 13–20 of 20)
+      // TUTORIAL ENGINE — SCHEDULER (steps 13–26 of 26)
       // ══════════════════════════════════════════════════════════════════
       const TUT_STORAGE_KEY = "scheduler-tut-step";
       const TUT_DEMO_KEY = "scheduler-tut-demo";
       const TUT_COMPLETED_KEY = "scheduler-tut-completed";
-      const TUT_TOTAL = 23;
+      const TUT_TOTAL = 26;
       const tut = { active: false, step: 0 };
 
       function tutMarkCompleted() {
@@ -2527,14 +2568,14 @@
           target: ".schedule-grid",
           pos: "left",
           title: "Reading the Timeline",
-          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. <strong>Hover any time slot label</strong> to see a tooltip: student count, instructors needed, and who's assigned. <strong>Red hatching</strong> means a shift falls outside submitted availability.",
+          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. Move your mouse over a <strong>time slot on the left edge</strong> of a column to see a tooltip: student count, instructors needed, and who's assigned.",
         },
         {
           global: 19,
           target: "#edit-btn",
           pos: "below",
           title: "Try Editing the Schedule",
-          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor. Drag a block to move it, drag its <strong>top or bottom edge</strong> to change the start or end time, and click <strong>✕</strong> to remove a shift.",
+          body: "Click <strong>Edit Schedule</strong> to open the drag-and-drop editor, where you can move, resize, add, and remove shifts.",
           hint: "Click Edit Schedule to open the editor",
           waitFor: "#screen-edit",
           waitForClass: "active",
@@ -2543,8 +2584,32 @@
           global: 20,
           target: "#screen-edit .edit-body",
           pos: "left",
-          title: "Edit Mode",
-          body: "Each block is draggable. Drag the <strong>top edge</strong> to change the start time and the <strong>bottom edge</strong> to change the end. <strong>✕</strong> removes the shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually. Click <strong>← Schedule</strong> when you're done.",
+          title: "Moving and Resizing Shifts",
+          body: "Each block is draggable — drag it to move a shift to a different time or employee row. Drag the <strong>top edge</strong> to change the start time, or the <strong>bottom edge</strong> to change the end time, independently.",
+        },
+        {
+          global: 21,
+          target: "#screen-edit .edit-body",
+          pos: "left",
+          title: "Removing and Adding Shifts",
+          body: "Click the <strong>✕</strong> on any block to remove that shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually — pick a name, a block, and a time range.",
+        },
+        {
+          global: 22,
+          target: "#screen-edit .edit-body",
+          pos: "left",
+          title: "Out-of-Bounds Warning",
+          body: "If you drag or resize a shift outside an employee's submitted availability, you'll see diagonal hatching over the block and a banner at the top — this doesn't block you, it's just a heads-up to double check before finalizing. Try dragging a block outside its hours now to see it.",
+          hint: "Drag a block outside its availability to see the warning",
+          waitFor: ".oob-overlay",
+          waitForExists: true,
+        },
+        {
+          global: 23,
+          target: "#screen-edit .edit-body",
+          pos: "left",
+          title: "Back to the Schedule",
+          body: "Click <strong>← Schedule</strong> when you're done editing.",
           hint: "Click ← Back to return to the schedule",
           waitFor: "#screen-edit",
           waitForClass: "active",
@@ -2554,14 +2619,14 @@
           },
         },
         {
-          global: 21,
+          global: 24,
           target: "#copy-btn",
           pos: "below",
           title: "Copy & Finish",
           body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. <strong>Finish →</strong> returns you to the dashboard.",
         },
         {
-          global: 22,
+          global: 25,
           target: null,
           pos: "center",
           title: "You're all set!",
@@ -2669,6 +2734,18 @@
         if (_tutWaitTimer) clearInterval(_tutWaitTimer);
         _tutWaitTimer = setInterval(function () {
           const el = document.querySelector(step.waitFor);
+          if (step.waitForExists) {
+            // Advance as soon as the element exists at all — used for things
+            // like the OOB overlay, which is only ever present/absent (no
+            // class to toggle), created fresh by JS when a shift goes out
+            // of bounds.
+            if (el) {
+              clearInterval(_tutWaitTimer);
+              _tutWaitTimer = null;
+              tutAdvanceStep();
+            }
+            return;
+          }
           if (!el) return;
           const cls = step.waitForClass || "open";
           const hasClass = el.classList.contains(cls);
@@ -2741,7 +2818,7 @@
         }
         tut.step++;
         localStorage.setItem(TUT_STORAGE_KEY, String(tut.step));
-        if (tut.step > 22) {
+        if (tut.step > 25) {
           tutEnd();
           return;
         }

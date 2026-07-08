@@ -1839,13 +1839,25 @@ body.dark {
   --bg: #0f0f13;
   --surface: #262631;
   --surface2: #21212b;
-  --border: #4b4b63;
-  --border-strong: #3a3a50;
+  /* --border/--border-strong retuned in a dark-mode contrast pass —
+     previously #4b4b63 / #3a3a50, as low as ~1.35:1 against --surface,
+     failing WCAG 1.4.11's 3:1 minimum for UI component boundaries (the
+     info-tip icon outline, input borders, checkbox outlines). Now
+     2.6–3.3:1 / 3.8–4.8:1. */
+  --border: #63637f;
+  --border-strong: #7d7d9e;
   --text: #e8e8f0;
   --text-mid: #a0a0b8;
-  --text-muted: #6b6b80;
+  /* Was #6b6b80 (2.88:1 against --surface, failing the 4.5:1 minimum for
+     normal text — this var is used as real label/body text, not just
+     decoration). Now 5.24:1 / 6.70:1. */
+  --text-muted: #9797ae;
   --accent-light: #0a1628;
   --green-bg: #0a1f12;
+  /* Was unset here, silently inheriting light mode's #217a4a (2.81:1
+     against --surface, used as a border-color for "available" states —
+     fails the 3:1 UI-component minimum). Now 4.98:1 / 6.37:1. */
+  --green: #38a86e;
   /* Lightened text-on-tint colors for the priority badges/picker — the base
      --accent/--green are too dark to read against their own tinted
      backgrounds once those backgrounds darken in this theme (was ~2.7:1,
@@ -2200,7 +2212,7 @@ body.tut-active .settings-tour-top {
   width: 100%;
   padding: 10px 14px;
   background: var(--accent-light);
-  color: var(--accent);
+  color: var(--accent-on-tint);
   border: 1.5px solid var(--accent);
   border-radius: 8px;
   font-size: 0.875rem;
@@ -2258,7 +2270,7 @@ body.tut-completed .settings-tour-bottom {
   transition: color 0.12s;
 }
 .settings-tour-bottom-link:hover {
-  color: var(--accent);
+  color: var(--accent-on-tint);
 }
 
 /* ── Gear nudge: badge + ripple + pulse ── */
@@ -2400,7 +2412,7 @@ body.tut-completed .btn-gear::after {
 }
 
 .av-form-link {
-  color: var(--accent);
+  color: var(--accent-on-tint);
   text-decoration: none;
 }
 
@@ -2772,7 +2784,7 @@ body.dark .db-rail {
 }
 .db-emp-btn:hover {
   background: var(--accent-light);
-  color: var(--accent);
+  color: var(--accent-on-tint);
   border-color: var(--accent);
 }
 .db-emp-btn-remove:hover {
@@ -2930,7 +2942,7 @@ body.dark .db-rail {
 .db-chip-btn:hover {
   background: var(--accent-light);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-on-tint);
 }
 .db-chip-btn-primary {
   background: var(--accent);
