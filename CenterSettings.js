@@ -78,6 +78,22 @@ const scheduleSchema = new mongoose.Schema(
   { _id: false },
 );
 
+// Keyword lists used to classify Google Calendar event titles (see
+// calendar.js). lessonKeywords is the primary classifier; oneOnOneKeywords
+// is optional since not every center runs one-on-one lessons.
+const calendarKeywordsSchema = new mongoose.Schema(
+  {
+    lessonKeywords: { type: [String], default: [] },
+    oneOnOneKeywords: { type: [String], default: [] },
+    // Per-list case sensitivity. Default false (case-insensitive) — most
+    // centers don't need it, but short codes like "HS" can occasionally
+    // collide with ordinary words, so this is here for when a center does.
+    lessonCaseSensitive: { type: Boolean, default: false },
+    oneOnOneCaseSensitive: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+
 const centerSettingsSchema = new mongoose.Schema({
   centerId: { type: String, required: true, unique: true },
 
@@ -91,6 +107,12 @@ const centerSettingsSchema = new mongoose.Schema({
   // null on legacy documents created before this feature — callers should
   // fall back to scheduleConfig.defaultSchedule() when this is absent.
   schedule: { type: scheduleSchema, default: null },
+
+  // Per-center Google Calendar event-title keywords. null on legacy
+  // documents (and any center that hasn't configured this yet) — callers
+  // should fall back to calendar.js's built-in defaults (HS/MS/ES,
+  // "1-on-1"/"one-on-one") when this is absent.
+  calendarKeywords: { type: calendarKeywordsSchema, default: null },
 
   // Tutorial completion status for the center's onboarding tour.
   tutorialCompleted: { type: Boolean, default: false },

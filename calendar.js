@@ -6,18 +6,36 @@ const { getAuth } = require("./auth");
 // straight from the event's local wall-clock time. The scheduling engine maps
 // these onto whatever slots the center's config actually defines, so events
 // outside operating hours are simply ignored downstream.
+//
+// Which keywords count as a lesson (vs a one-on-one, vs neither) is
+// per-center config now — see CenterSettings.calendarKeywords, set via the
+// admin UI. DEFAULT_LESSON_KEYWORDS/DEFAULT_ONE_ON_ONE_KEYWORDS below are
+// only the fallback for centers that haven't configured this yet.
 
-const LESSON_KEYWORDS = ["HS", "MS", "ES"];
-const ONE_ON_ONE_KEYWORDS = ["1-on-1", "one-on-one"];
+const DEFAULT_LESSON_KEYWORDS = ["HS", "MS", "ES"];
+const DEFAULT_ONE_ON_ONE_KEYWORDS = ["1-on-1", "one-on-one"];
 const DAYS = [
   "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
 ];
 
-function classifyEvent(title) {
+// Both keyword lists default to case-insensitive matching, but each can be
+// switched to case-sensitive independently (e.g. a center whose "HS" code
+// keeps colliding with ordinary words can turn that back on for lessons).
+function classifyEvent(
+  title,
+  lessonKeywords,
+  oneOnOneKeywords,
+  lessonCaseSensitive,
+  oneOnOneCaseSensitive,
+) {
   if (!title) return "other";
   const lower = title.toLowerCase();
-  if (ONE_ON_ONE_KEYWORDS.some((k) => lower.includes(k))) return "oneOnOne";
-  if (LESSON_KEYWORDS.some((k) => title.includes(k))) return "lesson"; // case-sensitive HS/MS/ES
+  const matches = (keywords, caseSensitive) =>
+    (keywords || []).some((k) =>
+      caseSensitive ? title.includes(k) : lower.includes(k.toLowerCase()),
+    );
+  if (matches(oneOnOneKeywords, oneOnOneCaseSensitive)) return "oneOnOne";
+  if (matches(lessonKeywords, lessonCaseSensitive)) return "lesson";
   return "other";
 }
 
@@ -50,7 +68,14 @@ function toSlot(minutes) {
   return Math.floor(minutes / 30) * 30;
 }
 
-async function getWeekEvents(mondayDate, calendarId = "primary") {
+async function getWeekEvents(
+  mondayDate,
+  calendarId = "primary",
+  lessonKeywords = DEFAULT_LESSON_KEYWORDS,
+  oneOnOneKeywords = DEFAULT_ONE_ON_ONE_KEYWORDS,
+  lessonCaseSensitive = false,
+  oneOnOneCaseSensitive = false,
+) {
   const auth = getAuth();
   const calendar = google.calendar({ version: "v3", auth });
 
@@ -78,7 +103,13 @@ async function getWeekEvents(mondayDate, calendarId = "primary") {
 
   for (const event of events) {
     if (!event.start?.dateTime) continue;
-    const type = classifyEvent(event.summary);
+    const type = classifyEvent(
+      event.summary,
+      lessonKeywords,
+      oneOnOneKeywords,
+      lessonCaseSensitive,
+      oneOnOneCaseSensitive,
+    );
     if (type === "other") continue;
 
     const { day, minutes } = parseEventTime(event.start.dateTime);
@@ -97,4 +128,53 @@ async function getWeekEvents(mondayDate, calendarId = "primary") {
   return { studentData, oneOnOneData };
 }
 
-module.exports = { getWeekEvents };
+// Validates keyword config coming from the admin UI. Returns an error string
+// (safe to show the admin) or null if valid. lessonKeywords must have at
+// least one entry; oneOnOneKeywords may be empty (not every center runs
+// one-on-ones).
+function validateCalendarKeywords(kw) {
+  if (!kw || typeof kw !== "object") return "Calendar keyword data is missing.";
+  const lessonKeywords = Array.isArray(kw.lessonKeywords) ? kw.lessonKeywords : [];
+  const oneOnOneKeywords = Array.isArray(kw.oneOnOneKeywords) ? kw.oneOnOneKeywords : [];
+  const cleanLesson = lessonKeywords.map((k) => String(k).trim()).filter(Boolean);
+  if (cleanLesson.length === 0) return "Add at least one lesson keyword.";
+  for (const k of [...lessonKeywords, ...oneOnOneKeywords]) {
+    if (typeof k !== "string") return "Keywords must be text.";
+  }
+  return null;
+}
+
+// Cleans a keyword config: trims, drops empties, and dedupes — each list
+// dedupes according to its OWN case-sensitivity flag, since "HS" and "hs"
+// are meaningfully different entries once a list is case-sensitive.
+function normalizeCalendarKeywords(kw) {
+  const dedupe = (arr, caseSensitive) => {
+    const seen = new Set();
+    const out = [];
+    for (const raw of arr || []) {
+      const s = String(raw).trim();
+      if (!s) continue;
+      const key = caseSensitive ? s : s.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(s);
+    }
+    return out;
+  };
+  const lessonCaseSensitive = !!kw.lessonCaseSensitive;
+  const oneOnOneCaseSensitive = !!kw.oneOnOneCaseSensitive;
+  return {
+    lessonKeywords: dedupe(kw.lessonKeywords, lessonCaseSensitive),
+    oneOnOneKeywords: dedupe(kw.oneOnOneKeywords, oneOnOneCaseSensitive),
+    lessonCaseSensitive,
+    oneOnOneCaseSensitive,
+  };
+}
+
+module.exports = {
+  getWeekEvents,
+  DEFAULT_LESSON_KEYWORDS,
+  DEFAULT_ONE_ON_ONE_KEYWORDS,
+  validateCalendarKeywords,
+  normalizeCalendarKeywords,
+};

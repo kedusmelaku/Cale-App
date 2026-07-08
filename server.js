@@ -333,10 +333,35 @@ app.get("/events", requireAuth, async (req, res) => {
     await connectDB();
     const { loadTokensFromDB } = require("./auth");
     await loadTokensFromDB(req.centerId);
-    const { getWeekEvents } = require("./calendar");
+    const {
+      getWeekEvents,
+      DEFAULT_LESSON_KEYWORDS,
+      DEFAULT_ONE_ON_ONE_KEYWORDS,
+    } = require("./calendar");
+
+    const settings = await CenterSettings.findOne({ centerId: req.centerId });
+    const kw = settings && settings.calendarKeywords;
+    // kw is only present once a center has actually configured this — a
+    // center that HAS configured it but left one-on-one blank should get an
+    // empty oneOnOneKeywords (that's the "we don't run those" signal), not
+    // silently fall back to the hardcoded defaults.
+    const lessonKeywords =
+      kw && kw.lessonKeywords && kw.lessonKeywords.length
+        ? kw.lessonKeywords
+        : DEFAULT_LESSON_KEYWORDS;
+    const oneOnOneKeywords = kw
+      ? kw.oneOnOneKeywords || []
+      : DEFAULT_ONE_ON_ONE_KEYWORDS;
+    const lessonCaseSensitive = kw ? !!kw.lessonCaseSensitive : false;
+    const oneOnOneCaseSensitive = kw ? !!kw.oneOnOneCaseSensitive : false;
+
     const { studentData, oneOnOneData } = await getWeekEvents(
       new Date(monday + "T00:00:00"),
       calendarId || "arlingtonheights@mathnasium.com",
+      lessonKeywords,
+      oneOnOneKeywords,
+      lessonCaseSensitive,
+      oneOnOneCaseSensitive,
     );
     res.json({ studentData, oneOnOneData });
   } catch (err) {
@@ -729,6 +754,19 @@ app.post("/api/admin/centers", requireAdmin, async (req, res) => {
     if (schedErr) return res.status(400).json({ error: schedErr });
     schedule = normalizeSchedule(schedule);
 
+    const {
+      DEFAULT_LESSON_KEYWORDS,
+      validateCalendarKeywords,
+      normalizeCalendarKeywords,
+    } = require("./calendar");
+    let calendarKeywords = req.body.calendarKeywords || {
+      lessonKeywords: [...DEFAULT_LESSON_KEYWORDS],
+      oneOnOneKeywords: [],
+    };
+    const kwErr = validateCalendarKeywords(calendarKeywords);
+    if (kwErr) return res.status(400).json({ error: kwErr });
+    calendarKeywords = normalizeCalendarKeywords(calendarKeywords);
+
     const cleanId = centerId.trim().toLowerCase();
     const passwordHash = await bcrypt.hash(password, 10);
     const center = new Center({ centerId: cleanId, name, passwordHash });
@@ -737,7 +775,7 @@ app.post("/api/admin/centers", requireAdmin, async (req, res) => {
     // Create the settings document up front so the schedule exists immediately.
     await CenterSettings.findOneAndUpdate(
       { centerId: cleanId },
-      { centerId: cleanId, schedule },
+      { centerId: cleanId, schedule, calendarKeywords },
       { upsert: true, new: true },
     );
 
@@ -955,6 +993,74 @@ app.put(
     } catch (err) {
       console.error("PUT schedule:", err.message);
       res.status(500).json({ error: "Could not save the schedule." });
+    }
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CALENDAR KEYWORDS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Admin: read a center's calendar event-title keywords.
+app.get(
+  "/api/admin/centers/:centerId/keywords",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { centerId } = req.params;
+      const center = await Center.findOne({ centerId });
+      if (!center) return res.status(404).json({ error: "Center not found." });
+
+      const {
+        DEFAULT_LESSON_KEYWORDS,
+        DEFAULT_ONE_ON_ONE_KEYWORDS,
+      } = require("./calendar");
+      const settings = await CenterSettings.findOne({ centerId });
+      const calendarKeywords = (settings && settings.calendarKeywords) || {
+        lessonKeywords: DEFAULT_LESSON_KEYWORDS,
+        oneOnOneKeywords: DEFAULT_ONE_ON_ONE_KEYWORDS,
+        lessonCaseSensitive: false,
+        oneOnOneCaseSensitive: false,
+      };
+      res.json({ data: { calendarKeywords } });
+    } catch (err) {
+      console.error("GET keywords:", err.message);
+      res.status(500).json({ error: "Could not load calendar keywords." });
+    }
+  },
+);
+
+// Admin: save a center's calendar event-title keywords.
+app.put(
+  "/api/admin/centers/:centerId/keywords",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { centerId } = req.params;
+      const center = await Center.findOne({ centerId });
+      if (!center) return res.status(404).json({ error: "Center not found." });
+
+      const {
+        validateCalendarKeywords,
+        normalizeCalendarKeywords,
+      } = require("./calendar");
+      const kwErr = validateCalendarKeywords(req.body.calendarKeywords);
+      if (kwErr) return res.status(400).json({ error: kwErr });
+      const calendarKeywords = normalizeCalendarKeywords(
+        req.body.calendarKeywords,
+      );
+
+      const doc = await CenterSettings.findOneAndUpdate(
+        { centerId },
+        { centerId, calendarKeywords },
+        { new: true, upsert: true },
+      );
+      res.json({ data: { calendarKeywords: doc.calendarKeywords } });
+    } catch (err) {
+      console.error("PUT keywords:", err.message);
+      res.status(500).json({ error: "Could not save calendar keywords." });
     }
   },
 );
