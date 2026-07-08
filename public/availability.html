@@ -703,27 +703,23 @@
 
               let inner = "";
               if (on) {
-                const fullCheck = `
-                  <label class="av-hours-check ${multi ? "av-sub-indent" : ""}">
-                    <input type="checkbox" ${bs.allBlock ? "checked" : ""} onchange="toggleFull('${d}',${i},this.checked)">
-                    ${multi ? "Available the whole block" : `Available all hours (${rangeLabel})`}
-                  </label>`;
-                let custom = "";
-                if (!bs.allBlock) {
-                  const startOpts = opts.filter((o) => o.value < b.end);
-                  const endOpts = opts.filter((o) => o.value > b.start);
-                  custom = `
-                    <div class="av-time-row ${multi ? "av-sub-indent" : ""}">
-                      <select aria-label="Start time" onchange="updateTime('${d}',${i},'start',this.value)">
-                        ${startOpts.map((o) => `<option value="${o.value}" ${o.value === bs.start ? "selected" : ""}>${o.label}</option>`).join("")}
-                      </select>
-                      <span>–</span>
-                      <select aria-label="End time" onchange="updateTime('${d}',${i},'end',this.value)">
-                        ${endOpts.map((o) => `<option value="${o.value}" ${o.value === bs.end ? "selected" : ""}>${o.label}</option>`).join("")}
-                      </select>
-                    </div>`;
-                }
-                inner = fullCheck + custom;
+                const startOpts = opts.filter((o) => o.value < b.end);
+                const endOpts = opts.filter((o) => o.value > b.start);
+                // No "full hours / custom" toggle here on purpose — the selects
+                // are always visible, pre-filled to the employee's priority
+                // default (via defaultBlocksFor/deriveBlockState above), and
+                // directly editable. Employees never see the words "default"
+                // or "priority" — that's manager-side vocabulary.
+                inner = `
+                  <div class="av-time-row ${multi ? "av-sub-indent" : ""}">
+                    <select aria-label="Start time" onchange="updateTime('${d}',${i},'start',this.value)">
+                      ${startOpts.map((o) => `<option value="${o.value}" ${o.value === bs.start ? "selected" : ""}>${o.label}</option>`).join("")}
+                    </select>
+                    <span>–</span>
+                    <select aria-label="End time" onchange="updateTime('${d}',${i},'end',this.value)">
+                      ${endOpts.map((o) => `<option value="${o.value}" ${o.value === bs.end ? "selected" : ""}>${o.label}</option>`).join("")}
+                    </select>
+                  </div>`;
               }
               return `<div class="av-block-group">${onToggle}${inner}</div>`;
             }).join("");
@@ -766,14 +762,10 @@
         renderDays();
       }
 
-      function toggleFull(d, i, checked) {
-        ensureDayState(d).blocks[i].allBlock = checked;
-        renderDays();
-      }
-
       function updateTime(d, i, field, val) {
         const m = parseInt(val, 10);
-        const bs = ensureDayState(d).blocks[i];
+        const st = ensureDayState(d);
+        const bs = st.blocks[i];
         if (field === "start") {
           if (m >= bs.end) { renderDays(); return; }
           bs.start = m;
@@ -781,6 +773,10 @@
           if (m <= bs.start) { renderDays(); return; }
           bs.end = m;
         }
+        // No UI toggle sets this anymore — recompute from the edited range so
+        // collectDays()'s allDay calculation still reflects reality.
+        const op = _sched.blocks(d)[i];
+        bs.allBlock = op ? bs.start <= op.start && bs.end >= op.end : false;
         renderDays();
       }
 
