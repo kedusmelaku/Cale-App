@@ -176,6 +176,76 @@
         overflow-y: auto;
         padding-right: 4px;
       }
+      /* ── Calendar keywords editor ── */
+      .admin-page .kw-group {
+        margin-bottom: 18px;
+      }
+      .admin-page .kw-group-label {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .admin-page .kw-optional {
+        font-weight: 500;
+        color: var(--text-muted, #8891a0);
+        font-size: 0.8rem;
+      }
+      .admin-page .kw-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 8px 0;
+        min-height: 28px;
+      }
+      .admin-page .kw-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f5f9ff;
+        border: 1px solid #bcd8ff;
+        color: var(--text, #1a1a2e);
+        border-radius: 99px;
+        padding: 5px 8px 5px 12px;
+        font-size: 0.82rem;
+        font-weight: 500;
+      }
+      .admin-page .kw-chip-x {
+        border: none;
+        background: transparent;
+        color: #e05c5c;
+        cursor: pointer;
+        font-size: 0.9rem;
+        line-height: 1;
+        padding: 2px 4px;
+      }
+      .admin-page .kw-empty {
+        color: var(--text-muted, #9aa1ac);
+        font-size: 0.82rem;
+      }
+      .admin-page .kw-case-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.82rem;
+        color: var(--text-mid, #444);
+        font-weight: 500;
+        cursor: pointer;
+        margin-top: 6px;
+      }
+      .admin-page .kw-case-toggle input {
+        cursor: pointer;
+      }
+      .admin-page .kw-add-row {
+        display: flex;
+        gap: 8px;
+      }
+      .admin-page .kw-add-row input {
+        flex: 1;
+        padding: 7px 10px;
+        border: 1px solid var(--border, #d5dae6);
+        border-radius: 7px;
+        font-size: 0.85rem;
+        color: var(--text, #1a1a2e);
+      }
       .admin-page .sched-defaults {
         margin-top: 16px;
         border: 1px solid var(--border, #e2e6ef);
@@ -365,6 +435,27 @@
             <span class="sched-save-msg" id="sched-save-msg-detail"></span>
           </div>
         </div>
+
+        <!-- Calendar keywords -->
+        <div class="detail-section">
+          <div class="detail-section-title">Calendar Keywords</div>
+          <div class="admin-field-hint" style="margin-bottom: 12px">
+            Which words in a Google Calendar event's title count as a lesson
+            (or a one-on-one). Different centers often use different codes.
+          </div>
+          <div id="kw-body-detail" class="sched-editor">
+            <div class="emp-empty">Loading…</div>
+          </div>
+          <div
+            class="sched-save-row"
+            id="kw-save-row-detail"
+            style="display: none">
+            <button class="admin-btn-primary" onclick="saveDetailKeywords()">
+              Save Keywords
+            </button>
+            <span class="sched-save-msg" id="kw-save-msg-detail"></span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -420,6 +511,15 @@
           </div>
         </div>
 
+        <div id="modal-step-keywords" style="display: none">
+          <div class="admin-field-hint" style="margin-bottom: 12px">
+            Which words in a Google Calendar event's title count as a lesson
+            (or a one-on-one). You can fine-tune this any time from the
+            center's page.
+          </div>
+          <div id="kw-body-create" class="sched-editor"></div>
+        </div>
+
         <div class="admin-modal-error" id="modal-error"></div>
         <div class="admin-modal-actions">
           <button
@@ -449,12 +549,16 @@
       let _centers = [];
       let _editingCenterId = null;
       let _detailCenterId = null;
-      let _modalStep = "info"; // "info" | "sched" (Add flow)
+      let _modalStep = "info"; // "info" | "sched" | "keywords" (Add flow)
       let _createSchedule = null; // working schedule for the Add flow
       let _sched = null; // schedule object the editor is mutating
       let _schedTab = "schoolYear"; // which variant tab is showing
       let _schedTarget = "create"; // "create" | "detail" — which container to render into
       let _detailActive = "schoolYear"; // active variant resolved for the detail center
+      let _createKeywords = null; // working calendar keywords for the Add flow
+      let _kw = null; // calendar keywords object the editor is mutating
+      let _kwTarget = "create"; // "create" | "detail" — which container to render into
+      const CLIENT_DEFAULT_LESSON_KEYWORDS = ["HS", "MS", "ES"];
 
       // ── View switching ────────────────────────────────────────
       function showList() {
@@ -524,6 +628,10 @@
           "<div class='emp-empty'>Loading…</div>";
         document.getElementById("sched-save-row-detail").style.display = "none";
         document.getElementById("sched-save-msg-detail").textContent = "";
+        document.getElementById("kw-body-detail").innerHTML =
+          "<div class='emp-empty'>Loading…</div>";
+        document.getElementById("kw-save-row-detail").style.display = "none";
+        document.getElementById("kw-save-msg-detail").textContent = "";
         [
           "d-emp-count",
           "d-pin-sub",
@@ -566,6 +674,7 @@
           const { data } = await res.json();
           renderDetail(data);
           loadDetailSchedule(centerId);
+          loadDetailKeywords(centerId);
         } catch {
           document.getElementById("d-name").textContent = "Failed to load";
         }
@@ -582,6 +691,19 @@
         } catch {
           document.getElementById("sched-body-detail").innerHTML =
             "<div class='emp-empty'>Couldn't load the schedule.</div>";
+        }
+      }
+
+      async function loadDetailKeywords(centerId) {
+        try {
+          const res = await fetch(`/api/admin/centers/${centerId}/keywords`);
+          if (!res.ok) throw new Error();
+          const { data } = await res.json();
+          openKeywordsEditor(data.calendarKeywords, "detail");
+          document.getElementById("kw-save-row-detail").style.display = "";
+        } catch {
+          document.getElementById("kw-body-detail").innerHTML =
+            "<div class='emp-empty'>Couldn't load calendar keywords.</div>";
         }
       }
 
@@ -808,12 +930,19 @@
         _editingCenterId = null;
         _modalStep = "info";
         _createSchedule = clientDefaultSchedule();
+        _createKeywords = {
+          lessonKeywords: [...CLIENT_DEFAULT_LESSON_KEYWORDS],
+          oneOnOneKeywords: [],
+          lessonCaseSensitive: false,
+          oneOnOneCaseSensitive: false,
+        };
         document.getElementById("modal-title").textContent = "Add Center";
         document.getElementById("modal-submit").textContent = "Next →";
         document.getElementById("modal-back").style.display = "none";
         document.getElementById("admin-modal").classList.remove("wide");
         document.getElementById("modal-step-info").style.display = "";
         document.getElementById("modal-step-sched").style.display = "none";
+        document.getElementById("modal-step-keywords").style.display = "none";
         document.getElementById("field-centerid").style.display = "";
         document.getElementById("m-password-hint").style.display = "none";
         document.getElementById("m-centerid").value = "";
@@ -835,6 +964,7 @@
         document.getElementById("admin-modal").classList.remove("wide");
         document.getElementById("modal-step-info").style.display = "";
         document.getElementById("modal-step-sched").style.display = "none";
+        document.getElementById("modal-step-keywords").style.display = "none";
         document.getElementById("field-centerid").style.display = "none";
         document.getElementById("m-password-hint").style.display = "";
         document.getElementById("m-name").value = center.name;
@@ -915,6 +1045,12 @@
               btn.disabled = false;
               return;
             }
+            const kwErr = firstKwError(_createKeywords);
+            if (kwErr) {
+              errorEl.textContent = kwErr;
+              btn.disabled = false;
+              return;
+            }
             const res = await fetch("/api/admin/centers", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -923,6 +1059,7 @@
                 name,
                 password,
                 schedule: _createSchedule,
+                calendarKeywords: _createKeywords,
               }),
             });
             const data = await res.json();
@@ -940,7 +1077,7 @@
         btn.disabled = false;
       }
 
-      // Primary-button dispatcher: Edit saves immediately; Add advances info → schedule → create.
+      // Primary-button dispatcher: Edit saves immediately; Add advances info → schedule → keywords → create.
       function modalPrimary() {
         if (_editingCenterId) {
           submitModal();
@@ -948,6 +1085,10 @@
         }
         if (_modalStep === "info") {
           goToSchedStep();
+          return;
+        }
+        if (_modalStep === "sched") {
+          goToKeywordsStep();
           return;
         }
         submitModal();
@@ -984,14 +1125,40 @@
         document.getElementById("modal-step-info").style.display = "none";
         document.getElementById("modal-step-sched").style.display = "";
         document.getElementById("modal-back").style.display = "";
-        document.getElementById("modal-submit").textContent = "Create Center";
+        document.getElementById("modal-submit").textContent = "Next →";
         document.getElementById("admin-modal").classList.add("wide");
         openScheduleEditor(_createSchedule, "create");
       }
 
+      function goToKeywordsStep() {
+        const errorEl = document.getElementById("modal-error");
+        errorEl.textContent = "";
+        const schedErr = firstSchedError(_createSchedule);
+        if (schedErr) {
+          refreshSchedWarnings();
+          errorEl.textContent =
+            "Please fix the highlighted schedule issue(s) before continuing.";
+          return;
+        }
+
+        _modalStep = "keywords";
+        document.getElementById("modal-step-sched").style.display = "none";
+        document.getElementById("modal-step-keywords").style.display = "";
+        document.getElementById("modal-submit").textContent = "Create Center";
+        openKeywordsEditor(_createKeywords, "create");
+      }
+
       function modalBack() {
+        const errorEl = document.getElementById("modal-error");
+        errorEl.textContent = "";
+        if (_modalStep === "keywords") {
+          _modalStep = "sched";
+          document.getElementById("modal-step-keywords").style.display = "none";
+          document.getElementById("modal-step-sched").style.display = "";
+          document.getElementById("modal-submit").textContent = "Next →";
+          return;
+        }
         _modalStep = "info";
-        document.getElementById("modal-error").textContent = "";
         document.getElementById("modal-step-sched").style.display = "none";
         document.getElementById("modal-step-info").style.display = "";
         document.getElementById("modal-back").style.display = "none";
@@ -1278,6 +1445,177 @@
         _schedTarget = target;
         _schedTab = "schoolYear";
         renderScheduleEditor();
+      }
+
+      // ── Calendar keywords editor ──────────────────────────────
+      function openKeywordsEditor(calendarKeywords, target) {
+        _kw = {
+          lessonKeywords: [...(calendarKeywords.lessonKeywords || [])],
+          oneOnOneKeywords: [...(calendarKeywords.oneOnOneKeywords || [])],
+          lessonCaseSensitive: !!calendarKeywords.lessonCaseSensitive,
+          oneOnOneCaseSensitive: !!calendarKeywords.oneOnOneCaseSensitive,
+        };
+        _kwTarget = target;
+        renderKeywordsEditor();
+      }
+
+      function kwContainer() {
+        return document.getElementById(
+          _kwTarget === "create" ? "kw-body-create" : "kw-body-detail",
+        );
+      }
+
+      function firstKwError(kw) {
+        if (
+          !kw ||
+          !Array.isArray(kw.lessonKeywords) ||
+          kw.lessonKeywords.filter((k) => String(k).trim()).length === 0
+        ) {
+          return "Add at least one lesson keyword.";
+        }
+        return null;
+      }
+
+      function kwChipHTML(kind, i, value) {
+        return `<span class="kw-chip">${esc(value)}<button type="button" class="kw-chip-x" aria-label="Remove ${esc(value)}" onclick="removeKeyword('${kind}',${i})">×</button></span>`;
+      }
+
+      function toggleKwCaseSensitive(kind, checked) {
+        if (!_kw) return;
+        if (kind === "lesson") _kw.lessonCaseSensitive = checked;
+        else _kw.oneOnOneCaseSensitive = checked;
+        renderKeywordsEditor();
+      }
+
+      function renderKeywordsEditor() {
+        const c = kwContainer();
+        if (!c || !_kw) return;
+
+        const lessonChips = _kw.lessonKeywords.length
+          ? _kw.lessonKeywords.map((v, i) => kwChipHTML("lesson", i, v)).join("")
+          : `<span class="kw-empty">No keywords yet</span>`;
+        const oneOnOneChips = _kw.oneOnOneKeywords.length
+          ? _kw.oneOnOneKeywords
+              .map((v, i) => kwChipHTML("oneOnOne", i, v))
+              .join("")
+          : `<span class="kw-empty">None — one-on-ones won't be detected</span>`;
+
+        const lessonHint = _kw.lessonCaseSensitive
+          ? `Matching is case-sensitive — "HS" won't match "hs".`
+          : "Matching is case-insensitive.";
+        const oneOnOneHint = _kw.oneOnOneCaseSensitive
+          ? `Matching is case-sensitive — "1-ON-1" won't match "1-on-1".`
+          : "Matching is case-insensitive.";
+
+        c.innerHTML = `
+          <div class="kw-group">
+            <div class="kw-group-label">Lesson keywords</div>
+            <div class="admin-field-hint">
+              Any event title containing one of these counts as a lesson
+              (e.g. HS, MS, ES). ${lessonHint}
+            </div>
+            <label class="kw-case-toggle">
+              <input type="checkbox" ${_kw.lessonCaseSensitive ? "checked" : ""} onchange="toggleKwCaseSensitive('lesson',this.checked)">
+              Case-sensitive
+            </label>
+            <div class="kw-chips">${lessonChips}</div>
+            <div class="kw-add-row">
+              <input
+                type="text"
+                placeholder="Add a keyword…"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addKeyword('lesson',this);}" />
+              <button
+                type="button"
+                class="admin-btn-edit"
+                onclick="addKeyword('lesson',this.previousElementSibling)">
+                Add
+              </button>
+            </div>
+          </div>
+          <div class="kw-group">
+            <div class="kw-group-label">
+              One-on-one keywords <span class="kw-optional">(optional)</span>
+            </div>
+            <div class="admin-field-hint">
+              Leave empty if this center doesn't run one-on-one lessons.
+              ${oneOnOneHint}
+            </div>
+            <label class="kw-case-toggle">
+              <input type="checkbox" ${_kw.oneOnOneCaseSensitive ? "checked" : ""} onchange="toggleKwCaseSensitive('oneOnOne',this.checked)">
+              Case-sensitive
+            </label>
+            <div class="kw-chips">${oneOnOneChips}</div>
+            <div class="kw-add-row">
+              <input
+                type="text"
+                placeholder="Add a keyword…"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addKeyword('oneOnOne',this);}" />
+              <button
+                type="button"
+                class="admin-btn-edit"
+                onclick="addKeyword('oneOnOne',this.previousElementSibling)">
+                Add
+              </button>
+            </div>
+          </div>`;
+      }
+
+      function addKeyword(kind, inputEl) {
+        if (!inputEl || !_kw) return;
+        const val = inputEl.value.trim();
+        if (!val) return;
+        const list =
+          kind === "lesson" ? _kw.lessonKeywords : _kw.oneOnOneKeywords;
+        const isDupe = list.some((k) =>
+          kind === "lesson"
+            ? k === val
+            : k.toLowerCase() === val.toLowerCase(),
+        );
+        if (!isDupe) list.push(val);
+        renderKeywordsEditor();
+      }
+
+      function removeKeyword(kind, i) {
+        if (!_kw) return;
+        const list =
+          kind === "lesson" ? _kw.lessonKeywords : _kw.oneOnOneKeywords;
+        list.splice(i, 1);
+        renderKeywordsEditor();
+      }
+
+      async function saveDetailKeywords() {
+        const msg = document.getElementById("kw-save-msg-detail");
+        msg.textContent = "";
+        msg.className = "sched-save-msg";
+        const err = firstKwError(_kw);
+        if (err) {
+          msg.textContent = err;
+          msg.className = "sched-save-msg err";
+          return;
+        }
+        try {
+          const res = await fetch(
+            `/api/admin/centers/${_detailCenterId}/keywords`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ calendarKeywords: _kw }),
+            },
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            msg.textContent = data.error || "Couldn't save.";
+            msg.className = "sched-save-msg err";
+            return;
+          }
+          _kw = data.data.calendarKeywords;
+          renderKeywordsEditor();
+          msg.textContent = "Saved.";
+          msg.className = "sched-save-msg ok";
+        } catch {
+          msg.textContent = "Couldn't save.";
+          msg.className = "sched-save-msg err";
+        }
       }
 
       function schedActiveBadge(variantName) {
