@@ -2085,34 +2085,8 @@ body.tut-active #tut-card {
 .tut-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
-}
-
-.tut-dots {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.tut-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 99px;
-  background: var(--border-strong);
-  transition:
-    background 0.2s,
-    width 0.2s;
-}
-
-.tut-dot.done {
-  background: var(--accent);
-  opacity: 0.4;
-}
-.tut-dot.active {
-  background: var(--accent);
-  width: 16px;
 }
 
 .tut-next-btn {

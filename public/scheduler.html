@@ -81,7 +81,6 @@
       <div class="tut-body" id="tut-body"></div>
       <div class="tut-action-hint" id="tut-hint"></div>
       <div class="tut-footer">
-        <div class="tut-dots" id="tut-dots"></div>
         <button class="tut-next-btn" id="tut-next" onclick="tutNext()">
           Next →
         </button>
@@ -1372,6 +1371,16 @@
               const on = multi ? es.on : true;
               const opts = blockTimeOpts(b.start, b.end);
               const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
+              // The label next to "Default hours" — this priority's actual
+              // default window for this block, clipped to it, NOT the block's
+              // full open-to-close hours (that's what rangeLabel above is,
+              // used for the "Morning block (...)" on/off label instead).
+              const defBlock = clientDefaultBlocks(d.day, _workerPriority(name)).find(
+                (x) => x.start < b.end && x.end > b.start,
+              );
+              const defRangeLabel = defBlock
+                ? `${minToLabel(Math.max(defBlock.start, b.start))} – ${minToLabel(Math.min(defBlock.end, b.end))}`
+                : rangeLabel;
 
               const onToggle = multi
                 ? `
@@ -1385,7 +1394,7 @@
               if (on) {
                 const fullCheck = `
                 <div class="av-mode-toggle ${multi ? "av-sub-indent" : ""}" role="group" aria-label="${multi ? `${blockName(b.start)} block hours` : "Hours"}">
-                  <button type="button" class="av-mode-btn ${es.allBlock ? "active" : ""}" aria-pressed="${es.allBlock ? "true" : "false"}" onclick="toggleManualFull('${name}',${di},${i},true)">Default hours${multi ? "" : ` (${rangeLabel})`}</button>
+                  <button type="button" class="av-mode-btn ${es.allBlock ? "active" : ""}" aria-pressed="${es.allBlock ? "true" : "false"}" onclick="toggleManualFull('${name}',${di},${i},true)">Default hours (${defRangeLabel})</button>
                   <button type="button" class="av-mode-btn ${!es.allBlock ? "active" : ""}" aria-pressed="${!es.allBlock ? "true" : "false"}" onclick="toggleManualFull('${name}',${di},${i},false)">Custom</button>
                 </div>`;
                 let custom = "";
@@ -2538,7 +2547,6 @@
       const TUT_STORAGE_KEY = "scheduler-tut-step";
       const TUT_DEMO_KEY = "scheduler-tut-demo";
       const TUT_COMPLETED_KEY = "scheduler-tut-completed";
-      const TUT_TOTAL = 26;
       const tut = { active: false, step: 0 };
 
       function tutMarkCompleted() {
@@ -2603,7 +2611,7 @@
           target: ".schedule-grid",
           pos: "left",
           title: "Reading the Timeline",
-          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. Move your mouse over a <strong>time slot on the left edge</strong> of a column to see a tooltip: student count, instructors needed, and who's assigned.",
+          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. Hover one of the small time labels down a day's left edge to see a tooltip: student count, instructors needed, and who's assigned.",
         },
         {
           global: 19,
@@ -2619,18 +2627,11 @@
           global: 20,
           target: "#screen-edit .edit-body",
           pos: "left",
-          title: "Moving and Resizing Shifts",
-          body: "Each block is draggable — drag it to move a shift to a different time or employee row. Drag the <strong>top edge</strong> to change the start time, or the <strong>bottom edge</strong> to change the end time, independently.",
+          title: "Editing Shifts",
+          body: "Drag a block to move it, or drag its <strong>top</strong>/<strong>bottom edge</strong> to change the start/end time. Click <strong>✕</strong> to remove a shift, or <strong>+ Add Employee</strong> at the bottom of each day to add one.",
         },
         {
           global: 21,
-          target: "#screen-edit .edit-body",
-          pos: "left",
-          title: "Removing and Adding Shifts",
-          body: "Click the <strong>✕</strong> on any block to remove that shift entirely. <strong>+ Add Employee</strong> at the bottom of each day lets you add someone manually — pick a name, a block, and a time range.",
-        },
-        {
-          global: 22,
           target: "#screen-edit .edit-body",
           pos: "left",
           title: "Out-of-Bounds Warning",
@@ -2640,7 +2641,7 @@
           waitForExists: true,
         },
         {
-          global: 23,
+          global: 22,
           target: "#screen-edit .edit-body",
           pos: "left",
           title: "Back to the Schedule",
@@ -2654,18 +2655,18 @@
           },
         },
         {
-          global: 24,
+          global: 23,
           target: "#copy-btn",
           pos: "below",
           title: "Copy & Finish",
           body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. <strong>Finish →</strong> returns you to the dashboard.",
         },
         {
-          global: 25,
+          global: 24,
           target: null,
           pos: "center",
           title: "You're all set!",
-          body: "That's the full app. The weekly flow: \n<strong>1)</strong> Add your team on the dashboard. \n<strong>2)</strong> Configure the form and share the link. \n<strong>3)</strong> Once everyone submits, pick a Monday date here and generate. \n<strong>4)</strong> Edit if needed, copy, and share.",
+          body: "That's the full app — the weekly flow:<br><strong>1)</strong> Add your team on the dashboard.<br><strong>2)</strong> Configure the form and share the link.<br><strong>3)</strong> Once everyone submits, pick a Monday date here and generate.<br><strong>4)</strong> Edit if needed, copy, and share.",
           next: "Done ✓",
           after: function () {
             tutDisableDemo();
@@ -2824,18 +2825,6 @@
           card.classList.remove("waiting");
         }
 
-        document.getElementById("tut-dots").innerHTML = Array.from(
-          { length: TUT_TOTAL },
-          (_, i) => {
-            const cls =
-              i < tut.step
-                ? "tut-dot done"
-                : i === tut.step
-                  ? "tut-dot active"
-                  : "tut-dot";
-            return `<div class="${cls}"></div>`;
-          },
-        ).join("");
         const rect = tutGetRect(step.target);
         tutSetDim(rect);
         requestAnimationFrame(() => tutPositionCard(rect, step.pos));
@@ -2853,7 +2842,7 @@
         }
         tut.step++;
         localStorage.setItem(TUT_STORAGE_KEY, String(tut.step));
-        if (tut.step > 25) {
+        if (tut.step > 24) {
           tutEnd();
           return;
         }
