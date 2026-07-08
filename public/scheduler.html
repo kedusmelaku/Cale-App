@@ -1788,6 +1788,44 @@
         return availability[w.name] || [];
       }
 
+      // Demo-mode student data: a random walk per open day rather than
+      // independent per-slot randomness, so adjacent 30-min slots stay
+      // close to each other (a real after-school rush ramps up and down,
+      // it doesn't swing between 20 students and 1 from one slot to the
+      // next). Built from SCHED.blocks() — the center's actual currently
+      // configured operating blocks — so it always lines up with whatever
+      // schedule is active, instead of a fixed set of times baked to the
+      // app's old hardcoded 3–8/10–2 hours.
+      function generateDemoStudentData() {
+        const MIN_STUDENTS = 0;
+        const MAX_STUDENTS = 12;
+        const MAX_STEP = 5; // largest jump allowed between adjacent slots
+        const studentData = {};
+        const oneOnOneData = {};
+
+        SCHED.days.forEach((dayKey) => {
+          const slots = [];
+          SCHED.blocks(dayKey).forEach((b) => {
+            for (let m = b.start; m < b.end; m += 30) slots.push(m);
+          });
+          if (slots.length === 0) return;
+
+          const daySlots = {};
+          const dayOneOnOne = {};
+          let count = 2 + Math.floor(Math.random() * 3); // start around 2–4
+          slots.forEach((m) => {
+            const delta = Math.floor(Math.random() * (MAX_STEP * 2 + 1)) - MAX_STEP;
+            count = Math.max(MIN_STUDENTS, Math.min(MAX_STUDENTS, count + delta));
+            daySlots[m] = count;
+            if (count > 0 && Math.random() < 0.1) dayOneOnOne[m] = true;
+          });
+          studentData[dayKey] = daySlots;
+          oneOnOneData[dayKey] = dayOneOnOne;
+        });
+
+        return { studentData, oneOnOneData };
+      }
+
       async function generate() {
         // During the tour, generating is only unlocked once the user reaches
         // the "Try Generating a Schedule" step (global 17). This also blocks
@@ -1856,25 +1894,17 @@
             return;
           }
         } else {
-          // Demo mode: pull the server's canned sample numbers so the slot
-          // tooltip shows real "Students"/"Needed" values instead of "—".
-          // Same shape as the real /events response, just hardcoded server-
-          // side. Best-effort — if it fails, fall through with studentData
-          // still null (old behavior: "—" in the tooltip, createSchedule()
-          // fallback on the server), so a hiccup here never blocks demo
-          // generation.
-          try {
-            const mockRes = await fetch("/events/mock");
-            if (mockRes.ok) {
-              const mockData = await mockRes.json();
-              studentData = mockData.studentData;
-              oneOnOneData = mockData.oneOnOneData;
-              lastStudentData = studentData;
-              lastOneOnOneData = oneOnOneData;
-            }
-          } catch (err) {
-            console.warn("Demo mock events fetch failed:", err.message);
-          }
+          // Demo mode: build a fresh random-but-smooth student demand curve
+          // for the center's ACTUAL current operating slots (not a fixed
+          // set of hardcoded times from the old always-3-8/10-2 schedule —
+          // see generateDemoStudentData for why). Regenerated every click,
+          // and this exact object is both what /generate sees AND what
+          // lastStudentData feeds the tooltip, so they're always in sync.
+          const demo = generateDemoStudentData();
+          studentData = demo.studentData;
+          oneOnOneData = demo.oneOnOneData;
+          lastStudentData = studentData;
+          lastOneOnOneData = oneOnOneData;
         }
 
         const res = await fetch("/generate", {
