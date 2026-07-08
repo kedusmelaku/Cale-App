@@ -1034,14 +1034,6 @@
 
       // True when a day's blocks cover the full operating hours (used for the
       // cosmetic allDay summary flag on availability entries).
-      function blocksAreFullOp(blocks, op) {
-        if (!blocks.length || blocks.length !== op.length) return false;
-        return op.every(
-          (b, i) =>
-            blocks[i] && blocks[i].start <= b.start && blocks[i].end >= b.end,
-        );
-      }
-
       let _tutorialPulseObserver = null;
 
       function positionTutorialPulseElements() {
@@ -1659,7 +1651,11 @@
             return {
               day: d,
               selected,
-              allDay: blocksAreFullOp(blocks, SCHED.blocks(d)),
+              // blocks came straight from clientDefaultBlocks, so this is
+              // this priority's default by construction — always allDay,
+              // regardless of whether that default happens to span the
+              // center's full open-to-close hours.
+              allDay: true,
               blocks,
             };
           });
@@ -2250,7 +2246,9 @@
             return {
               day: d,
               selected: false,
-              allDay: blocksAreFullOp(blocks, SCHED.blocks(d)),
+              // Same reasoning as buildDemoAvailability: blocks is this
+              // priority's default by construction, so always allDay.
+              allDay: true,
               blocks,
             };
           });
