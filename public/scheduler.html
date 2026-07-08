@@ -1855,6 +1855,26 @@
             showEmptyState("calendar-error");
             return;
           }
+        } else {
+          // Demo mode: pull the server's canned sample numbers so the slot
+          // tooltip shows real "Students"/"Needed" values instead of "—".
+          // Same shape as the real /events response, just hardcoded server-
+          // side. Best-effort — if it fails, fall through with studentData
+          // still null (old behavior: "—" in the tooltip, createSchedule()
+          // fallback on the server), so a hiccup here never blocks demo
+          // generation.
+          try {
+            const mockRes = await fetch("/events/mock");
+            if (mockRes.ok) {
+              const mockData = await mockRes.json();
+              studentData = mockData.studentData;
+              oneOnOneData = mockData.oneOnOneData;
+              lastStudentData = studentData;
+              lastOneOnOneData = oneOnOneData;
+            }
+          } catch (err) {
+            console.warn("Demo mock events fetch failed:", err.message);
+          }
         }
 
         const res = await fetch("/generate", {
@@ -2611,7 +2631,7 @@
           target: ".schedule-grid",
           pos: "left",
           title: "Reading the Timeline",
-          body: "Each day gets a column of color-coded employee blocks. Block height equals shift length. Hover one of the small time labels down a day's left edge to see a tooltip: student count, instructors needed, and who's assigned.",
+          body: "Each day gets a column of color-coded employee blocks. <strong>Block height</strong> equals shift length. Hover one of the small <strong>time labels</strong> down a day's left edge to see a <strong>tooltip</strong>: student count, instructors needed, and who's assigned.",
         },
         {
           global: 19,
@@ -2635,7 +2655,7 @@
           target: "#screen-edit .edit-body",
           pos: "left",
           title: "Out-of-Bounds Warning",
-          body: "If you drag or resize a shift outside an employee's submitted availability, you'll see diagonal hatching over the block and a banner at the top — this doesn't block you, it's just a heads-up to double check before finalizing. Try dragging a block outside its hours now to see it.",
+          body: "If you drag or resize a shift <strong>outside an employee's submitted availability</strong>, you'll see <strong>diagonal hatching</strong> over the block and a banner at the top — this <strong>doesn't block you</strong>, it's just a heads-up to double check before finalizing. Try dragging a block outside its hours now to see it.",
           hint: "Drag a block outside its availability to see the warning",
           waitFor: ".oob-overlay",
           waitForExists: true,
