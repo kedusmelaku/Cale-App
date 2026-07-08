@@ -1144,12 +1144,18 @@
       // ── Manual per-block edit state ────────────────────────
       // Each day carries a parallel `edit` array, one entry per operating
       // block: { on, allBlock, start, end }. This is the editor's source of
-      // truth (it preserves the "whole block" vs "custom range that happens to
-      // be full" distinction that raw blocks can't). `blocks` is always derived
-      // from `edit` via syncDay(), so downstream (generate, save) is unchanged.
+      // truth (it preserves the "default hours" vs "custom range that
+      // happens to match the default" distinction that raw blocks can't).
+      // `blocks` is always derived from `edit` via syncDay(), so downstream
+      // (generate, save) is unchanged.
 
       // Best-effort reconstruction of edit state from a stored blocks array.
-      function deriveEditFromBlocks(blocks, op) {
+      // allBlock means "matches this priority's default window for this
+      // block" (via clientDefaultBlocks) — NOT "spans the full operating
+      // block". A priority whose default is narrower than open-to-close
+      // still shows as "Default hours", not "Custom".
+      function deriveEditFromBlocks(blocks, op, dayKey, priority) {
+        const defaults = clientDefaultBlocks(dayKey, priority);
         return op.map((b) => {
           const sb = (blocks || []).find(
             (x) => x.start < b.end && x.end > b.start,
@@ -1158,24 +1164,30 @@
             return { on: false, allBlock: false, start: b.start, end: b.end };
           const start = Math.max(sb.start, b.start);
           const end = Math.min(sb.end, b.end);
-          const allBlock = start <= b.start && end >= b.end;
+          const def = defaults.find(
+            (x) => x.start < b.end && x.end > b.start,
+          );
+          const allBlock = !!def && start === def.start && end === def.end;
           return { on: true, allBlock, start, end };
         });
       }
 
-      // Concrete blocks from edit state (whole block → full operating hours).
+      // Concrete blocks from edit state. start/end are always the real
+      // intended range now (set by toggleManualFull for "default hours" or
+      // by updateManualTime for custom), so no op-block fallback is needed.
       function blocksFromEdit(edit, op) {
         const out = [];
         edit.forEach((s, i) => {
           if (!s.on || !op[i]) return;
-          const start = s.allBlock ? op[i].start : s.start;
-          const end = s.allBlock ? op[i].end : s.end;
-          if (start < end) out.push({ start, end });
+          if (s.start < s.end) out.push({ start: s.start, end: s.end });
         });
         return out;
       }
 
-      // True when the worker is available the center's full operating hours.
+      // True when every block is flagged as this priority's default hours —
+      // the server re-derives the concrete times from priority/allDay at
+      // generation time, so this stays correct even if the priority window
+      // is later reconfigured.
       function isAllDay(edit, op) {
         return (
           edit.length === op.length && edit.every((s) => s.on && s.allBlock)
@@ -1216,7 +1228,7 @@
                     start: s.start,
                     end: s.end,
                   }))
-                : deriveEditFromBlocks(seed, op);
+                : deriveEditFromBlocks(seed, op, dk, priority);
             const day = {
               day: dk,
               selected: !!e.selected,
@@ -1230,6 +1242,8 @@
           const edit = deriveEditFromBlocks(
             clientDefaultBlocks(dk, priority),
             op,
+            dk,
+            priority,
           );
           const day = {
             day: dk,
@@ -1341,12 +1355,20 @@
         if (d.selected) {
           hoursHtml = op
             .map((b, i) => {
-              const es = d.edit[i] || {
-                on: true,
-                allBlock: true,
-                start: b.start,
-                end: b.end,
-              };
+              const es = d.edit[i] || (() => {
+                const priority = _workerPriority(name);
+                const def = clientDefaultBlocks(d.day, priority).find(
+                  (x) => x.start < b.end && x.end > b.start,
+                );
+                return def
+                  ? {
+                      on: true,
+                      allBlock: true,
+                      start: Math.max(def.start, b.start),
+                      end: Math.min(def.end, b.end),
+                    }
+                  : { on: true, allBlock: false, start: b.start, end: b.end };
+              })();
               const on = multi ? es.on : true;
               const opts = blockTimeOpts(b.start, b.end);
               const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
@@ -1410,6 +1432,8 @@
           d.edit = deriveEditFromBlocks(
             clientDefaultBlocks(d.day, priority),
             SCHED.blocks(d.day),
+            d.day,
+            priority,
           );
           syncDay(d);
         }
@@ -1443,10 +1467,10 @@
       }
 
       // Toggle "default hours" for one operating block. Turning it on snaps
-      // the range back to the priority-based default for this block (server
-      // re-derives it from allDay/priority regardless — this just keeps the
-      // manager's live preview in sync); turning it off keeps the current
-      // range so the custom selects open pre-filled.
+      // the range to this worker's priority default for that block (via
+      // clientDefaultBlocks — the same function that seeds new days), which
+      // may be narrower than the block's full open-to-close hours; turning
+      // it off keeps the current range so the custom selects open pre-filled.
       function toggleManualFull(name, di, i, checked) {
         const d = _manualDay(name, di);
         const op = SCHED.blocks(d.day);
@@ -1454,8 +1478,19 @@
         s.on = true;
         s.allBlock = checked;
         if (checked && op[i]) {
-          s.start = op[i].start;
-          s.end = op[i].end;
+          const priority = _workerPriority(name);
+          const def = clientDefaultBlocks(d.day, priority).find(
+            (x) => x.start < op[i].end && x.end > op[i].start,
+          );
+          if (def) {
+            s.start = Math.max(def.start, op[i].start);
+            s.end = Math.min(def.end, op[i].end);
+          } else {
+            // Priority window doesn't reach this block at all — fall back to
+            // its full hours rather than leaving nothing selected.
+            s.start = op[i].start;
+            s.end = op[i].end;
+          }
         }
         syncDay(d);
         renderAvailability();

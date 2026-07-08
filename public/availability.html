@@ -646,15 +646,18 @@
       }
 
       // Reconstruct per-operating-block edit state from a concrete blocks array.
-      // A block fully covered by its default → allBlock; a partial cover → a
-      // custom range pre-filled to the default window.
-      function deriveBlockState(blocks, op) {
+      // allBlock means "matches the priority default window for this block"
+      // (via defaultBlocksFor) — NOT "spans the full operating block". A
+      // priority whose default is narrower than open-to-close still counts.
+      function deriveBlockState(blocks, op, dayKey, win) {
+        const defaults = defaultBlocksFor(dayKey, op, win);
         return op.map((b) => {
           const sb = (blocks || []).find((x) => x.start < b.end && x.end > b.start);
           if (!sb) return { on: false, allBlock: false, start: b.start, end: b.end };
           const start = Math.max(sb.start, b.start);
           const end = Math.min(sb.end, b.end);
-          const allBlock = start <= b.start && end >= b.end;
+          const def = defaults.find((x) => x.start < b.end && x.end > b.start);
+          const allBlock = !!def && start === def.start && end === def.end;
           return { on: true, allBlock, start, end };
         });
       }
@@ -662,10 +665,11 @@
       function ensureDayState(d) {
         const op = _sched.blocks(d);
         if (!dayState[d] || dayState[d].blocks.length !== op.length) {
-          const seed = defaultBlocksFor(d, op, priorityWindow());
+          const win = priorityWindow();
+          const seed = defaultBlocksFor(d, op, win);
           dayState[d] = {
             selected: dayState[d] ? dayState[d].selected : false,
-            blocks: deriveBlockState(seed, op),
+            blocks: deriveBlockState(seed, op, d, win),
           };
         }
         return dayState[d];
@@ -773,10 +777,17 @@
           if (m <= bs.start) { renderDays(); return; }
           bs.end = m;
         }
-        // No UI toggle sets this anymore — recompute from the edited range so
-        // collectDays()'s allDay calculation still reflects reality.
+        // No UI toggle sets this anymore — recompute from the edited range,
+        // against this priority's default window (not the full operating
+        // block), so collectDays()'s allDay calculation still reflects
+        // reality.
         const op = _sched.blocks(d)[i];
-        bs.allBlock = op ? bs.start <= op.start && bs.end >= op.end : false;
+        const def = op
+          ? defaultBlocksFor(d, _sched.blocks(d), priorityWindow()).find(
+              (x) => x.start < op.end && x.end > op.start,
+            )
+          : null;
+        bs.allBlock = !!def && bs.start === def.start && bs.end === def.end;
         renderDays();
       }
 
@@ -793,10 +804,10 @@
             st.blocks.forEach((bs, i) => {
               const on = multi ? bs.on : true;
               if (!on) return;
-              blocks.push({
-                start: bs.allBlock ? op[i].start : bs.start,
-                end:   bs.allBlock ? op[i].end   : bs.end,
-              });
+              // start/end are always the real intended range now (kept in
+              // sync by ensureDayState's seed and updateTime's edits) — no
+              // need to fall back to the operating block's full hours.
+              blocks.push({ start: bs.start, end: bs.end });
             });
             const allDay =
               blocks.length === op.length &&
