@@ -3291,6 +3291,22 @@
       checkCalendarStatus();
       closeOnOverlayClick("window-modal", closeFormModal);
       closeOnOverlayClick("build-warning-modal", closeBuildWarning);
+
+      // Center identity (name in the sidebar, centerId for the availability
+      // link) is real account info, not employee/schedule data — load it
+      // regardless of demo mode so the sidebar name and share link still
+      // work while previewing demo data.
+      fetch("/api/me")
+        .then((r) => r.json())
+        .then((d) => {
+          _centerId = d.centerId || "";
+          if (d.centerName) {
+            const el = document.getElementById("db-center-name");
+            if (el) el.textContent = d.centerName;
+          }
+        })
+        .catch(() => {});
+
       if (settings.demo) {
         document.body.classList.add("demo-active");
         activateDemo();
@@ -3298,18 +3314,6 @@
         // Load the operating schedule so availability can be built in the
         // correct per-block shape when the manager moves to the scheduler.
         loadSchedule();
-
-        // Load centerId for availability link construction
-        fetch("/api/me")
-          .then((r) => r.json())
-          .then((d) => {
-            _centerId = d.centerId || "";
-            if (d.centerName) {
-              const el = document.getElementById("db-center-name");
-              if (el) el.textContent = d.centerName;
-            }
-          })
-          .catch(() => {});
 
         // Load the team first, then the form settings + submissions. Loading
         // employees first means the submissions widget can correctly compute
