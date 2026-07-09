@@ -440,8 +440,8 @@
         <div class="detail-section">
           <div class="detail-section-title">Calendar Keywords</div>
           <div class="admin-field-hint" style="margin-bottom: 12px">
-            Which words in a Google Calendar event's title count as a lesson
-            (or a one-on-one). Different centers often use different codes.
+            Which words in a Google Calendar event's title count as a lesson (or
+            a one-on-one). Different centers often use different codes.
           </div>
           <div id="kw-body-detail" class="sched-editor">
             <div class="emp-empty">Loading…</div>
@@ -513,9 +513,9 @@
 
         <div id="modal-step-keywords" style="display: none">
           <div class="admin-field-hint" style="margin-bottom: 12px">
-            Which words in a Google Calendar event's title count as a lesson
-            (or a one-on-one). You can fine-tune this any time from the
-            center's page.
+            Which words in a Google Calendar event's title count as a lesson (or
+            a one-on-one). You can fine-tune this any time from the center's
+            page.
           </div>
           <div id="kw-body-create" class="sched-editor"></div>
         </div>
@@ -558,10 +558,24 @@
       let _createKeywords = null; // working calendar keywords for the Add flow
       let _kw = null; // calendar keywords object the editor is mutating
       let _kwTarget = "create"; // "create" | "detail" — which container to render into
+      let _detailScheduleDirty = false;
+      let _detailKeywordsDirty = false;
       const CLIENT_DEFAULT_LESSON_KEYWORDS = ["HS", "MS", "ES"];
 
       // ── View switching ────────────────────────────────────────
+      function hasDetailUnsavedChanges() {
+        return _detailScheduleDirty || _detailKeywordsDirty;
+      }
+
+      function confirmLeaveDetailIfDirty() {
+        if (!hasDetailUnsavedChanges()) return true;
+        return window.confirm(
+          "You have unsaved changes for this center. Leave without saving?",
+        );
+      }
+
       function showList() {
+        if (_detailCenterId && !confirmLeaveDetailIfDirty()) return;
         document.getElementById("view-list").classList.add("active");
         document.getElementById("view-detail").classList.remove("active");
         _detailCenterId = null;
@@ -618,6 +632,8 @@
       // ── Detail view ───────────────────────────────────────────
       async function openDetail(centerId) {
         _detailCenterId = centerId;
+        _detailScheduleDirty = false;
+        _detailKeywordsDirty = false;
         showDetail();
 
         document.getElementById("d-name").textContent = "Loading…";
@@ -1444,6 +1460,7 @@
         _sched = schedule;
         _schedTarget = target;
         _schedTab = "schoolYear";
+        if (target === "detail") _detailScheduleDirty = false;
         renderScheduleEditor();
       }
 
@@ -1456,6 +1473,7 @@
           oneOnOneCaseSensitive: !!calendarKeywords.oneOnOneCaseSensitive,
         };
         _kwTarget = target;
+        if (target === "detail") _detailKeywordsDirty = false;
         renderKeywordsEditor();
       }
 
@@ -1484,6 +1502,7 @@
         if (!_kw) return;
         if (kind === "lesson") _kw.lessonCaseSensitive = checked;
         else _kw.oneOnOneCaseSensitive = checked;
+        if (_kwTarget === "detail") _detailKeywordsDirty = true;
         renderKeywordsEditor();
       }
 
@@ -1492,7 +1511,9 @@
         if (!c || !_kw) return;
 
         const lessonChips = _kw.lessonKeywords.length
-          ? _kw.lessonKeywords.map((v, i) => kwChipHTML("lesson", i, v)).join("")
+          ? _kw.lessonKeywords
+              .map((v, i) => kwChipHTML("lesson", i, v))
+              .join("")
           : `<span class="kw-empty">No keywords yet</span>`;
         const oneOnOneChips = _kw.oneOnOneKeywords.length
           ? _kw.oneOnOneKeywords
@@ -1567,11 +1588,10 @@
         const list =
           kind === "lesson" ? _kw.lessonKeywords : _kw.oneOnOneKeywords;
         const isDupe = list.some((k) =>
-          kind === "lesson"
-            ? k === val
-            : k.toLowerCase() === val.toLowerCase(),
+          kind === "lesson" ? k === val : k.toLowerCase() === val.toLowerCase(),
         );
         if (!isDupe) list.push(val);
+        if (_kwTarget === "detail") _detailKeywordsDirty = true;
         renderKeywordsEditor();
       }
 
@@ -1580,6 +1600,7 @@
         const list =
           kind === "lesson" ? _kw.lessonKeywords : _kw.oneOnOneKeywords;
         list.splice(i, 1);
+        if (_kwTarget === "detail") _detailKeywordsDirty = true;
         renderKeywordsEditor();
       }
 
@@ -1609,6 +1630,7 @@
             return;
           }
           _kw = data.data.calendarKeywords;
+          _detailKeywordsDirty = false;
           renderKeywordsEditor();
           msg.textContent = "Saved.";
           msg.className = "sched-save-msg ok";
@@ -1768,21 +1790,25 @@
       }
       function schedSetMode(mode) {
         _sched.mode = mode;
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         renderScheduleEditor();
       }
       function schedSetManualActive(v) {
         _sched.manualActive = v;
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         renderScheduleEditor();
       }
       function schedClearRange() {
         _sched.summerStart = null;
         _sched.summerEnd = null;
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         renderScheduleEditor();
       }
       function schedSetSummer(which, field, val) {
         const key = which === "start" ? "summerStart" : "summerEnd";
         if (!_sched[key]) _sched[key] = { month: null, day: null };
         _sched[key][field] = val === "" ? null : parseInt(val, 10);
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         refreshSchedWarnings();
       }
       function schedToggleDay(dk, open) {
@@ -1791,6 +1817,7 @@
         if (open && (!d.blocks || d.blocks.length === 0))
           d.blocks = [{ start: 900, end: 1200 }];
         if (!open) d.blocks = [];
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         renderScheduleEditor();
       }
       function schedAddBlock(dk) {
@@ -1802,14 +1829,17 @@
         let end = Math.min(start + 120, SCHED_MAX);
         if (end <= start) end = Math.min(start + 30, SCHED_MAX);
         blocks.push({ start, end });
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         renderScheduleEditor();
       }
       function schedRemoveBlock(dk, i) {
         _sched[_schedTab][dk].blocks.splice(i, 1);
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         renderScheduleEditor();
       }
       function schedSetBlockTime(dk, i, field, val) {
         _sched[_schedTab][dk].blocks[i][field] = parseInt(val, 10);
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         refreshSchedWarnings();
       }
 
@@ -1818,6 +1848,7 @@
         if (!Array.isArray(v.defaults) || v.defaults.length !== 3)
           v.defaults = schedDefaultWindows();
         v.defaults[level][field] = parseInt(val, 10);
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
         refreshSchedWarnings();
       }
 
@@ -1850,6 +1881,7 @@
           }
           _sched = data.data.schedule;
           _detailActive = data.data.activeVariant || _detailActive;
+          _detailScheduleDirty = false;
           renderScheduleEditor();
           msg.textContent = "Saved.";
           msg.className = "sched-save-msg ok";
