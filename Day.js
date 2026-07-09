@@ -48,20 +48,34 @@ class Day {
     }
   }
 
-  // Trim each slot to the number of workers actually needed (1:3 ratio), then
-  // derive each worker's shift as [firstAssignedSlot, lastAssignedSlot + 30].
+  // Trim each slot to the number of workers actually needed, then derive each
+  // worker's shift as [firstAssignedSlot, lastAssignedSlot + 30].
+  //
+  // One-on-one slots use the same ratio SimplifiedDay already uses (one
+  // worker's capacity is spent on the 1-on-1, so the rest of the slot's
+  // demand is covered at a lighter ratio) -- kept identical between modes on
+  // purpose. That ratio itself is a separate, open question; this fix is
+  // only about ultra mode having NO one-on-one handling at all before now.
   willWork(week) {
     for (const day of week) {
       for (const slot of day.slots) {
         const workersTemp = [...slot.workers];
         slot.workers = [];
-        const workersNeeded = Math.ceil(slot.students / 3);
+        const workersNeeded = slot.oneOnOne
+          ? Math.ceil(slot.students / 4)
+          : Math.ceil(slot.students / 3);
         let current = 0;
         for (; current < workersNeeded && current < workersTemp.length; current++) {
           slot.workers.push(workersTemp[current]);
         }
         // Excess workers simply drop out of later slots; each worker's final
         // shift(s) are derived from the slots they remain in (below).
+
+        // The highest-priority worker actually present in this slot is the
+        // one doing the 1-on-1 (slot.workers is still priority-sorted).
+        if (slot.oneOnOne && slot.workers.length > 0) {
+          slot.oneOnOneWorker = slot.workers[0];
+        }
       }
 
       for (const worker of day.totalWorkers) {

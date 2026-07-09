@@ -409,7 +409,11 @@ app.post("/employees", requireAuth, async (req, res) => {
 app.delete("/employees/:id", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    await Employee.findByIdAndDelete(req.params.id);
+    const deleted = await Employee.findOneAndDelete({
+      _id: req.params.id,
+      centerId: req.centerId,
+    });
+    if (!deleted) return res.status(404).json({ error: "Employee not found." });
     res.json({ deleted: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -419,9 +423,15 @@ app.delete("/employees/:id", requireAuth, async (req, res) => {
 app.put("/employees/:id", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    // Strip centerId/_id from the payload so a request can never move a
+    // record to another tenant, even if those fields are present in req.body.
+    const { centerId, _id, ...updates } = req.body;
+    const employee = await Employee.findOneAndUpdate(
+      { _id: req.params.id, centerId: req.centerId },
+      updates,
+      { new: true },
+    );
+    if (!employee) return res.status(404).json({ error: "Employee not found." });
     res.json({ data: employee });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -548,7 +558,11 @@ app.post("/submissions", async (req, res) => {
 app.delete("/submissions/:id", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    await Submission.findByIdAndDelete(req.params.id);
+    const deleted = await Submission.findOneAndDelete({
+      _id: req.params.id,
+      centerId: req.centerId,
+    });
+    if (!deleted) return res.status(404).json({ error: "Submission not found." });
     res.json({ deleted: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -595,6 +609,18 @@ app.post("/generate", requireAuth, async (req, res) => {
     await connectDB();
     const { workers, studentData, oneOnOneData, mode } = req.body;
 
+    // studentData must come from real calendar data (or the client's demo-mode
+    // generator, which sends real-shaped fake data explicitly). There is no
+    // legitimate case where /generate should invent its own random demand --
+    // that used to happen silently via week.createSchedule()'s dev-era stub,
+    // producing a fully plausible-looking but entirely fake schedule with no
+    // indication anything was wrong.
+    if (!studentData) {
+      return res.status(400).json({
+        error: "Missing student data. Fetch calendar events before generating a schedule.",
+      });
+    }
+
     // Build the week from the center's active operating schedule.
     const settings = await CenterSettings.findOne({ centerId: req.centerId });
     const schedule = (settings && settings.schedule) || defaultSchedule();
@@ -614,22 +640,18 @@ app.post("/generate", requireAuth, async (req, res) => {
       ? new Week(users, dayConfigs)
       : new SimplifiedWeek(users, dayConfigs);
 
-    if (studentData) {
-      // studentData / oneOnOneData are keyed by dayKey then canonical minute.
-      for (const day of week.week) {
-        const sdt = studentData[day.dayKey] || {};
-        const odt = oneOnOneData ? oneOnOneData[day.dayKey] || {} : {};
-        for (const slot of day.slots) {
-          slot.students = sdt[slot.time] || 0;
-          slot.oneOnOne = !!odt[slot.time];
-        }
+    // studentData / oneOnOneData are keyed by dayKey then canonical minute.
+    for (const day of week.week) {
+      const sdt = studentData[day.dayKey] || {};
+      const odt = oneOnOneData ? oneOnOneData[day.dayKey] || {} : {};
+      for (const slot of day.slots) {
+        slot.students = sdt[slot.time] || 0;
+        slot.oneOnOne = !!odt[slot.time];
       }
-      const tmp = isUltra ? new Day() : new SimplifiedDay();
-      tmp.canWork(week.week, users);
-      tmp.willWork(week.week);
-    } else {
-      week.createSchedule();
     }
+    const tmp = isUltra ? new Day() : new SimplifiedDay();
+    tmp.canWork(week.week, users);
+    tmp.willWork(week.week);
 
     const scheduleOut = week.week.map((day, i) => {
       const assignments = [];
