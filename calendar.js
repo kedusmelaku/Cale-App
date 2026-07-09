@@ -63,6 +63,17 @@ function parseEventTime(dateTimeStr) {
   return { day: DAYS[localDate.getDay()], minutes: hour * 60 + minute };
 }
 
+// Duration in minutes between two same-day dateTime strings. Falls back to 60
+// (the old assumed lesson length) if end is missing or malformed, so a
+// missing end time degrades gracefully instead of throwing.
+function eventDurationMinutes(startStr, endStr) {
+  if (!endStr) return 60;
+  const start = new Date(startStr).getTime();
+  const end = new Date(endStr).getTime();
+  const diff = Math.round((end - start) / 60000);
+  return diff > 0 ? diff : 60;
+}
+
 // Floors a canonical minute to its 30-minute slot start.
 function toSlot(minutes) {
   return Math.floor(minutes / 30) * 30;
@@ -114,14 +125,23 @@ async function getWeekEvents(
 
     const { day, minutes } = parseEventTime(event.start.dateTime);
     const slot = toSlot(minutes);
+    const durationMin = eventDurationMinutes(event.start.dateTime, event.end?.dateTime);
+    // Number of 30-min slots the event actually spans, rounded up so a
+    // partial trailing slot (e.g. a 70-min event) still gets counted, and
+    // floored at 1 so a same-instant or negative-duration event still marks
+    // its start slot.
+    const slotCount = Math.max(1, Math.ceil(durationMin / 30));
 
     if (type === "lesson") {
-      // All lessons are 60 min → occupy this slot and the next half hour.
-      studentData[day][slot] = (studentData[day][slot] || 0) + 1;
-      studentData[day][slot + 30] = (studentData[day][slot + 30] || 0) + 1;
+      for (let k = 0; k < slotCount; k++) {
+        const s = slot + k * 30;
+        studentData[day][s] = (studentData[day][s] || 0) + 1;
+      }
     } else {
-      oneOnOneData[day][slot] = true;
-      oneOnOneData[day][slot + 30] = true;
+      for (let k = 0; k < slotCount; k++) {
+        const s = slot + k * 30;
+        oneOnOneData[day][s] = true;
+      }
     }
   }
 
