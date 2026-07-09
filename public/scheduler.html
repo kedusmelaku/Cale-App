@@ -1109,18 +1109,51 @@
         showScreen("screen-edit");
       }
 
-      function doFinish() {
+      async function doFinish() {
         const warnings = getOutOfBoundsWorkers();
-        const warnText =
+        const oobText =
           warnings.length > 0
             ? `\n\n⚠️ Warning: the following employees are scheduled outside their availability:\n${warnings.join("\n")}\n\n`
             : "";
-        if (!confirm(`${warnText}Finish editing and return to start?`))
+        const eraseText = settings.demo
+          ? ""
+          : "\n\nThis will also erase this week's submitted employee availability (including what they entered on the availability form), so next week starts fresh.";
+        if (!confirm(`${oobText}Finish editing and return to start?${eraseText}`))
           return false;
+
+        await clearWeekSubmissions();
+
         // Navigate back to the dashboard. The dashboard re-fetches employees
         // from MongoDB on load so availability resets naturally.
         window.location.href = "/";
         return true;
+      }
+
+      // Deletes every submitted-availability doc (from the public
+      // availability form) for the week currently loaded, so next week
+      // starts clean instead of carrying over stale submissions. Skipped
+      // entirely in demo mode — demo submissions are fake and client-side
+      // only, and this must never delete a real center's real data just
+      // because demo mode happened to be on. Best-effort: a failed delete
+      // here shouldn't block finishing, so failures are just logged.
+      async function clearWeekSubmissions() {
+        if (settings.demo) return;
+        const mondayVal = document.getElementById("week-date")?.value;
+        if (!mondayVal) return;
+        try {
+          const res = await fetch(`/submissions?weekOf=${mondayVal}`);
+          const data = await res.json();
+          const subs = data.data || [];
+          await Promise.all(
+            subs.map((s) =>
+              fetch(`/submissions/${s._id}`, { method: "DELETE" }).catch(
+                () => {},
+              ),
+            ),
+          );
+        } catch (err) {
+          console.warn("Could not clear this week's submissions:", err.message);
+        }
       }
 
       function finishEdit() {
@@ -2709,7 +2742,7 @@
           target: "#copy-btn",
           pos: "below",
           title: "Copy & Finish",
-          body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. <strong>Finish →</strong> returns you to the dashboard.",
+          body: "<strong>Copy to Clipboard</strong> formats the schedule as plain text ready to paste into a group chat. <strong>Finish →</strong> returns you to the dashboard and clears this week's submitted availability, so next week starts fresh.",
         },
         {
           global: 24,
