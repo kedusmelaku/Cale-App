@@ -3,16 +3,17 @@ const Day = require('./Day');
 const User = require('./User');
 //const Week = require('./Week');
 class Week{
-    constructor(users){
+    // dayConfigs comes from scheduleConfig.variantToDayConfigs(variant) — one
+    // entry per currently-open day, in weekday order, each already carrying
+    // its real dayKey/dayName/slots for the center's actual configured
+    // schedule. Building `this.week` straight from that (instead of a
+    // hardcoded day list) is what keeps this aligned with dayConfigs when
+    // server.js zips the two together by index afterward.
+    constructor(users, dayConfigs){
         this.users = users;
-    this.week = [
-    new Day("Monday"),
-    new Day("Tuesday"),
-    new Day("Wednesday"),
-    new Day("Thursday"),
-    new Day("Saturday", true),
-]
-
+        this.week = (dayConfigs || []).map(
+            (dc) => new Day(dc.dayKey, dc.dayName, dc.slots),
+        );
     }
 
     addStudents(){//temporary method to add a random number of students until I figure out the Google Calendar stuff
