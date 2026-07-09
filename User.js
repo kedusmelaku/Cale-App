@@ -28,10 +28,15 @@ class User {
     }
 
     // Availability-based points = total available hours across the week.
+    // basePoints preserves this permanently so switching priority back to
+    // Normal (0) later can restore it -- applyPriority() only overwrites
+    // `points` for levels 1/2, so without a stored original, a worker once
+    // set to Priority/High could never correctly return to Normal.
     this.points = 0;
     for (const blocks of this.blocksByDay) {
       for (const b of blocks) this.points += (b.end - b.start) / 30 * 0.5;
     }
+    this.basePoints = this.points;
 
     // working[i] = list of assigned shifts [{start, end}, ...] on day i.
     // A two-block day can hold two shifts for the same worker.
@@ -81,10 +86,14 @@ class User {
   applyPriority() {
     // Preserves original semantics: Priority and High Priority flatten points
     // to fixed low values so they sort ahead of availability-based Normals.
+    // Reverting to Normal restores the real availability-based value instead
+    // of leaving points stuck at whatever the last priority level set it to.
     if (this.priority === 1) {
       this.points = 0;
     } else if (this.priority === 2) {
       this.points = -10;
+    } else {
+      this.points = this.basePoints;
     }
   }
 }
