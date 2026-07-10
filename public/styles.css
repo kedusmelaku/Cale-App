@@ -62,6 +62,40 @@
   --tooltip-text: #ffffff;
 }
 
+/* ── Scrollbars ──
+   Unstyled scrollbars fall back to the OS/browser default, which is a
+   plain white/light thumb+track regardless of page theme -- fine in light
+   mode, but it visibly sticks out (a bright white bar) wherever a
+   scrollbar happens to appear in dark mode (the schedule grid, long
+   settings panels, etc). Themed here using the same surface/border/text
+   variables everything else already uses, so light and dark mode each get
+   a scrollbar that matches instead of a hardcoded color of its own -- this
+   updates automatically if the palette above ever changes.
+   Firefox: */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--surface2);
+}
+/* Chrome/Safari/Edge: */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--surface2);
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: 6px;
+  border: 2px solid var(--surface2);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-mid);
+}
+*::-webkit-scrollbar-corner {
+  background: var(--surface2);
+}
+
 /* ── Reset ── */
 *,
 *::before,
