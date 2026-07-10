@@ -1,50 +1,85 @@
 // ── Day.js ──────────────────────────────────────────────────────────────────
-// Base day for the "ultra" (demand-curve-driven) scheduling mode. Built from
+// UNIFIED scheduling algorithm (formerly the "ultra" mode engine). Built from
 // config:
-//   new Day(dayKey, dayName, slots, minShiftLength)
+//   new Day(dayKey, dayName, slots, minShiftLength, shiftStarts)
 //   slots = [startMin, ...] (canonical minutes since midnight)
-//   minShiftLength = minutes; the shortest shift the algorithm is allowed to
-//     produce (0/undefined = no minimum enforced). Per-center config, threaded
-//     in from scheduleConfig.js via Week's constructor -- see the class
-//     hierarchy note in the handoff doc: this is a new OPTIONAL trailing
-//     constructor param specifically so SimplifiedDay's existing 3-arg
-//     super() call keeps working unmodified.
+//   minShiftLength = minutes; shortest shift the algorithm may produce
+//     (0/undefined = no minimum). Per-variant config via scheduleConfig.js.
+//   shiftStarts = [min, ...] the per-priority default start times (same list
+//     SimplifiedDay's block templates are built from). Used ONLY as snap
+//     anchors so shift edges land on human-standard start times -- they never
+//     create or remove demand.
 //
-// A day may be built from one or two operating blocks; the flattened `slots`
-// list simply omits the gap between two-block days (scheduleConfig.js's
-// slotsForBlocks never emits gap minutes), so a "block" for this algorithm's
-// purposes is just a maximal run of slots whose times increase by exactly 30 --
-// no separate operatingBlocks list needs to be passed in to find them.
+// The unified design, in one paragraph: decompose each block's demand curve
+// into levels (stack of horizontal strips), exactly as before. Then, instead
+// of the old margin rule that silently DELETED any short interior strip --
+// the root cause of "scheduled 1 when 3 were needed", because a genuine
+// 2-slot spike of +2 lost BOTH its strips and never even hit the
+// understaffing banner (workersNeeded was derived from surviving windows) --
+// three rules apply:
 //
-// willWork()'s redesign, in one sentence: for each block, decompose the
-// demand curve into levels (like stacking a bar chart into horizontal
-// strips), suppress blips that are too brief to be worth staffing for
-// (duration-based margin), extend any window left too short by suppression or
-// by block-edge trimming, then assign one real worker per surviving window --
-// which structurally guarantees exactly one contiguous shift per worker per
-// block, since a worker IS a window.
+//   1. DIP MERGE: within one level, two runs separated by a gap shorter than
+//      the margin merge into one window. This is the correct use of
+//      hysteresis: keep a person through a brief lull rather than splitting
+//      the coverage into fragments for two different workers. (Deliberate
+//      slight overstaffing of the dip.)
+//   2. CAPPED ABSORPTION: a short interior run may be dropped ONLY if it is
+//      the topmost strip of the spike at every slot it covers (target ===
+//      level) and no slot has already absorbed a drop -- i.e. total absorbed
+//      demand is capped at ABSORB_CAP (1) worker per slot. That's the human
+//      judgment "let the ratio stretch to ~3.5:1 for half an hour". Anything
+//      deeper is REAL demand and falls through to rule 3. Absorbed demand is
+//      tracked in dropped[] and subtracted from workersNeeded, so the signal
+//      stays honest: nothing can be silently hidden from the banner anymore.
+//   3. EXTEND + SNAP: every surviving window is extended to minShiftLength
+//      (toward the "almost needed" side, as before), then its edges snap
+//      OUTWARD to the nearest anchor within SNAP_TOLERANCE -- anchors being
+//      the block open/close and the configured default shift starts. Snapping
+//      only ever widens a window (never trims below demand), trading a little
+//      overstaffing for shifts that read like shifts: 4:00-8:00, not
+//      4:30-7:30.
+//
+// Assignment is unchanged: earliest-first / widest-first window order, relay
+// (handoff) covering per window, at most one contiguous shift per worker per
+// block. slot.workersNeeded = raw target - deliberate absorption; server.js
+// compares that against slot.workers.length directly, same as before.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// How much demand a short interior blip is allowed to absorb (workers per
+// slot). 1 = "a human lets the ratio stretch briefly"; 0 = never absorb,
+// staff every strip.
+const ABSORB_CAP = 1;
+
+// How LONG (in slots) a blip may be and still qualify for absorption. 1 = only
+// a single 30-minute +1 wobble is ever absorbed; anything that persists a full
+// hour is real demand and gets staffed (with a minimum-length shift). This is
+// deliberately NOT the margin/minShiftLength dial -- absorbing demand and
+// merging dips are different judgments with different safe durations.
+const ABSORB_MAX_SLOTS = 1;
+
+// How far (minutes) a window edge may snap outward to reach a standard shift
+// start / block edge. 60 = an edge within an hour of an anchor lands on it.
+const SNAP_TOLERANCE = 60;
+
 class Day {
-  constructor(dayKey = "", dayName = "", slots = [], minShiftLength = 0) {
+  constructor(dayKey = "", dayName = "", slots = [], minShiftLength = 0, shiftStarts = []) {
     this.dayKey = (dayKey || "").toLowerCase();
     this.dayName = dayName || "";
     this.totalWorkers = [];
     this.minShiftLength = minShiftLength || 0;
+    this.shiftStarts = (shiftStarts || []).slice().sort((a, b) => a - b);
     this.slots = (slots || []).map((min) => ({
       time: min, // canonical minutes since midnight
       students: 0,
       workers: [],
       oneOnOne: false,
       oneOnOneWorker: null,
-      workersNeeded: 0, // decided target headcount for this slot -- NOT a
-                        // naive recompute of ceil(students/3); it's however
-                        // many workers the algorithm actually decided this
-                        // slot needs, so it never false-flags a deliberate
-                        // one-on-one "stress" moment as understaffing. The
-                        // understaffing signal itself is just this compared
-                        // against slot.workers.length, computed directly in
-                        // server.js -- no separate window list needed.
+      workersNeeded: 0, // decided target headcount for this slot: the raw
+                        // demand-curve target MINUS any deliberate capped
+                        // absorption (never more than ABSORB_CAP). Unlike the
+                        // old design, suppression can no longer hide demand
+                        // from this number -- an unstaffable spike shows up
+                        // in the banner instead of silently disappearing.
     }));
   }
 
@@ -93,28 +128,20 @@ class Day {
     return blocks;
   }
 
-  // Raw per-slot target headcount, before any margin/hysteresis smoothing.
-  // A one-on-one slot pulls one instructor off the floor; the group students
-  // that instructor would have covered are passed onto the rest of the team --
-  // so the target is the normal 1:3 ratio PLUS the number of instructors
-  // pulled (numberOfInstructorsPulled is always 1 today, since
-  // calendar.js's oneOnOneData is a boolean, not a count -- see the handoff
-  // doc's known gap re: simultaneous one-on-ones).
+  // Raw per-slot target headcount. A one-on-one slot pulls one instructor off
+  // the floor; the group students that instructor would have covered are
+  // passed onto the rest of the team -- so the target is the normal 1:3 ratio
+  // PLUS the number of instructors pulled (always 1 today; calendar.js's
+  // oneOnOneData is a boolean, not a count).
   _rawTarget(slot) {
     const base = Math.ceil(slot.students / 3);
     return slot.oneOnOne ? base + 1 : base;
   }
 
-  // For one demand level L, finds every window (as [startIdx, endIdx) into
-  // `blockSlots`) where at least L workers are needed -- after applying the
-  // duration-based margin. An INTERIOR run shorter than marginSlots is
-  // treated as a fleeting blip, not worth staffing for, and dropped (this IS
-  // the hysteresis mechanism: a level requirement has to persist for
-  // marginSlots to be honored). A run touching either edge of the block is
-  // NEVER dropped this way -- edge trimming is real, observed behavior
-  // ("all the time, sometimes by a lot"), not noise, and gets handled by
-  // _extendToMinimum below instead of being suppressed.
-  _levelWindows(blockSlots, target, level, marginSlots) {
+  // All runs (as [startIdx, endIdx) into blockSlots) where at least `level`
+  // workers are needed. No filtering here -- merging/absorption/extension
+  // decide each run's fate downstream.
+  _levelRuns(blockSlots, target, level) {
     const runs = [];
     let runStart = null;
     for (let i = 0; i <= blockSlots.length; i++) {
@@ -125,18 +152,45 @@ class Day {
         runStart = null;
       }
     }
-    return runs.filter(([s, e]) => {
-      const touchesEdge = s === 0 || e === blockSlots.length;
-      return touchesEdge || e - s >= marginSlots;
-    });
+    return runs;
+  }
+
+  // DIP MERGE: two same-level runs separated by a gap shorter than
+  // marginSlots become one window -- keep the person through the lull
+  // instead of fragmenting the level across two workers. Runs arrive sorted
+  // by start (guaranteed by _levelRuns' left-to-right sweep).
+  _mergeCloseRuns(runs, marginSlots) {
+    if (runs.length <= 1) return runs.map((r) => r.slice());
+    const out = [runs[0].slice()];
+    for (let i = 1; i < runs.length; i++) {
+      const prev = out[out.length - 1];
+      const [s, e] = runs[i];
+      if (s - prev[1] < marginSlots) prev[1] = e;
+      else out.push([s, e]);
+    }
+    return out;
+  }
+
+  // CAPPED ABSORPTION: may this short interior run be absorbed (not staffed)?
+  // Only if it's the topmost strip of the spike everywhere it stands
+  // (target === level -- so at most one strip per slot can ever qualify), no
+  // slot in it has already absorbed its cap, and the blip is genuinely brief
+  // (ABSORB_MAX_SLOTS). Edge-touching runs are never absorbed (edge trimming
+  // is real observed demand, handled by extension/snapping).
+  _canAbsorb(blockSlots, target, dropped, level, s, e) {
+    if (s === 0 || e === blockSlots.length) return false; // touches an edge
+    if (e - s > ABSORB_MAX_SLOTS) return false; // persists too long to ignore
+    for (let i = s; i < e; i++) {
+      if (target[i] !== level) return false; // deeper demand exists above this strip
+      if (dropped[i] >= ABSORB_CAP) return false;
+    }
+    return true;
   }
 
   // Extends a too-short window up to minSlots, growing one slot at a time
   // toward whichever adjacent slot is closer to actually needing this level
-  // (the "almost needed" side) -- so the extension itself keeps minimizing
-  // overstaffing rather than picking a direction arbitrarily. Stops early if
-  // the window has nowhere left to grow (the whole block is shorter than
-  // the configured minimum).
+  // (the "almost needed" side). Stops early if the window has nowhere left
+  // to grow (the whole block is shorter than the configured minimum).
   _extendToMinimum(blockSlots, target, start, end, minSlots) {
     let s = start;
     let e = end;
@@ -150,74 +204,87 @@ class Day {
     return [s, e];
   }
 
+  // SNAP: moves a window's edges OUTWARD onto the nearest anchor within
+  // SNAP_TOLERANCE. Anchors = block open, block close, and any configured
+  // default shift start inside the block. Only ever widens the window (start
+  // can move earlier, end can move later), so demand coverage is never
+  // reduced -- the cost is a little deliberate overstaffing in exchange for
+  // shifts that look like shifts (4:00-8:00, not 4:30-7:30). An edge already
+  // sitting on an anchor stays put (distance 0 picks itself).
+  _snapToAnchors(blockSlots, start, end) {
+    const blockStart = blockSlots[0].time;
+    const blockEnd = blockSlots[blockSlots.length - 1].time + 30;
+    const anchors = [
+      blockStart,
+      blockEnd,
+      ...this.shiftStarts.filter((a) => a > blockStart && a < blockEnd),
+    ];
+    const st = blockSlots[start].time;
+    const en = blockSlots[end - 1].time + 30;
+
+    let bestStart = st;
+    let cand = -Infinity;
+    for (const a of anchors) if (a <= st && st - a <= SNAP_TOLERANCE && a > cand) cand = a;
+    if (cand !== -Infinity) bestStart = cand;
+
+    let bestEnd = en;
+    cand = Infinity;
+    for (const a of anchors) if (a >= en && a - en <= SNAP_TOLERANCE && a < cand) cand = a;
+    if (cand !== Infinity) bestEnd = cand;
+
+    return [(bestStart - blockStart) / 30, (bestEnd - blockStart) / 30];
+  }
+
   willWork(week) {
     for (const day of week) {
       const minSlots = day.minShiftLength ? Math.max(1, Math.round(day.minShiftLength / 30)) : 1;
-      // The margin/hysteresis duration is anchored to the same configured
-      // minimum shift length rather than being a second, separate dial --
-      // per the "configure the facts, decide the philosophy" principle,
-      // this is a judgment call Kedus is making once, not a new per-center
-      // setting.
+      // Margin (dip-merge distance + "short run" threshold) stays anchored to
+      // the same configured minimum shift length -- one dial, not two.
       const marginSlots = minSlots;
 
       const blocks = day._splitIntoBlocks();
 
       for (const blockSlots of blocks) {
-        // canWork() left every AVAILABLE worker in slot.workers; that's the
-        // candidate pool the assignment step below reads from via
-        // day.totalWorkers/worker.availableAt(), not from here. Clear it now
-        // so it holds only the workers actually ASSIGNED once this block is
-        // done, matching what every other part of the app (and the old
-        // per-slot-trim code) expects slot.workers to mean.
+        // canWork() left every AVAILABLE worker in slot.workers; clear so it
+        // holds only workers actually ASSIGNED once this block is done.
         for (const slot of blockSlots) slot.workers = [];
 
         const target = blockSlots.map((slot) => day._rawTarget(slot));
         const maxLevel = target.length ? Math.max(0, ...target) : 0;
+        // Per-slot count of deliberately absorbed demand (0 or ABSORB_CAP).
+        const dropped = new Array(blockSlots.length).fill(0);
 
-        // Decompose the demand curve into levels; each surviving window
-        // (after margin suppression + minimum-length extension) is one
-        // worker-shift the algorithm has decided this block needs.
         const windows = [];
         for (let level = 1; level <= maxLevel; level++) {
-          const raw = day._levelWindows(blockSlots, target, level, marginSlots);
-          for (const [s, e] of raw) {
-            const [es, ee] = day._extendToMinimum(blockSlots, target, s, e, minSlots);
-            windows.push({ start: es, end: ee, level, assignedWorker: null });
+          const raw = day._levelRuns(blockSlots, target, level);
+          const merged = day._mergeCloseRuns(raw, marginSlots);
+          for (const [s, e] of merged) {
+            if (day._canAbsorb(blockSlots, target, dropped, level, s, e)) {
+              for (let i = s; i < e; i++) dropped[i] += 1;
+              continue;
+            }
+            // Snap FIRST so the widening the snap already does counts toward
+            // the minimum shift length (extending first and snapping after
+            // stacks both widenings -- up to 4-hour shifts for a 1-hour
+            // spike). Then extend only whatever's still short, and snap once
+            // more in case extension pushed an edge off its anchor.
+            let [es, ee] = day._snapToAnchors(blockSlots, s, e);
+            if (ee - es < minSlots) {
+              [es, ee] = day._extendToMinimum(blockSlots, target, es, ee, minSlots);
+              [es, ee] = day._snapToAnchors(blockSlots, es, ee);
+            }
+            windows.push({ start: es, end: ee, level, segments: null });
           }
         }
-        // Earliest windows get first pick of available workers. When two
-        // windows share a start (very common: a demand spike right at
-        // block-open produces both the wide base window and a narrower
-        // supplemental one starting at the same moment), the WIDER window
-        // is processed first, not the higher level. Processing the
-        // narrower one first would let it grab a broadly-available worker
-        // before the wide window gets a turn, locking that worker out of
-        // covering their own full availability and leaving the wide
-        // window's remainder falsely flagged as understaffed -- exactly
-        // the "available 3-8, assigned 3-5, and 5-8 shows as needing
-        // someone" bug this fixes.
+
+        // Earliest windows get first pick of workers; ties on start go to the
+        // WIDER window (see the ordering-bug writeup in the handoff doc).
         windows.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
 
-        // Assign workers per window via a HANDOFF RELAY, not "one worker
-        // must cover the whole thing or the window goes entirely unfilled".
-        // Two people with perfectly ordinary partial availability (e.g.
-        // one available 3-6, another 4:30-8) covering a window together via
-        // a normal shift handoff is completely realistic scheduling -- the
-        // old one-worker-only rule treated that as a total failure even
-        // though the floor was genuinely fully covered. A worker already
-        // used anywhere in this block (in this window or an earlier one)
-        // is excluded everywhere else -- still the structural guarantee
-        // that a worker gets at most one contiguous shift per block.
+        // RELAY COVERING (unchanged): cover each window with a handoff chain,
+        // furthest-reach greedy, one contiguous shift per worker per block.
         const usedInBlock = new Set();
 
-        // Covers as much of [win.start, win.end) as possible with a relay:
-        // at the current position, pick whichever available (not yet used)
-        // worker's contiguous availability reaches furthest past it -- the
-        // standard optimal greedy for minimum interval covering, so a full
-        // relay gets found whenever the worker pool actually allows one.
-        // Ties go to whoever's higher priority (fewer points). Returns a
-        // list of segments, each either {worker} (filled) or {worker:null}
-        // (a genuine gap -- nobody available for that stretch, period).
         function coverWindow(win) {
           const segments = [];
           let cursor = win.start;
@@ -233,9 +300,6 @@ class Day {
               candidates.push({ worker, reach });
             }
             if (candidates.length === 0) {
-              // Nobody available starting here. Scan forward to wherever
-              // someone (still unused) next becomes available, marking
-              // everything in between as a real, unavoidable gap.
               let gapEnd = cursor + 1;
               while (gapEnd < win.end) {
                 const t2 = blockSlots[gapEnd].time;
@@ -272,15 +336,13 @@ class Day {
           }
         }
 
-        // Carry the decided target through to each slot (count of windows
-        // covering it, independent of whether a worker was actually found).
-        // Combined with slot.workers (already populated above with whoever
-        // actually got assigned there, relay segments included), this is
-        // everything the understaffing signal needs -- computed directly
-        // in server.js as workersNeeded vs workers.length, no separate
-        // window list required.
+        // Honest decided target: raw demand minus deliberate capped
+        // absorption. NOT derived from surviving-window counts (extension and
+        // snapping widen windows past demand -- unfilled padding is not a
+        // shortfall), and no longer able to lose real demand the way the old
+        // suppression could.
         for (let i = 0; i < blockSlots.length; i++) {
-          blockSlots[i].workersNeeded = windows.filter((w) => i >= w.start && i < w.end).length;
+          blockSlots[i].workersNeeded = Math.max(0, target[i] - dropped[i]);
         }
 
         // The highest-priority worker actually present in a one-on-one slot
@@ -310,3 +372,5 @@ class Day {
 }
 
 module.exports = Day;
+module.exports.ABSORB_CAP = ABSORB_CAP;
+module.exports.SNAP_TOLERANCE = SNAP_TOLERANCE;
