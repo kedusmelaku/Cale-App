@@ -3787,8 +3787,9 @@ body.admin-page .detail-section[open] > summary.detail-section-title {
 }
 body.admin-page .detail-section-chevron {
   display: inline-block;
-  font-size: 0.6rem;
-  color: #9aa1ad;
+  font-size: 1rem;
+  line-height: 1;
+  color: #6b7280;
   transition: transform 0.15s;
 }
 body.admin-page .detail-section[open] .detail-section-chevron {
