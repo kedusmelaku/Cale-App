@@ -666,55 +666,44 @@ app.post("/generate", requireAuth, async (req, res) => {
           });
         }
       }
+
+      // Understaffing signal, computed directly per 30-minute slot: exactly
+      // where workersNeeded (the algorithm's own decided target -- NOT a
+      // naive ratio recheck, so a deliberate one-on-one adjustment never
+      // false-flags) exceeds how many people actually ended up assigned
+      // there. No intermediate "window" abstraction -- a real shortfall
+      // might only last one slot before it's fine again, and reporting
+      // some larger enclosing shift-block or demand-window as
+      // "understaffed" would say something untrue about when help is
+      // actually needed. Adjacent slots that share the same shortfall
+      // amount are merged into one span; a two-block day's gap between
+      // blocks breaks the merge naturally, since slot times aren't
+      // contiguous across it.
+      const understaffed = [];
+      for (const slot of day.slots) {
+        const shortBy = Math.max(0, (slot.workersNeeded || 0) - (slot.workers || []).length);
+        if (shortBy === 0) continue;
+        const last = understaffed[understaffed.length - 1];
+        if (last && last.end === slot.time && last.shortBy === shortBy) {
+          last.end = slot.time + 30;
+        } else {
+          understaffed.push({ start: slot.time, end: slot.time + 30, shortBy });
+        }
+      }
+
       return {
         dayKey: day.dayKey,
         dayName: day.dayName,
         blocks: dayConfigs[i].blocks,
         slots: dayConfigs[i].slots,
         assignments,
-        // Every worker-shift the algorithm decided this day needs, filled or
-        // not -- this is the "decided target" itself, not a naive ratio
-        // recheck, so it can't false-flag a deliberate one-on-one "stress"
-        // moment as understaffing. See Day.js/SimplifiedDay.js for how each
-        // mode builds this.
-        shiftWindows: day.shiftWindows || [],
+        understaffed,
       };
     });
 
-    // Understaffing banner summary. Computed via a real sweep-line depth
-    // count, NOT a merge-by-exact-span bucket -- multiple unfilled windows
-    // covering the same moment often have DIFFERENT exact spans (e.g. a
-    // wide gap from one level and a narrower gap from another, both
-    // covering 3:30pm but with different start/end times), and bucketing
-    // by identical span only undercounts the true simultaneous shortfall,
-    // splitting one real "3 more needed at 3:30" into several misleading
-    // smaller entries instead. This walks every distinct time boundary
-    // across a day's unfilled windows and counts how many overlap each
-    // resulting slice, then merges adjacent slices that share the same
-    // depth into one reported span.
-    function computeUnderstaffed(day) {
-      const gaps = day.shiftWindows.filter((w) => !w.filled);
-      if (gaps.length === 0) return [];
-      const points = [...new Set(gaps.flatMap((g) => [g.start, g.end]))].sort((a, b) => a - b);
-      const merged = [];
-      for (let i = 0; i < points.length - 1; i++) {
-        const s = points[i];
-        const e = points[i + 1];
-        const shortBy = gaps.filter((g) => g.start <= s && g.end >= e).length;
-        if (shortBy === 0) continue;
-        const last = merged[merged.length - 1];
-        if (last && last.end === s && last.shortBy === shortBy) {
-          last.end = e;
-        } else {
-          merged.push({ start: s, end: e, shortBy });
-        }
-      }
-      return merged;
-    }
-
     const understaffed = [];
     for (const day of scheduleOut) {
-      for (const seg of computeUnderstaffed(day)) {
+      for (const seg of day.understaffed) {
         understaffed.push({ dayKey: day.dayKey, dayName: day.dayName, ...seg });
       }
     }
