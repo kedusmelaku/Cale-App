@@ -37,18 +37,15 @@ class Day {
       workers: [],
       oneOnOne: false,
       oneOnOneWorker: null,
-      workersNeeded: 0, // decided target headcount, carried through for the
-                        // understaffing-visibility feature -- NOT a naive
-                        // recompute of ceil(students/3); it's however many
-                        // windows this algorithm actually decided cover this
-                        // slot, so it never false-flags a deliberate
-                        // one-on-one "stress" moment as understaffing.
+      workersNeeded: 0, // decided target headcount for this slot -- NOT a
+                        // naive recompute of ceil(students/3); it's however
+                        // many workers the algorithm actually decided this
+                        // slot needs, so it never false-flags a deliberate
+                        // one-on-one "stress" moment as understaffing. The
+                        // understaffing signal itself is just this compared
+                        // against slot.workers.length, computed directly in
+                        // server.js -- no separate window list needed.
     }));
-    // One entry per worker-shift the algorithm decided this day needs,
-    // across every block, regardless of whether a real worker was found to
-    // fill it. server.js's /generate can walk this to build the
-    // understaffing banner/inline highlighting without re-deriving anything.
-    this.shiftWindows = [];
   }
 
   // Sort helper: fewer points first, then earliest submission, then unknown last.
@@ -163,7 +160,6 @@ class Day {
       // setting.
       const marginSlots = minSlots;
 
-      day.shiftWindows = [];
       const blocks = day._splitIntoBlocks();
 
       for (const blockSlots of blocks) {
@@ -277,22 +273,14 @@ class Day {
         }
 
         // Carry the decided target through to each slot (count of windows
-        // covering it, independent of whether a worker was actually found)
-        // and record every filled/gap segment for server.js's understaffing
-        // signal -- a window that got fully relay-covered by two workers
-        // now correctly shows as two FILLED segments, not one unfilled one.
+        // covering it, independent of whether a worker was actually found).
+        // Combined with slot.workers (already populated above with whoever
+        // actually got assigned there, relay segments included), this is
+        // everything the understaffing signal needs -- computed directly
+        // in server.js as workersNeeded vs workers.length, no separate
+        // window list required.
         for (let i = 0; i < blockSlots.length; i++) {
           blockSlots[i].workersNeeded = windows.filter((w) => i >= w.start && i < w.end).length;
-        }
-        for (const win of windows) {
-          for (const seg of win.segments) {
-            day.shiftWindows.push({
-              start: blockSlots[seg.start].time,
-              end: blockSlots[seg.end - 1].time + 30,
-              filled: !!seg.worker,
-              worker: seg.worker ? seg.worker.name : null,
-            });
-          }
         }
 
         // The highest-priority worker actually present in a one-on-one slot
@@ -309,7 +297,6 @@ class Day {
 
   resetAllWorkers() {
     for (const slot of this.slots) slot.workers = [];
-    this.shiftWindows = [];
   }
 
   resetAllStudents() {

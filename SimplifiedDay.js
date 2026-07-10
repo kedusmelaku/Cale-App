@@ -66,8 +66,6 @@ class SimplifiedDay extends Day {
 
   willWork(week) {
     for (const day of week) {
-      day.shiftWindows = [];
-
       for (const block of day.blocks) {
         const peak = this.findPeak(day, block);
         if (peak === 0) continue;
@@ -112,32 +110,25 @@ class SimplifiedDay extends Day {
         if (candidates.length > 0) slot.oneOnOneWorker = candidates[0];
       }
 
-      // Understaffing signal, computed per OPERATING block rather than per
-      // shift-TEMPLATE. day.blocks holds several overlapping candidate shapes
-      // for the same operating block (a full-from-open shift, a full-from-
-      // later-start shift, early/late halves) -- these are alternate shapes
-      // the same coverage could take, not independent demand periods, so
-      // computing a shortfall separately for each one would report the same
-      // underlying gap up to 4x over. This pass instead asks the coarser,
-      // block-level question the banner actually needs: does the peak this
-      // block needs anywhere in it have enough distinct people with ANY
-      // shift touching the block? One entry per still-needed worker, filled
-      // or not, feeding server.js's response the same way Day.js's do.
-      for (const opBlock of day.operatingBlocks) {
-        const peak = this.findPeak(day, opBlock);
-        if (peak === 0) continue;
-        const covering = day.totalWorkers.filter((worker) => {
+      // Understaffing signal at the SAME granularity ultra mode gets: per
+      // 30-minute slot, not per shift-block. Normal mode assigns in clean
+      // block-shaped shifts (that's the whole point of this mode), but a
+      // real shortfall might only actually exist for one 30-minute stretch
+      // within an otherwise fully-staffed block -- reporting the surrounding
+      // block's full span as "understaffed" would be misleading about
+      // exactly when more help is actually needed. workersNeeded here is
+      // the raw per-slot target (same formula the algorithm itself used to
+      // decide staffing, one-on-one adjustment included) -- not a re-guess.
+      // slot.workers is populated directly from real assigned shifts, so
+      // server.js can compare the two exactly the same way it does for
+      // ultra mode.
+      for (const slot of day.slots) {
+        const base = Math.ceil(slot.students / 3);
+        slot.workersNeeded = slot.oneOnOne ? base + 1 : base;
+        slot.workers = day.totalWorkers.filter((worker) => {
           const di = worker.days.indexOf(day.dayKey);
-          return (worker.working[di] || []).some(
-            (s) => s.start < opBlock.end && s.end > opBlock.start,
-          );
+          return (worker.working[di] || []).some((s) => s.start <= slot.time && s.end > slot.time);
         });
-        for (const w of covering.slice(0, peak)) {
-          day.shiftWindows.push({ start: opBlock.start, end: opBlock.end, filled: true, worker: w.name });
-        }
-        for (let i = covering.length; i < peak; i++) {
-          day.shiftWindows.push({ start: opBlock.start, end: opBlock.end, filled: false, worker: null });
-        }
       }
     }
   }

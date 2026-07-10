@@ -1979,7 +1979,7 @@
           scheduleData = data.schedule.map((d) => ({
             ...d,
             date: dates[d.dayKey] || "",
-            shiftWindows: d.shiftWindows || [],
+            understaffed: d.understaffed || [],
             assignments: d.assignments.map((a) => {
               const worker = workers.find((w) => w.name === a.name);
               const source = worker ? workerAvailDays(worker) : [];
@@ -2195,18 +2195,26 @@
               .map(() => '<div class="timeline-grid-line"></div>')
               .join("");
 
-            // Inline understaffing highlight: any unfilled shift-window
-            // that overlaps this block, spanning the full width behind the
-            // worker columns (a whole-timeframe "still needs someone" cue,
-            // not tied to any one worker's column).
-            const understaffedOverlay = (day.shiftWindows || [])
-              .filter((w) => !w.filled && w.start < ob.end && w.end > ob.start)
+            // Inline understaffing highlight: exact time ranges where more
+            // people are needed than are actually assigned (day.understaffed
+            // comes straight from a per-30-minute-slot comparison server-side
+            // -- no synthetic block or window shape, so a shortfall lasting
+            // only one slot shows as only that slot, not the whole block).
+            const understaffedOverlay = (day.understaffed || [])
+              .filter((w) => w.start < ob.end && w.end > ob.start)
               .map((w) => {
                 const s = Math.max(w.start, ob.start);
                 const e = Math.min(w.end, ob.end);
                 const top = ((s - ob.start) / 30) * SLOT_H;
                 const height = ((e - s) / 30) * SLOT_H;
-                return `<div class="understaffed-overlay" style="top:${top}px; height:${height}px;" title="Understaffed: ${minToLabel(s)}–${minToLabel(e)}">Short-staffed</div>`;
+                const label = w.shortBy === 1 ? "Short 1" : `Short ${w.shortBy}`;
+                // Vertical text needs real room to not just overflow its
+                // box -- a single 30-min shortfall (very possible now that
+                // this is exact-slot precision, not block-shaped) is too
+                // short to hold it. Below that height, rely on the
+                // highlight itself plus the hover tooltip for the detail.
+                const showLabel = height >= 40;
+                return `<div class="understaffed-overlay" style="top:${top}px; height:${height}px;" title="Understaffed ${minToLabel(s)}–${minToLabel(e)}: needs ${w.shortBy} more">${showLabel ? label : ""}</div>`;
               })
               .join("");
 
