@@ -15,8 +15,8 @@
         background: var(--surface2, #f4f6fb);
         border: 1px solid var(--border, #e2e6ef);
         border-radius: 10px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
+        padding: 12px 16px;
+        margin-bottom: 12px;
       }
       .admin-page .sched-mode-opt {
         display: flex;
@@ -70,7 +70,7 @@
       .admin-page .sched-tabs {
         display: flex;
         gap: 6px;
-        margin-bottom: 14px;
+        margin-bottom: 10px;
       }
       .admin-page .sched-tab {
         flex: 1;
@@ -94,16 +94,31 @@
         display: block;
         font-weight: 500;
       }
-      .admin-page .sched-day-row {
+      .admin-page .sched-days-list {
         border: 1px solid var(--border, #e2e6ef);
         border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 8px;
-        background: #fff;
+        overflow: hidden;
+        margin-bottom: 4px;
       }
-      .admin-page .sched-day-row.is-open {
-        border-color: #bcd8ff;
+      .admin-page .sched-day-row-compact {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--border, #e2e6ef);
+        background: #fff;
+        flex-wrap: wrap;
+      }
+      .admin-page .sched-day-row-compact:last-child {
+        border-bottom: none;
+      }
+      .admin-page .sched-day-row-compact.is-open {
         background: #f5f9ff;
+      }
+      .admin-page .sched-day-row-compact.multi {
+        flex-direction: column;
+        align-items: stretch;
+        padding-bottom: 10px;
       }
       .admin-page .sched-day-top {
         display: flex;
@@ -113,13 +128,14 @@
       .admin-page .sched-day-name {
         font-weight: 600;
         flex: 1;
+        min-width: 80px;
       }
       .admin-page .sched-closed {
         color: var(--text-muted, #9aa1ac);
         font-size: 0.82rem;
       }
       .admin-page .sched-blocks {
-        margin-top: 10px;
+        margin-top: 8px;
         display: flex;
         flex-direction: column;
         gap: 8px;
@@ -247,10 +263,10 @@
         color: var(--text, #1a1a2e);
       }
       .admin-page .sched-defaults {
-        margin-top: 16px;
+        margin-top: 12px;
         border: 1px solid var(--border, #e2e6ef);
         border-radius: 10px;
-        padding: 14px 16px;
+        padding: 12px 16px;
         background: var(--surface2, #f4f6fb);
       }
       .admin-page .sched-defaults-title {
@@ -260,13 +276,40 @@
       .admin-page .sched-defaults-note {
         font-size: 0.8rem;
         color: var(--text-muted, #8891a0);
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
       .admin-page .sched-default-row {
         display: flex;
         align-items: center;
         gap: 8px;
         margin-bottom: 8px;
+      }
+      .admin-page .sched-default-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px 14px;
+        margin-bottom: 4px;
+      }
+      .admin-page .sched-default-col {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+      .admin-page .sched-default-times {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+      }
+      .admin-page .sched-default-times select {
+        min-width: 0;
+        flex: 1;
+      }
+      .admin-page .sched-defaults-divider {
+        height: 1px;
+        background: var(--border, #e2e6ef);
+        margin: 14px 0 12px;
       }
       .admin-page .sched-warnings {
         margin-top: 12px;
@@ -296,7 +339,12 @@
         font-size: 0.86rem;
         font-weight: 500;
       }
-      .admin-page .sched-default-row select {
+      .admin-page .sched-default-col .sched-default-name {
+        min-width: 0;
+        font-weight: 600;
+      }
+      .admin-page .sched-default-row select,
+      .admin-page .sched-default-times select {
         padding: 5px 8px;
         border: 1px solid var(--border, #d5dae6);
         border-radius: 7px;
@@ -1837,14 +1885,13 @@
         </div>`;
 
         const v = s[_schedTab] || {};
-        const daysHTML = SCHED_DAY_KEYS.map((dk) => {
+        const daysHTML = `<div class="sched-days-list">${SCHED_DAY_KEYS.map((dk) => {
           const d = v[dk] || { open: false, blocks: [] };
           const blocks = d.blocks || [];
-          let inner = "";
-          if (d.open) {
-            const blockRows = blocks
-              .map(
-                (b, i) => `
+
+          const blockRows = blocks
+            .map(
+              (b, i) => `
             <div class="sched-block">
               ${blocks.length > 1 ? `<span class="sched-block-label">${i === 0 ? "Block 1" : "Block 2"}</span>` : ""}
               <select onchange="schedSetBlockTime('${dk}',${i},'start',this.value)">${timeOptionsHTML(b.start)}</select>
@@ -1852,24 +1899,36 @@
               <select onchange="schedSetBlockTime('${dk}',${i},'end',this.value)">${timeOptionsHTML(b.end)}</select>
               ${blocks.length > 1 ? `<button class="sched-block-rm" onclick="schedRemoveBlock('${dk}',${i})">Remove</button>` : ""}
             </div>`,
-              )
-              .join("");
-            const addBtn =
-              blocks.length < 2
-                ? `<button class="sched-add-block" onclick="schedAddBlock('${dk}')">+ Add second block (split day)</button>`
-                : "";
-            inner = `<div class="sched-blocks">${blockRows}${addBtn}</div>`;
+            )
+            .join("");
+          const addBtn =
+            d.open && blocks.length < 2
+              ? `<button class="sched-add-block" onclick="schedAddBlock('${dk}')">+ Split day</button>`
+              : "";
+          const checkbox = `<input type="checkbox" ${d.open ? "checked" : ""} onchange="schedToggleDay('${dk}', this.checked)">`;
+          const name = `<span class="sched-day-name">${SCHED_DAY_NAMES[dk]}</span>`;
+
+          if (!d.open) {
+            return `
+            <div class="sched-day-row-compact">
+              ${checkbox}${name}<span class="sched-closed">Closed</span>
+            </div>`;
+          }
+          // Single-block days: name and hours share one line -- this is the
+          // common case, so keeping it on one line is most of the vertical
+          // savings. Two-block days still need a second line for block 2.
+          if (blocks.length <= 1) {
+            return `
+            <div class="sched-day-row-compact is-open">
+              ${checkbox}${name}${blockRows}${addBtn}
+            </div>`;
           }
           return `
-          <div class="sched-day-row ${d.open ? "is-open" : ""}">
-            <div class="sched-day-top">
-              <input type="checkbox" ${d.open ? "checked" : ""} onchange="schedToggleDay('${dk}', this.checked)">
-              <span class="sched-day-name">${SCHED_DAY_NAMES[dk]}</span>
-              ${d.open ? "" : `<span class="sched-closed">Closed</span>`}
-            </div>
-            ${inner}
+          <div class="sched-day-row-compact is-open multi">
+            <div class="sched-day-top">${checkbox}${name}</div>
+            <div class="sched-blocks">${blockRows}${addBtn}</div>
           </div>`;
-        }).join("");
+        }).join("")}</div>`;
 
         // Per-priority default hours for this variant
         if (!Array.isArray(v.defaults) || v.defaults.length !== 3) {
@@ -1877,25 +1936,6 @@
         }
         const defs = s[_schedTab].defaults;
         const levelNames = ["Normal", "Priority", "High Priority"];
-        const defaultsHTML = `
-        <div class="sched-defaults">
-          <div class="sched-defaults-title">Default hours by priority level</div>
-          <div class="sched-defaults-note">
-            Used when someone marks a day “available all day.” The start time applies Monday–Friday
-            (after-school); weekends use each day's full hours.
-          </div>
-          ${levelNames
-            .map(
-              (nm, i) => `
-            <div class="sched-default-row">
-              <span class="sched-default-name">${nm}</span>
-              <select onchange="schedSetDefault(${i},'start',this.value)">${timeOptionsHTML(defs[i].start)}</select>
-              <span>–</span>
-              <select onchange="schedSetDefault(${i},'end',this.value)">${timeOptionsHTML(defs[i].end)}</select>
-            </div>`,
-            )
-            .join("")}
-        </div>`;
 
         // Minimum shift length for this variant — the shortest shift ultra
         // mode will ever produce, even when demand at a block's edge tapers
@@ -1904,11 +1944,34 @@
           s[_schedTab].minShiftLength = 120;
         }
         const minShift = s[_schedTab].minShiftLength;
-        const minShiftHTML = `
+
+        const defaultsHTML = `
         <div class="sched-defaults">
+          <div class="sched-defaults-title">Default hours by priority level</div>
+          <div class="sched-defaults-note">
+            Used when someone marks a day “available all day.” The start time applies Monday–Friday
+            (after-school); weekends use each day's full hours.
+          </div>
+          <div class="sched-default-grid">
+          ${levelNames
+            .map(
+              (nm, i) => `
+            <div class="sched-default-col">
+              <span class="sched-default-name">${nm}</span>
+              <div class="sched-default-times">
+                <select onchange="schedSetDefault(${i},'start',this.value)">${timeOptionsHTML(defs[i].start)}</select>
+                <span>–</span>
+                <select onchange="schedSetDefault(${i},'end',this.value)">${timeOptionsHTML(defs[i].end)}</select>
+              </div>
+            </div>`,
+            )
+            .join("")}
+          </div>
+
+          <div class="sched-defaults-divider"></div>
           <div class="sched-defaults-title">Minimum shift length</div>
           <div class="sched-defaults-note">
-            The shortest shift Cale's ultra-efficient mode will ever schedule, even if actual
+            The shortest shift ultra-efficient mode will ever schedule, even if actual
             demand tapers off sooner than this at the edge of an operating block.
           </div>
           <div class="sched-default-row">
@@ -1917,7 +1980,7 @@
         </div>`;
 
         schedContainer().innerHTML =
-          modeHTML + tabsHTML + daysHTML + defaultsHTML + minShiftHTML + warningsBoxHTML(s);
+          modeHTML + tabsHTML + daysHTML + defaultsHTML + warningsBoxHTML(s);
       }
 
       // Editor mutations (operate on _sched, then re-render where structure changes)
