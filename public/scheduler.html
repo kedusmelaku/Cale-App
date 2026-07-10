@@ -1900,103 +1900,125 @@
 
         if (payload.length === 0) return alert("No availability set.");
 
-        let studentData = null;
-        let oneOnOneData = null;
+        const genBtn = document.getElementById("btn-generate");
+        const genOrigText = genBtn.textContent;
+        genBtn.disabled = true;
+        genBtn.textContent = "Generating…";
+        genBtn.classList.add("charging");
+        let succeeded = false;
 
-        if (!settings.demo) {
-          if (_calConnected === false) {
-            showEmptyState("no-calendar");
-            return;
-          }
-          try {
-            const calParam = settings.calendarId
-              ? `&calendarId=${encodeURIComponent(settings.calendarId)}`
-              : "";
-            const eventsRes = await fetch(
-              `/events?monday=${mondayVal}${calParam}`,
-            );
-            if (eventsRes.status === 401) {
-              goToAuth();
+        try {
+          let studentData = null;
+          let oneOnOneData = null;
+
+          if (!settings.demo) {
+            if (_calConnected === false) {
+              showEmptyState("no-calendar");
               return;
             }
-            if (eventsRes.ok) {
-              const eventsData = await eventsRes.json();
-              studentData = eventsData.studentData;
-              oneOnOneData = eventsData.oneOnOneData;
-              lastStudentData = studentData;
-              lastOneOnOneData = oneOnOneData;
-            } else {
+            try {
+              const calParam = settings.calendarId
+                ? `&calendarId=${encodeURIComponent(settings.calendarId)}`
+                : "";
+              const eventsRes = await fetch(
+                `/events?monday=${mondayVal}${calParam}`,
+              );
+              if (eventsRes.status === 401) {
+                goToAuth();
+                return;
+              }
+              if (eventsRes.ok) {
+                const eventsData = await eventsRes.json();
+                studentData = eventsData.studentData;
+                oneOnOneData = eventsData.oneOnOneData;
+                lastStudentData = studentData;
+                lastOneOnOneData = oneOnOneData;
+              } else {
+                showEmptyState("calendar-error");
+                return;
+              }
+            } catch (err) {
+              console.warn("Calendar fetch failed:", err.message);
               showEmptyState("calendar-error");
               return;
             }
-          } catch (err) {
-            console.warn("Calendar fetch failed:", err.message);
-            showEmptyState("calendar-error");
+          } else {
+            // Demo mode: build a fresh random-but-smooth student demand curve
+            // for the center's ACTUAL current operating slots (not a fixed
+            // set of hardcoded times from the old always-3-8/10-2 schedule —
+            // see generateDemoStudentData for why). Regenerated every click,
+            // and this exact object is both what /generate sees AND what
+            // lastStudentData feeds the tooltip, so they're always in sync.
+            const demo = generateDemoStudentData();
+            studentData = demo.studentData;
+            oneOnOneData = demo.oneOnOneData;
+            lastStudentData = studentData;
+            lastOneOnOneData = oneOnOneData;
+          }
+
+          const res = await fetch("/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workers: payload,
+              studentData,
+              oneOnOneData,
+              mode: settings.mode === "ultra" ? "ultra" : "simplified",
+            }),
+          });
+          const data = await res.json();
+
+          const dates = getDatesForWeek(mondayVal);
+          scheduleData = data.schedule.map((d) => ({
+            ...d,
+            date: dates[d.dayKey] || "",
+            shiftWindows: d.shiftWindows || [],
+            assignments: d.assignments.map((a) => {
+              const worker = workers.find((w) => w.name === a.name);
+              const source = worker ? workerAvailDays(worker) : [];
+              const avDay = source.find((x) => x.day === d.dayKey);
+              const avBlocks = avDay && avDay.selected ? avDay.blocks || [] : [];
+              // The availability block this shift sits within (for OOB shading).
+              const cover = avBlocks.find(
+                (b) => a.start < b.end && a.end > b.start,
+              );
+              return {
+                ...a,
+                availStart: cover ? cover.start : null,
+                availEnd: cover ? cover.end : null,
+              };
+            }),
+          }));
+          understaffedData = data.understaffed || [];
+
+          const totalAssignments = data.schedule.reduce(
+            (sum, d) => sum + d.assignments.length,
+            0,
+          );
+          if (totalAssignments === 0 && !settings.demo && studentData) {
+            showEmptyState("no-students");
             return;
           }
-        } else {
-          // Demo mode: build a fresh random-but-smooth student demand curve
-          // for the center's ACTUAL current operating slots (not a fixed
-          // set of hardcoded times from the old always-3-8/10-2 schedule —
-          // see generateDemoStudentData for why). Regenerated every click,
-          // and this exact object is both what /generate sees AND what
-          // lastStudentData feeds the tooltip, so they're always in sync.
-          const demo = generateDemoStudentData();
-          studentData = demo.studentData;
-          oneOnOneData = demo.oneOnOneData;
-          lastStudentData = studentData;
-          lastOneOnOneData = oneOnOneData;
+
+          renderSchedule();
+          document.getElementById("copy-btn").disabled = false;
+          document.getElementById("edit-btn").disabled = false;
+          document.getElementById("finish-btn").style.display = "inline-block";
+          document.getElementById("stale-banner").style.display = "none";
+          succeeded = true;
+        } finally {
+          // Every exit path -- success, calendar error, no-students, 401
+          // redirect -- lands here, so the button never gets stuck showing
+          // "Generating…". The release-burst animation only plays on an
+          // actual successful generation, not on an early bail-out.
+          genBtn.classList.remove("charging");
+          genBtn.textContent = genOrigText;
+          genBtn.disabled = false;
+          if (succeeded) {
+            genBtn.classList.add("just-generated");
+            setTimeout(() => genBtn.classList.remove("just-generated"), 700);
+          }
         }
-
-        const res = await fetch("/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workers: payload,
-            studentData,
-            oneOnOneData,
-            mode: settings.mode === "ultra" ? "ultra" : "simplified",
-          }),
-        });
-        const data = await res.json();
-
-        const dates = getDatesForWeek(mondayVal);
-        scheduleData = data.schedule.map((d) => ({
-          ...d,
-          date: dates[d.dayKey] || "",
-          shiftWindows: d.shiftWindows || [],
-          assignments: d.assignments.map((a) => {
-            const worker = workers.find((w) => w.name === a.name);
-            const source = worker ? workerAvailDays(worker) : [];
-            const avDay = source.find((x) => x.day === d.dayKey);
-            const avBlocks = avDay && avDay.selected ? avDay.blocks || [] : [];
-            // The availability block this shift sits within (for OOB shading).
-            const cover = avBlocks.find(
-              (b) => a.start < b.end && a.end > b.start,
-            );
-            return {
-              ...a,
-              availStart: cover ? cover.start : null,
-              availEnd: cover ? cover.end : null,
-            };
-          }),
-        }));
-        understaffedData = data.understaffed || [];
-
-        const totalAssignments = data.schedule.reduce(
-          (sum, d) => sum + d.assignments.length,
-          0,
-        );
-        if (totalAssignments === 0 && !settings.demo && studentData) {
-          showEmptyState("no-students");
-          return;
-        }
-
-        renderSchedule();
-        document.getElementById("copy-btn").disabled = false;
-        document.getElementById("edit-btn").disabled = false;
-        document.getElementById("finish-btn").style.display = "inline-block";
-        document.getElementById("stale-banner").style.display = "none";
       }
 
       // ── Schedule View ──────────────────────────────────────
