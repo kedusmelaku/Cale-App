@@ -202,51 +202,97 @@ class Day {
         // someone" bug this fixes.
         windows.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
 
-        // Assign one real worker per window. A worker already used in THIS
-        // block is excluded from every other window in it -- this is the
-        // structural guarantee that a worker gets at most one contiguous
-        // shift per block; fragmentation the way bug #3 caused is no longer
-        // possible to construct, not just unlikely.
+        // Assign workers per window via a HANDOFF RELAY, not "one worker
+        // must cover the whole thing or the window goes entirely unfilled".
+        // Two people with perfectly ordinary partial availability (e.g.
+        // one available 3-6, another 4:30-8) covering a window together via
+        // a normal shift handoff is completely realistic scheduling -- the
+        // old one-worker-only rule treated that as a total failure even
+        // though the floor was genuinely fully covered. A worker already
+        // used anywhere in this block (in this window or an earlier one)
+        // is excluded everywhere else -- still the structural guarantee
+        // that a worker gets at most one contiguous shift per block.
         const usedInBlock = new Set();
-        for (const win of windows) {
-          const wStart = blockSlots[win.start].time;
-          const wEnd = blockSlots[win.end - 1].time + 30;
 
-          const candidates = day.totalWorkers.filter((worker) => {
-            if (usedInBlock.has(worker)) return false;
-            const di = worker.days.indexOf(day.dayKey);
-            for (let i = win.start; i < win.end; i++) {
-              if (!worker.availableAt(di, blockSlots[i].time)) return false;
+        // Covers as much of [win.start, win.end) as possible with a relay:
+        // at the current position, pick whichever available (not yet used)
+        // worker's contiguous availability reaches furthest past it -- the
+        // standard optimal greedy for minimum interval covering, so a full
+        // relay gets found whenever the worker pool actually allows one.
+        // Ties go to whoever's higher priority (fewer points). Returns a
+        // list of segments, each either {worker} (filled) or {worker:null}
+        // (a genuine gap -- nobody available for that stretch, period).
+        function coverWindow(win) {
+          const segments = [];
+          let cursor = win.start;
+          while (cursor < win.end) {
+            const time = blockSlots[cursor].time;
+            const candidates = [];
+            for (const worker of day.totalWorkers) {
+              if (usedInBlock.has(worker)) continue;
+              const di = worker.days.indexOf(day.dayKey);
+              if (!worker.availableAt(di, time)) continue;
+              let reach = cursor;
+              while (reach < win.end && worker.availableAt(di, blockSlots[reach].time)) reach++;
+              candidates.push({ worker, reach });
             }
-            return true;
-          });
-          day._sortByPriority(candidates);
+            if (candidates.length === 0) {
+              // Nobody available starting here. Scan forward to wherever
+              // someone (still unused) next becomes available, marking
+              // everything in between as a real, unavoidable gap.
+              let gapEnd = cursor + 1;
+              while (gapEnd < win.end) {
+                const t2 = blockSlots[gapEnd].time;
+                const anyAvail = day.totalWorkers.some(
+                  (w) => !usedInBlock.has(w) && w.availableAt(w.days.indexOf(day.dayKey), t2),
+                );
+                if (anyAvail) break;
+                gapEnd++;
+              }
+              segments.push({ start: cursor, end: gapEnd, worker: null });
+              cursor = gapEnd;
+              continue;
+            }
+            candidates.sort((a, b) => b.reach - a.reach || a.worker.points - b.worker.points);
+            const pick = candidates[0];
+            segments.push({ start: cursor, end: pick.reach, worker: pick.worker });
+            usedInBlock.add(pick.worker);
+            cursor = pick.reach;
+          }
+          return segments;
+        }
 
-          const chosen = candidates[0] || null;
-          win.assignedWorker = chosen;
-          if (chosen) {
-            usedInBlock.add(chosen);
-            const di = chosen.days.indexOf(day.dayKey);
-            chosen.working[di].push({ start: wStart, end: wEnd });
-            for (let i = win.start; i < win.end; i++) {
-              blockSlots[i].workers.push(chosen);
+        for (const win of windows) {
+          win.segments = coverWindow(win);
+          for (const seg of win.segments) {
+            if (!seg.worker) continue;
+            const wStart = blockSlots[seg.start].time;
+            const wEnd = blockSlots[seg.end - 1].time + 30;
+            const di = seg.worker.days.indexOf(day.dayKey);
+            seg.worker.working[di].push({ start: wStart, end: wEnd });
+            for (let i = seg.start; i < seg.end; i++) {
+              blockSlots[i].workers.push(seg.worker);
             }
           }
         }
 
         // Carry the decided target through to each slot (count of windows
         // covering it, independent of whether a worker was actually found)
-        // and record every window for server.js's understaffing signal.
+        // and record every filled/gap segment for server.js's understaffing
+        // signal -- a window that got fully relay-covered by two workers
+        // now correctly shows as two FILLED segments, not one unfilled one.
         for (let i = 0; i < blockSlots.length; i++) {
           blockSlots[i].workersNeeded = windows.filter((w) => i >= w.start && i < w.end).length;
         }
         for (const win of windows) {
-          day.shiftWindows.push({
-            start: blockSlots[win.start].time,
-            end: blockSlots[win.end - 1].time + 30,
-            filled: !!win.assignedWorker,
-            worker: win.assignedWorker ? win.assignedWorker.name : null,
-          });
+          for (const seg of win.segments) {
+            day.shiftWindows.push({
+              start: blockSlots[seg.start].time,
+              end: blockSlots[seg.end - 1].time + 30,
+              filled: !!seg.worker,
+              worker: seg.worker ? seg.worker.name : null,
+            });
+          }
         }
 
         // The highest-priority worker actually present in a one-on-one slot
