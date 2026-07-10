@@ -1620,6 +1620,19 @@
       function openScheduleEditor(schedule, target) {
         _sched = schedule;
         _schedTarget = target;
+        // Backfill both variants up front, not just whichever tab renders
+        // first. The per-render fallback further down only ever touched
+        // the CURRENTLY VIEWED tab -- a variant nobody has looked at yet
+        // (or one saved before this field existed) could still be sitting
+        // on a schema default like `null`, which passes right through
+        // until Save runs full validation across both variants and fails
+        // on a field the admin never touched. Server now normalizes this
+        // too, but fixing it here as well means it can't recur regardless
+        // of what any endpoint sends.
+        for (const vName of ["schoolYear", "summer"]) {
+          const v = _sched[vName];
+          if (v && typeof v.minShiftLength !== "number") v.minShiftLength = 120;
+        }
         // In the detail view, land on whichever variant is actually active
         // right now -- editing the wrong one because the tab you're on
         // doesn't match reality is exactly the mistake this avoids. A brand

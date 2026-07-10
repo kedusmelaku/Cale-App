@@ -1008,7 +1008,13 @@ app.get(
       if (!center) return res.status(404).json({ error: "Center not found." });
 
       const settings = await CenterSettings.findOne({ centerId });
-      const schedule = (settings && settings.schedule) || defaultSchedule();
+      const rawSchedule = (settings && settings.schedule) || defaultSchedule();
+      // Normalize before sending: a variant that's never been explicitly
+      // saved (or predates a field like minShiftLength existing at all)
+      // can be sitting on schema defaults like `null` in the database.
+      // Sending that raw means the tab the admin ISN'T looking at can fail
+      // validation on save with an error about a field they never touched.
+      const schedule = normalizeSchedule(rawSchedule);
       res.json({
         data: { schedule, activeVariant: resolveActiveName(schedule) },
       });
