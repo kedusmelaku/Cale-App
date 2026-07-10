@@ -2124,8 +2124,28 @@
         return rects;
       }
 
+      // Accelerating stagger for the within-day block reveal: each
+      // successive block's gap from the previous one shrinks geometrically,
+      // so blocks catch up to each other as the cascade goes -- the last
+      // few arrive in a quick flurry rather than evenly spaced.
+      const BLOCK_RISE_MS = 420;
+      const BLOCK_START_OFFSET = 150; // lets the day's own fade mostly settle first
+      const BLOCK_BASE_GAP = 110;
+      const BLOCK_GAP_RATIO = 0.55;
+      function blockDelayMs(colI) {
+        let delay = 0;
+        let gap = BLOCK_BASE_GAP;
+        for (let k = 0; k < colI; k++) {
+          delay += gap;
+          gap *= BLOCK_GAP_RATIO;
+        }
+        return Math.round(delay);
+      }
+
       function buildTimelineHTML(data, isEdit) {
-        let html = `<div class="timeline${isEdit ? " timeline-edit" : ""}">`;
+        let daysHtml = "";
+        let maxFinishMs = 0;
+        const DAY_STAGGER_MS = 35;
         data.forEach((day, di) => {
           const dk = day.dayKey;
           const ops = SCHED.blocks(dk); // one or two operating blocks
@@ -2179,6 +2199,10 @@
                 const height = ((a.end - a.start) / 30) * SLOT_H;
                 const color = _getWorkerColor(a.name);
                 const colI = colCounter++;
+                const blockDelay = di * DAY_STAGGER_MS + BLOCK_START_OFFSET + blockDelayMs(colI);
+                if (!isEdit) {
+                  maxFinishMs = Math.max(maxFinishMs, blockDelay + BLOCK_RISE_MS);
+                }
                 const draggable = isEdit
                   ? `data-day="${di}" data-ai="${ai}"`
                   : "";
@@ -2203,7 +2227,7 @@
                 <div class="timeline-worker-col">
                   <div class="timeline-grid-lines">${gridLines}</div>
                   <div class="worker-block ${isEdit ? "draggable" : ""}"
-                    style="top:${top}px; height:${height}px; background:${color}; --col-i:${colI};"
+                    style="top:${top}px; height:${height}px; background:${color}; --block-delay:${blockDelay}ms;"
                     title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
                     ${a.name}${oobOverlay}${resizableTop}${resizable}${removable}
                   </div>
@@ -2234,15 +2258,21 @@
             ? ` <span class="day-date">${day.date}</span>`
             : "";
 
-          html += `
+          daysHtml += `
             <div class="timeline-day${isEdit ? "" : " day-enter"}"${isEdit ? "" : ` style="--day-i:${di};"`}>
               <div class="timeline-day-header">${day.dayName}${dateStr}</div>
               <div class="timeline-day-stack">${panelsHtml}</div>
               ${addBtn}
             </div>`;
         });
-        html += `</div>`;
-        return html;
+
+        // The final "settle" pop plays once, on the whole schedule, timed
+        // to land right after the very last block anywhere finishes rising
+        // -- not a fixed guess, but the actual computed end of the slowest
+        // day's cascade.
+        const wrapperClass = isEdit ? "timeline timeline-edit" : "timeline enter-pop";
+        const wrapperStyle = isEdit ? "" : ` style="--pop-delay:${maxFinishMs}ms;"`;
+        return `<div class="${wrapperClass}"${wrapperStyle}>${daysHtml}</div>`;
       }
 
       // ── Edit Screen ────────────────────────────────────────
