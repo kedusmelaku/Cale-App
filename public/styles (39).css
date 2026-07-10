@@ -1,0 +1,3932 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap");
+
+/* ── Cale logo lockup ── */
+.cale-logo-lockup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cale-logo-lockup img {
+  width: 26px;
+  height: 26px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.cale-wordmark {
+  font-family: "Sora", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* ── Variables ── */
+:root {
+  --bg: #f0f4ff;
+  --surface: #ffffff;
+  --surface2: #f9f9f7;
+  --border: #e2e2dc;
+  --border-strong: #c8c8c0;
+  --accent: #0d7bff;
+  --accent-hover: #0062d6;
+  --accent-light: #e8f1ff;
+  --accent-on-tint: var(--accent);
+  --gradient: linear-gradient(135deg, #0d7bff 0%, #c3b9ff 100%);
+  --gradient-subtle: linear-gradient(
+    135deg,
+    rgba(13, 123, 255, 0.06) 0%,
+    rgba(195, 185, 255, 0.06) 100%
+  );
+  --danger: #c0392b;
+  --danger-on-tint: var(--danger);
+  --text: #1a1a1a;
+  --text-mid: #4a4a4a;
+  --text-muted: #888880;
+  --green: #217a4a;
+  --green-bg: #eaf4ef;
+  --green-on-tint: var(--green);
+  --radius: 8px;
+  --slot-h: 40px;
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  /* Always-dark popover background, intentionally NOT redefined in
+     body.dark — tooltips/popovers are meant to stay a consistent dark
+     surface regardless of page theme. Using var(--text) for this (the old
+     approach) broke in dark mode since --text flips to near-white there,
+     producing near-invisible white-on-white tooltips. */
+  --tooltip-bg: #1a1a1a;
+  --tooltip-text: #ffffff;
+}
+
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Pitch-site ambient gradient — light mode only ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 70% 60% at 80% 10%,
+      rgba(195, 185, 255, 0.35) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 50% 50% at 10% 80%,
+      rgba(13, 123, 255, 0.13) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 40% 40% at 50% 100%,
+      rgba(195, 185, 255, 0.15) 0%,
+      transparent 50%
+    ),
+    var(--bg);
+}
+
+body.dark::before {
+  display: none;
+}
+
+/* Ambient blobs — slow float, match pitch site */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle 280px at 88% -8%,
+      rgba(195, 185, 255, 0.45),
+      transparent
+    ),
+    radial-gradient(
+      circle 220px at -5% 85%,
+      rgba(13, 123, 255, 0.15),
+      transparent
+    );
+  animation: ambientFloat 14s ease-in-out infinite alternate;
+}
+
+body.dark::after {
+  display: none;
+}
+
+@keyframes ambientFloat {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-18px, 14px);
+  }
+  100% {
+    transform: translate(12px, -10px);
+  }
+}
+
+/* ── Top Banners (Demo + Calendar Warning) ── */
+/* Same look & behavior for both banners; only z-index differs (demo sits on top). */
+#demo-banner,
+#cal-warning-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  color: #856404;
+  padding: 0 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  /* hidden by default — slides in when active */
+  transform: translateY(-100%);
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+
+#demo-banner {
+  z-index: 200;
+}
+#cal-warning-banner {
+  z-index: 199; /* just below demo banner */
+}
+
+body.demo-active #demo-banner,
+body.cal-warning-active #cal-warning-banner {
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+/* when demo banner is also showing, push cal banner below it */
+body.demo-active.cal-warning-active #cal-warning-banner {
+  transform: translateY(34px);
+}
+
+#demo-banner button,
+#cal-warning-banner button {
+  background: none;
+  border: 1px solid #856404;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+}
+
+#demo-banner button:hover,
+#cal-warning-banner button:hover {
+  background: #ffc107;
+  color: #333;
+}
+
+/* push screen content down when a banner is visible (34px for one banner, 68px for both) */
+body.demo-active .screen,
+body.cal-warning-active:not(.demo-active) .screen {
+  padding-top: 34px;
+}
+
+body.cal-warning-active.demo-active .screen {
+  padding-top: 68px;
+}
+
+.screen {
+  display: none;
+  flex-direction: column;
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--bg);
+
+  /* smooth push down */
+  transition: padding-top 0.3s ease;
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* ── Header ── */
+header {
+  background: rgba(240, 244, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 0 rgba(13, 123, 255, 0.1);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.dark header {
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.header-title {
+  font-family: "Sora", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Page Body ── */
+.page-body {
+  padding: 32px 28px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  flex: 1;
+}
+
+.page-intro {
+  margin-bottom: 28px;
+}
+
+.page-intro h1 {
+  font-family: "Sora", sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.page-intro p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* ── Dashboard App Description ── */
+.dashboard-about {
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  color: var(--text-mid);
+  line-height: 1.6;
+  max-width: 640px;
+}
+
+.dashboard-about strong {
+  color: var(--text);
+}
+
+/* ── Schedule Layout ── */
+.schedule-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  padding: 9px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition:
+    background 0.2s,
+    filter 0.2s;
+  white-space: nowrap;
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--gradient);
+  filter: none;
+}
+
+.btn-secondary {
+  padding: 9px 18px;
+  background: transparent;
+  color: var(--green-on-tint);
+  border: 1.5px solid var(--green);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover {
+  background: var(--green-bg);
+}
+.btn-secondary:disabled {
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: default;
+  background: transparent;
+}
+
+.btn-back {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-back:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-add-worker {
+  margin-top: 20px;
+  padding: 11px 22px;
+  background: transparent;
+  color: var(--accent-on-tint);
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.btn-add-worker:hover {
+  background: var(--accent-light);
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: "Inter", sans-serif;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.btn-remove:hover {
+  color: var(--danger-on-tint);
+}
+
+.btn-edit-emp {
+  background: none;
+  border: none;
+  color: var(--accent-on-tint);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: "Inter", sans-serif;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.btn-edit-emp:hover {
+  color: var(--accent-on-tint-hover);
+}
+
+.btn-gear {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  transition: color 0.15s;
+  font-family: "Noto Emoji", sans-serif;
+}
+
+.btn-gear:hover {
+  color: var(--text);
+}
+
+/* ── Worker Grid ── */
+.worker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.empty-workers {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  padding: 12px 0;
+  grid-column: 1 / -1;
+  font-style: italic;
+}
+
+.wcard {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: visible;
+  box-shadow: var(--shadow);
+  display: flex;
+  transition: box-shadow 0.15s;
+}
+
+body.dark .wcard {
+  background: var(--surface);
+}
+
+.wcard:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.wcard-color {
+  width: 6px;
+  flex-shrink: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.wcard-body {
+  padding: 14px 16px;
+  flex: 1;
+}
+
+.wcard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.wcard-name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+/* ── Modals ── */
+.intro-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.intro-modal-overlay.open {
+  display: flex;
+}
+
+.intro-modal-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  padding: 28px;
+  width: min(100%, 420px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+body.dark .intro-modal-card {
+  background: rgba(38, 38, 49, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.intro-modal-title {
+  font-family: "Sora", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.intro-modal-copy {
+  font-size: 0.98rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.intro-modal-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.intro-modal-actions .btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.intro-modal-actions .btn-secondary:hover {
+  background: var(--surface3);
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+/* Lift open modals above the tutorial dim layer so they show through */
+.modal-overlay.open.tut-raised {
+  z-index: 502;
+}
+/* Lift open modals above the tutorial dim layer so they show through */
+#tut-overlay.active ~ .modal-overlay.open,
+.modal-overlay.open.tut-raised {
+  z-index: 502;
+}
+
+.modal {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  padding: 28px;
+  width: 360px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+body.dark .modal {
+  background: rgba(38, 38, 49, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.modal h3 {
+  font-family: "Sora", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+
+.field-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.modal input[type="text"] {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 0.88rem;
+  margin-bottom: 18px;
+  transition: border-color 0.15s;
+}
+
+.modal input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.modal input[type="text"]:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
+
+.priority-picker {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.priority-opt {
+  flex: 1;
+  padding: 8px 6px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-mid);
+  transition: all 0.15s;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.priority-opt:hover {
+  border-color: var(--accent);
+  color: var(--accent-on-tint);
+}
+.priority-opt.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent-on-tint);
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  padding: 9px 18px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-mid);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.btn-cancel:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-confirm {
+  padding: 9px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.btn-confirm:hover {
+  background: var(--accent-hover);
+}
+
+/* ── Field Select ── */
+.field-select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  transition: border-color 0.15s;
+  margin-bottom: 2px;
+}
+
+.field-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.field-select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
+
+/* ── Priority badges ── */
+.av-priority {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.av-priority.p1 {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green-on-tint);
+}
+.av-priority.p2 {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent-on-tint);
+}
+
+/* ── Info Tag ── */
+.info-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  text-transform: lowercase;
+  vertical-align: middle;
+  margin-left: 4px;
+  z-index: 20;
+}
+
+.info-tag:hover .info-tooltip,
+.info-tag:focus .info-tooltip,
+.info-tag:focus-visible .info-tooltip {
+  display: block;
+}
+
+.info-tag:focus-visible {
+  outline: 2px solid var(--accent-on-tint);
+  outline-offset: 2px;
+}
+
+/* The nested .info-tooltip is now only a hidden text source — the visible
+   tooltip is a body-level floating element (.info-floating) positioned by JS
+   so it can never be clipped by a modal's overflow or a transformed ancestor. */
+.info-tooltip {
+  display: none !important;
+}
+
+/* ── Floating info tooltip (body-level, fixed, clip-proof) ── */
+.info-floating {
+  display: none;
+  position: fixed;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  font-size: 0.75rem;
+  font-weight: 400;
+  padding: 7px 10px;
+  border-radius: 6px;
+  width: 220px;
+  line-height: 1.5;
+  z-index: 12000;
+  pointer-events: none;
+  white-space: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+.info-floating.show {
+  display: block;
+}
+.info-floating::after {
+  content: "";
+  position: absolute;
+  left: var(--arrow-x, 50%);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+}
+.info-floating[data-arrow="bottom"]::after {
+  top: 100%;
+  border-top-color: var(--tooltip-bg);
+}
+.info-floating[data-arrow="top"]::after {
+  bottom: 100%;
+  border-bottom-color: var(--tooltip-bg);
+}
+
+.info-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  font-size: 0.75rem;
+  font-weight: 400;
+  padding: 7px 10px;
+  border-radius: 6px;
+  width: 220px;
+  line-height: 1.5;
+  z-index: 50;
+  pointer-events: none;
+  white-space: normal;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.info-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--tooltip-bg);
+}
+
+/* ── Availability Panel ── */
+.availability-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 57px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.panel-title {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.panel-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ── Availability tabs ── */
+.av-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.av-tab {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  text-align: center;
+}
+
+.av-tab + .av-tab {
+  border-left: 1.5px solid var(--border);
+}
+
+.av-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.av-tab:not(.active):hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ── Form-mode read-only cards ── */
+.av-form-day {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.av-form-day-name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+}
+
+.av-form-day-hours {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.av-no-submission {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 8px;
+}
+
+.av-section {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+}
+.av-section:last-child {
+  border-bottom: none;
+}
+
+.av-worker-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.av-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+.av-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.av-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.av-day-row {
+  border-radius: 6px;
+  padding: 6px 8px;
+  transition: background 0.1s;
+}
+.av-day-row.selected {
+  background: var(--accent-light);
+}
+
+.av-day-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.av-day-check input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
+.av-day-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.av-hours {
+  margin-top: 6px;
+  margin-left: 23px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.av-hours-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-mid);
+}
+
+.av-hours-check input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.av-time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-mid);
+}
+
+.av-time-inputs select {
+  padding: 4px 6px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  transition: border-color 0.15s;
+}
+
+.av-time-inputs select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.av-time-inputs select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
+
+.av-select-all {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.av-select-all input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Output Panel ── */
+.output-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.output-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.output-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-mid);
+}
+
+input[type="date"] {
+  padding: 7px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface2);
+  transition: border-color 0.15s;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+input[type="date"]:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-on-tint);
+}
+
+.btn-edit {
+  padding: 9px 18px;
+  background: transparent;
+  color: var(--accent-on-tint);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-edit:hover {
+  background: var(--accent-light);
+}
+.btn-edit:disabled {
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: default;
+  background: transparent;
+}
+
+.schedule-grid {
+  overflow-x: auto;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 60px 40px;
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+/* ── Timeline ── */
+.timeline {
+  display: flex;
+  gap: 10px;
+  min-width: 500px;
+}
+
+.timeline-day {
+  flex: 1;
+  min-width: 148px;
+} /* 148 (was 120) to fit the per-block panel headers; .timeline-day is used only by scheduler.html */
+
+.timeline-day-header {
+  background: var(--accent);
+  color: white;
+  text-align: center;
+  padding: 8px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.day-date {
+  font-size: 0.72rem;
+  font-weight: 400;
+  opacity: 0.85;
+  margin-left: 5px;
+}
+
+.timeline-body {
+  display: flex;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: visible; /* allow bottom label to bleed past edge */
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.timeline-slots {
+  width: 42px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface2);
+  position: relative; /* anchor for absolutely positioned labels */
+  overflow: visible; /* let bottom label bleed past the border */
+}
+
+/* Labels sit ON grid lines, not inside slots.
+   top set inline (i * SLOT_H). translateY(-50%) centers on the line. */
+.timeline-line-label {
+  position: absolute;
+  right: 6px;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.timeline-line-label.tooltip-sensor {
+  pointer-events: all;
+  cursor: crosshair;
+  /* widen the hit area: vertically via padding, horizontally to span the
+     full slots column (not just the label's own text width) so "3" and
+     "3:30" get equally-sized targets. Does not extend into .timeline-workers
+     since that's a separate sibling column. */
+  padding: 12px 6px 12px 0;
+  left: 0;
+  right: 0;
+  text-align: right;
+}
+
+.timeline-workers {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.timeline-worker-col {
+  position: relative;
+  min-width: 32px;
+  flex: 1;
+}
+
+.timeline-grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.timeline-grid-line {
+  height: var(--slot-h);
+  border-bottom: 1px solid var(--border);
+}
+.timeline-grid-line:last-child {
+  border-bottom: none;
+}
+
+.worker-block {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: white;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  overflow: hidden;
+  cursor: default;
+  opacity: 0.9;
+  transition: opacity 0.15s;
+}
+
+.worker-block:hover {
+  opacity: 1;
+}
+
+/* ── Edit Screen ── */
+.edit-body {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 24px;
+}
+.edit-timeline-wrap {
+  min-width: 800px;
+}
+.timeline-edit .timeline-day {
+  min-width: 160px;
+}
+
+/* Two-block days render as stacked per-block panels inside the day card
+   (scheduler.html only). Each panel is a self-contained mini-schedule; a
+   single-block day is just one panel. */
+.timeline-day-stack {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
+  padding: 8px;
+}
+.timeline-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.timeline-panel-head {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface2);
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+/* Inside a panel the body drops its standalone border/radius (the panel
+   supplies them). Scoped, so the base .timeline-body is untouched. */
+.timeline-panel .timeline-body {
+  border: none;
+  border-radius: 0;
+}
+/* Slim "break" divider between two stacked panels. */
+.timeline-break-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.timeline-break-divider::before,
+.timeline-break-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed var(--border);
+}
+
+.worker-block.draggable {
+  cursor: grab;
+  user-select: none;
+}
+.worker-block.draggable:active {
+  cursor: grabbing;
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  cursor: ns-resize;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 0 0 4px 4px;
+}
+
+/* Top resize handle: mirrors .resize-handle on the top edge. The remove (X)
+   button has a higher z-index and its own hit area, so grabbing the top edge
+   to resize never conflicts with clicking X. */
+.resize-handle-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  cursor: ns-resize;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px 4px 0 0;
+  z-index: 1;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  font-size: 0.65rem;
+  color: white;
+  cursor: pointer;
+  opacity: 0.7;
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 2px 3px;
+  font-family: inherit;
+  writing-mode: horizontal-tb;
+}
+
+.remove-btn:hover {
+  opacity: 1;
+}
+
+.add-shift-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.add-shift-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-on-tint);
+}
+
+/* ── OOB ── */
+.oob-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.25),
+    rgba(0, 0, 0, 0.25) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+.oob-banner {
+  background: #fff8e1;
+  border-bottom: 2px solid #f9a825;
+  color: #7a5c00;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  position: sticky;
+  top: 57px;
+  z-index: 9;
+}
+
+/* ── Settings ── */
+.settings-modal {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+body.dark .settings-modal {
+  background: rgba(38, 38, 49, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 1;
+}
+
+body.dark .settings-header {
+  background: rgba(38, 38, 49, 0.6);
+}
+
+.settings-title {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.settings-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-section:last-child {
+  border-bottom: none;
+}
+
+.settings-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.settings-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 2px;
+}
+.settings-sublabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+.toggle-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.toggle-opt {
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  border-right: 1px solid var(--border);
+  text-transform: none;
+}
+
+.toggle-opt:last-child {
+  border-right: none;
+}
+.toggle-opt.active {
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+.toggle-opt:not(.active):not(.disabled):hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+/* ── Toggle Switch ── */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.switch-slider::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 99px;
+  transition: transform 0.2s;
+}
+
+.switch input:checked + .switch-slider {
+  background: var(--accent);
+}
+.switch input:checked + .switch-slider::before {
+  transform: translateX(18px);
+}
+
+/* ── Calendar status (settings) ── */
+.cal-status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.cal-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.cal-status-dot.connected {
+  background: #27ae60;
+}
+.cal-status-dot.disconnected {
+  background: #e74c3c;
+}
+.cal-status-dot.unknown {
+  background: #f39c12;
+}
+
+.cal-status-text {
+  font-size: 0.82rem;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+
+.cal-reconnect-link {
+  font-size: 0.78rem;
+  color: var(--accent-on-tint);
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cal-reconnect-link:hover {
+  color: var(--accent-on-tint-hover);
+}
+
+/* ── Calendar picker (settings) ── */
+.cal-picker-select {
+  width: auto;
+  max-width: 220px;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+/* ── Schedule panel calendar status (inline next to "Schedule" heading) ── */
+.schedule-cal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  vertical-align: middle;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 9px 2px 7px;
+  position: relative;
+  top: -1px;
+}
+
+.schedule-cal-text {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  white-space: nowrap;
+}
+
+.stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff8e1;
+  border: 1px solid #f9a825;
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  color: #7a5c00;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.stale-regen-btn {
+  background: #f9a825;
+  border: none;
+  border-radius: 5px;
+  color: #3a2a00;
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.stale-regen-btn:hover {
+  background: #f0b429;
+}
+
+/* ── Understaffing signal ── */
+.understaffed-banner {
+  background: #fff8e1;
+  border: 1px solid #f9a825;
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  color: #7a5c00;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.understaffed-row {
+  padding: 2px 0;
+}
+
+.understaffed-row strong {
+  font-weight: 700;
+}
+
+/* Inline highlight on the timeline itself -- sits behind the worker
+   columns, spanning the block's full width, as a secondary complement to
+   the banner (which is the primary, most actionable surface). */
+.understaffed-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(249, 168, 37, 0.16);
+  border-top: 2px dashed #f9a825;
+  border-bottom: 2px dashed #f9a825;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #7a5c00;
+  letter-spacing: 0.02em;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  z-index: 0;
+}
+
+/* ── Slot hover tooltip ── */
+.slot-tooltip {
+  position: fixed;
+  z-index: 300;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  border-radius: 7px;
+  padding: 10px 13px;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  pointer-events: none;
+  min-width: 160px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
+.tooltip-time {
+  font-weight: 700;
+  font-size: 0.82rem;
+  margin-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 5px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tooltip-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+.tooltip-val {
+  font-weight: 600;
+  text-align: right;
+}
+
+.tooltip-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: 99px;
+  font-weight: 700;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.tooltip-tag.ooo {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Auth Screen ── */
+.auth-state {
+  margin-top: 8px;
+}
+
+/* ── Dark Mode ── */
+body.dark {
+  --bg: #0f0f13;
+  --surface: #262631;
+  --surface2: #21212b;
+  /* --border/--border-strong retuned in a dark-mode contrast pass —
+     previously #4b4b63 / #3a3a50, as low as ~1.35:1 against --surface,
+     failing WCAG 1.4.11's 3:1 minimum for UI component boundaries (the
+     info-tip icon outline, input borders, checkbox outlines). Now
+     2.6–3.3:1 / 3.8–4.8:1. */
+  --border: #63637f;
+  --border-strong: #7d7d9e;
+  --text: #e8e8f0;
+  --text-mid: #a0a0b8;
+  /* Was #6b6b80 (2.88:1 against --surface, failing the 4.5:1 minimum for
+     normal text — this var is used as real label/body text, not just
+     decoration). Now 5.24:1 / 6.70:1. */
+  --text-muted: #9797ae;
+  --accent-light: #0a1628;
+  --green-bg: #0a1f12;
+  /* Was unset here, silently inheriting light mode's #217a4a (2.81:1
+     against --surface, used as a border-color for "available" states —
+     fails the 3:1 UI-component minimum). Now 4.98:1 / 6.37:1. */
+  --green: #38a86e;
+  /* Lightened text-on-tint colors for the priority badges/picker — the base
+     --accent/--green are too dark to read against their own tinted
+     backgrounds once those backgrounds darken in this theme (was ~2.7:1,
+     fails WCAG AA's 4.5:1 minimum). These pass at 5.10:1 / 6.31:1 while
+     staying recognizably blue/green. */
+  --accent-on-tint: #5ba3ff;
+  --accent-on-tint-hover: #80baff;
+  --danger-on-tint: #e8786b;
+  --green-on-tint: #4fae7c;
+}
+
+/* ── Hours Summary ── */
+.hours-summary {
+  margin-top: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+
+.hours-summary-title {
+  font-family: "Sora", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.hours-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.hours-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.hours-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hours-name {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.hours-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Edit screen hours summary ── */
+.edit-hours-summary {
+  margin-top: 24px;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TUTORIAL SYSTEM
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Overlay container ── */
+#tut-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+
+#tut-overlay.active {
+  display: block;
+}
+
+/* ── Dim layer — covers everything, hole cut with clip-path ── */
+#tut-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  pointer-events: none;
+  transition: clip-path 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Step card — body-level, fixed, above the dim/modals/everything ── */
+#tut-card {
+  display: none;
+  position: fixed;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  padding: 20px 22px 16px;
+  pointer-events: all;
+  transition:
+    top 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10001;
+  overflow: hidden;
+}
+
+body.dark #tut-card {
+  background: rgba(38, 38, 49, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+/* Gradient top accent on the tutorial card */
+#tut-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient);
+}
+body.tut-active #tut-card {
+  display: block;
+}
+
+/* Centered variant for intro/outro steps */
+#tut-card.tut-card-centered {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.tut-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tut-step-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-on-tint);
+  background: var(--accent-light);
+  border-radius: 99px;
+  padding: 2px 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tut-skip-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.tut-skip-btn:hover {
+  color: var(--text);
+}
+
+.tut-title {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.tut-body {
+  font-size: 0.84rem;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.tut-body strong {
+  color: var(--text);
+}
+
+/* Action hint — shown when waiting for user interaction */
+.tut-action-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  color: var(--accent-on-tint);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.tut-action-hint::before {
+  content: "👆";
+  font-size: 0.85rem;
+}
+
+/* waiting state: hide next button, show hint */
+#tut-card.waiting .tut-next-btn {
+  display: none;
+}
+#tut-card.waiting .tut-action-hint {
+  display: flex;
+}
+#tut-card:not(.waiting) .tut-action-hint {
+  display: none;
+}
+
+.tut-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.tut-next-btn {
+  padding: 8px 18px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tut-next-btn:hover:not(:disabled) {
+  background: var(--gradient);
+}
+.tut-next-btn:disabled {
+  background: var(--border-strong);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* ── Start tutorial button on Employees screen ── */
+.btn-tutorial {
+  margin-top: 10px;
+  padding: 9px 20px;
+  background: transparent;
+  color: var(--accent-on-tint);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn-tutorial:hover {
+  background: var(--accent-light);
+}
+
+.empty-state-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.empty-state p {
+  margin-top: 8px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+/* ── Tutorial highlight border ── */
+#tut-highlight-border {
+  position: fixed;
+  pointer-events: none;
+  z-index: 501;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgba(13, 123, 255, 0.18);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Tour button in settings panel ── */
+.settings-tour-top {
+  padding: 12px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: block;
+}
+body.tut-completed .settings-tour-top {
+  display: none;
+}
+body.tut-active .settings-tour-top {
+  display: none;
+}
+
+/* Locked navigation buttons during tutorial */
+.tut-nav-locked {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  pointer-events: all;
+}
+
+.settings-tour-top-btn {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--accent-light);
+  color: var(--accent-on-tint);
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.settings-tour-top-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+body:not(.tut-completed) .settings-tour-top-btn {
+  animation: tut-tour-btn-pulse 2.2s ease-in-out infinite;
+}
+body:not(.tut-completed) .settings-tour-top-btn:hover {
+  animation: none;
+}
+
+@keyframes tut-tour-btn-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45);
+  }
+  60% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.settings-tour-bottom {
+  display: none;
+  text-align: center;
+  margin-top: 6px;
+}
+body.tut-completed .settings-tour-bottom {
+  display: block;
+}
+
+.settings-tour-bottom-link {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 0.12s;
+}
+.settings-tour-bottom-link:hover {
+  color: var(--accent-on-tint);
+}
+
+/* ── Gear nudge: badge + ripple + pulse ── */
+
+/* The gear button needs position:relative for badge and ::before ring */
+.btn-gear {
+  position: relative;
+}
+
+/* Badge dot */
+.btn-gear::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg);
+  pointer-events: none;
+}
+body.tut-completed .btn-gear::after {
+  display: none;
+}
+
+/* Pulse ring — body-level div injected by JS, positioned over the gear.
+   Lives outside the topbar so it isn't clipped by its background.   */
+#tut-gear-pulse-ring {
+  position: fixed;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.6);
+  pointer-events: none;
+  z-index: 9998;
+  animation: tut-ring-pulse 1.8s ease-out infinite;
+}
+
+@keyframes tut-ring-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  65% {
+    transform: scale(3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* Attention pulse on dashboard load only.
+   Erupts from gear corner, blooms to ~top-right quarter, then
+   contracts back to the gear — drawing the eye toward it.    */
+#tut-gear-ripple {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  animation: tut-ripple-intro 2s ease-in-out forwards;
+}
+
+@keyframes tut-ripple-intro {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+  12% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 0 45vw rgba(59, 130, 246, 0.45);
+  }
+  85% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0);
+  }
+}
+
+/* ── Tutorial: locked settings links (steps 23-26) ── */
+.tut-link-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto; /* keep clickable so we can intercept + show message */
+}
+
+.tut-link-blocked-msg {
+  display: none;
+  position: fixed;
+  z-index: 510;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tut-link-blocked-msg.visible {
+  display: block;
+}
+
+/* ── Availability Window Section ── */
+.av-window-section {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+  max-width: 640px;
+}
+
+.av-window-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.av-window-title {
+  font-family: "Sora", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.av-window-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+.av-form-link {
+  color: var(--accent-on-tint);
+  text-decoration: none;
+}
+
+.av-form-link:hover {
+  text-decoration: underline;
+}
+
+.av-window-controls {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.av-window-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.av-datetime-input {
+  padding: 8px 12px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+}
+
+.av-datetime-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Window badge */
+.av-window-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-open {
+  background: var(--green-bg);
+  color: var(--green-on-tint);
+}
+.badge-scheduled {
+  background: #fff3e0;
+  color: #b45309;
+}
+.badge-closed {
+  background: var(--surface2);
+  color: var(--text-muted);
+}
+.badge-unset {
+  background: var(--surface2);
+  color: var(--text-muted);
+}
+
+/* Dirty save button */
+.av-window-section .btn-secondary.dirty {
+  border-color: var(--accent);
+  color: var(--accent-on-tint);
+}
+
+/* ── Submissions Section ── */
+.av-submissions-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  max-width: 640px;
+}
+
+.av-submissions-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.av-submissions-count {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface2);
+  padding: 2px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+.av-submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+
+.sub-row-done {
+  background: var(--green-bg);
+  border-color: var(--green);
+}
+
+.sub-row-pending {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+
+.sub-order {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.sub-row-done .sub-order {
+  color: var(--green-on-tint);
+}
+
+.sub-name {
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.sub-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.sub-pending-label {
+  font-style: italic;
+}
+
+.sub-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.sub-row:hover .sub-remove-btn {
+  opacity: 1;
+}
+.sub-remove-btn:hover {
+  color: #c0392b;
+  background: var(--surface);
+}
+
+/* ── Worker card PIN display ── */
+.wcard-pin {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-family: "Inter", monospace;
+  letter-spacing: 0.05em;
+}
+
+.wcard-pin-unset {
+  font-style: italic;
+  color: var(--border-strong);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD — new two-panel layout
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Top bar */
+.db-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  flex-shrink: 0;
+  background: rgba(240, 244, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  /* Uniform separator: box-shadow renders identically across the full width */
+  box-shadow: 0 1px 0 rgba(13, 123, 255, 0.1);
+}
+
+body.dark .db-topbar {
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 1px 0 var(--border);
+}
+.db-topbar-title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.db-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Two-panel body */
+.db-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Left rail ── */
+.db-rail {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.55);
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+body.dark .db-rail {
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-right-color: var(--border);
+}
+.db-rail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  flex-shrink: 0;
+}
+.db-rail-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+.db-rail-title-count {
+  margin-left: 4px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.db-rail-title-count-value {
+  opacity: 0.75;
+}
+.db-add-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.db-add-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.db-roster {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px 16px;
+}
+.db-roster-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 12px;
+  line-height: 1.6;
+}
+
+/* Employee card in rail */
+.db-emp-card {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  transition: box-shadow 0.15s;
+  position: relative;
+}
+.db-emp-card:hover {
+  box-shadow: var(--shadow-md);
+}
+.db-emp-card:hover .db-emp-actions {
+  opacity: 1;
+}
+.db-emp-stripe {
+  width: 5px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+.db-emp-info {
+  flex: 1;
+  padding: 9px 10px;
+  min-width: 0;
+}
+.db-emp-name {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.db-emp-meta {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.db-emp-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.db-emp-btn {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.db-emp-btn:hover {
+  background: var(--accent-light);
+  color: var(--accent-on-tint);
+  border-color: var(--accent);
+}
+.db-emp-btn-remove:hover {
+  background: #fff0f0;
+  color: #c0392b;
+  border-color: #e5b4b4;
+}
+
+/* ── Right main panel ── */
+.db-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Status stat-card widgets */
+.db-status-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.db-status-pill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.db-status-pill::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--border-strong);
+  border-radius: 12px 12px 0 0;
+}
+.db-status-pill.is-green::before {
+  background: #22c55e;
+}
+.db-status-pill.is-red::before {
+  background: #ef4444;
+}
+.db-status-pill.is-warn::before {
+  background: #f59e0b;
+}
+.db-status-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+.db-status-valwrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.db-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--border-strong);
+}
+.db-status-dot.dot-green {
+  background: #22c55e;
+}
+.db-status-dot.dot-red {
+  background: #ef4444;
+}
+.db-status-dot.dot-warn {
+  background: #f59e0b;
+}
+.db-status-dot.dot-neutral {
+  background: var(--border-strong);
+}
+.db-status-val {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+@media (max-width: 720px) {
+  .db-status-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Cards */
+.db-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.db-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  gap: 12px;
+}
+.db-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.db-card-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.db-card-week-inline {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+.db-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Chip buttons */
+.db-chip-btn {
+  padding: 6px 13px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+  white-space: nowrap;
+}
+.db-chip-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent-on-tint);
+}
+.db-chip-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.db-chip-btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+.db-chip-btn-danger {
+  border-color: #e5b4b4;
+  color: #c0392b;
+}
+.db-chip-btn-danger:hover {
+  background: #fff0f0;
+  border-color: #c0392b;
+  color: #c0392b;
+}
+.db-chip-btn-green {
+  border-color: var(--green);
+  color: var(--green-on-tint);
+}
+.db-chip-btn-green:hover {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green-on-tint);
+}
+
+/* Submissions list */
+.db-submissions-list {
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 14px 14px;
+  overflow: hidden;
+}
+.db-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.83rem;
+}
+.db-sub-row:last-child {
+  border-bottom: none;
+}
+.db-sub-row-pending {
+  opacity: 0.55;
+}
+.db-sub-order {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.db-sub-stripe {
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.db-sub-name {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.db-sub-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.db-sub-pending {
+  font-style: italic;
+}
+.db-sub-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition:
+    opacity 0.12s,
+    color 0.12s;
+  flex-shrink: 0;
+}
+.db-sub-row:hover .db-sub-remove {
+  opacity: 1;
+}
+.db-sub-remove:hover {
+  color: #c0392b;
+}
+
+/* View availability button (hover-revealed, neutral styling) */
+.db-sub-view {
+  background: none;
+  border: 1px solid var(--border-strong, var(--border));
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.12s,
+    color 0.12s,
+    border-color 0.12s,
+    background 0.12s;
+  flex-shrink: 0;
+  font-family: "Inter", sans-serif;
+}
+.db-sub-row:hover .db-sub-view {
+  opacity: 1;
+}
+.db-sub-view:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+  background: var(--hover-bg, rgba(0, 0, 0, 0.04));
+}
+
+/* Availability popover */
+.db-sub-pop {
+  position: absolute;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-radius: 9px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+  padding: 10px 13px;
+  z-index: 9000;
+  min-width: 160px;
+  pointer-events: none;
+}
+/* During the tutorial, raise the popover above the dim (card stays on top at 10001) */
+body.tut-active .db-sub-pop {
+  z-index: 9000;
+}
+.db-sub-pop-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 7px;
+}
+.db-sub-pop-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 0.8rem;
+  padding: 2px 0;
+}
+.db-sub-pop-day {
+  font-weight: 600;
+  color: var(--text);
+}
+.db-sub-pop-time {
+  color: var(--text-muted);
+}
+.db-sub-pop-empty {
+  font-size: 0.79rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Build schedule button */
+.db-build-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: -0.01em;
+}
+.db-build-btn:hover {
+  background: var(--accent-hover);
+}
+
+/* Window modal specific */
+.modal-window {
+  max-width: 440px;
+}
+.modal-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.modal-titlebar h3 {
+  margin: 0;
+}
+.modal-close-x {
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px 8px;
+}
+.wm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.wm-readonly-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+}
+.wm-close-toggle {
+  display: flex;
+  gap: 0;
+}
+.wm-activate-wrap {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.wm-activate-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.9rem;
+}
+.wm-copied-msg {
+  font-size: 0.82rem;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* Build warning modal */
+.build-warning-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+.build-warning-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 6px 0 10px;
+}
+.build-warning-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.build-warning-list li {
+  padding: 6px 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.build-warning-list li:last-child {
+  border-bottom: none;
+}
+
+/* screen-workers needs flex column layout */
+#screen-workers {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Read-only PIN field in Add Employee modal ── */
+.pin-readonly {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface2);
+  color: var(--text-mid);
+  cursor: default;
+}
+.pin-readonly:focus {
+  outline: none;
+}
+
+/* ── Color stripe for pending employees in the "form still open" warning ── */
+.build-warning-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bw-stripe {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Info tooltip: raise above cards and prevent clipping ── */
+/* Card headers hold the info tags; let their tooltips escape the header.
+   The card body (submissions list) keeps its own clipping for rounded corners. */
+/* Tooltips must escape card/scroll clipping. The main panel keeps vertical
+   scrolling but allows horizontal overflow so tooltips aren't cut at the sides;
+   cards no longer clip, so upward tooltips show fully. */
+.db-status-pill {
+  overflow: visible;
+}
+.db-status-row {
+  overflow: visible;
+}
+.info-tooltip {
+  z-index: 1000;
+}
+
+/* Status-row info tooltips point downward to avoid being clipped at the top
+   of the scrollable main panel. */
+.db-status-row .info-tooltip {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+.db-status-row .info-tooltip::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--tooltip-bg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN PAGES (admin.html, admin-login.html)
+   All scoped under body.admin-page to avoid conflicts with the main app.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Reset & base ── */
+body.admin-page {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f2;
+  min-height: 100vh;
+  color: #1a1a1a;
+}
+
+/* ── Admin login card ── */
+body.admin-page .admin-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 40px 36px 36px;
+  width: 100%;
+  max-width: 380px;
+  position: relative;
+  overflow: hidden;
+}
+/* Gradient top accent strip */
+body.admin-page .admin-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient);
+}
+body.admin-page .admin-logo {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+body.admin-page .admin-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 32px;
+}
+body.admin-page .admin-badge {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-bottom: 6px;
+}
+body.admin-page label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+body.admin-page input[type="password"],
+body.admin-page input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.9375rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  outline: none;
+  transition: border-color 0.15s;
+  background: #fff;
+  color: #1a1a1a;
+}
+body.admin-page input[type="password"]:focus,
+body.admin-page input[type="text"]:focus {
+  border-color: #3b82f6;
+}
+body.admin-page input.error-state {
+  border-color: #ef4444;
+}
+body.admin-page .admin-error-msg {
+  font-size: 0.8125rem;
+  color: #ef4444;
+  margin-top: 8px;
+  min-height: 18px;
+}
+body.admin-page .admin-submit-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background 0.2s;
+}
+body.admin-page .admin-submit-btn:hover:not(:disabled) {
+  background: var(--gradient);
+}
+body.admin-page .admin-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Topbar ── */
+body.admin-page .admin-topbar {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+body.admin-page .admin-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body.admin-page .admin-topbar-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+body.admin-page .admin-topbar-badge {
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 99px;
+}
+body.admin-page .admin-btn-ghost {
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+body.admin-page .admin-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+body.admin-page .admin-btn-ghost-dark {
+  background: transparent;
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+body.admin-page .admin-btn-ghost-dark:hover {
+  background: #f3f4f6;
+}
+
+/* ── Views ── */
+body.admin-page .view {
+  display: none;
+}
+body.admin-page .view.active {
+  display: block;
+}
+
+/* ── List view ── */
+body.admin-page .admin-main {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+body.admin-page .admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+body.admin-page .admin-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+body.admin-page .admin-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+body.admin-page .admin-btn-primary:hover:not(:disabled) {
+  background: var(--gradient);
+}
+body.admin-page .admin-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+body.admin-page .center-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  margin-bottom: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+body.admin-page .center-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.13);
+}
+body.admin-page .center-name {
+  font-weight: 600;
+  font-size: 0.975rem;
+}
+body.admin-page .center-id {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 2px;
+  font-family: monospace;
+}
+body.admin-page .card-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body.admin-page .card-arrow {
+  color: #9ca3af;
+  font-size: 1.1rem;
+}
+body.admin-page .admin-btn-edit {
+  background: #f3f4f6;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+body.admin-page .admin-btn-edit:hover {
+  background: #e5e7eb;
+}
+body.admin-page .admin-btn-delete {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+body.admin-page .admin-btn-delete:hover {
+  background: #fecaca;
+}
+body.admin-page .admin-empty {
+  color: #9ca3af;
+  font-size: 0.9rem;
+  padding: 32px 0;
+  text-align: center;
+}
+body.admin-page .admin-loading {
+  color: #9ca3af;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* ── Detail view ── */
+body.admin-page .detail-main {
+  max-width: 1040px;
+  margin: 40px auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+body.admin-page .detail-content {
+  flex: 1;
+  min-width: 0;
+  max-width: 800px;
+}
+
+/* Quick-nav sidebar -- sticky under the (also sticky) topbar, so it stays
+   visible as the detail page's sections get longer. */
+body.admin-page .detail-sidebar {
+  width: 168px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 76px;
+}
+body.admin-page .detail-sidebar-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9aa1ad;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  padding: 0 10px;
+}
+body.admin-page .detail-nav-link {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  color: #4b5563;
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 2px;
+  transition: background 0.12s, color 0.12s;
+}
+body.admin-page .detail-nav-link:hover {
+  background: #eef1f6;
+  color: #1a1a2e;
+}
+body.admin-page .detail-nav-link.active {
+  background: #eef2ff;
+  color: #4338ca;
+}
+/* Land a little below the sticky topbar when jumping to a section. */
+body.admin-page #detail-overview,
+body.admin-page .detail-section {
+  scroll-margin-top: 76px;
+}
+body.admin-page .detail-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 12px;
+}
+body.admin-page .detail-title-block {
+  min-width: 0;
+}
+body.admin-page .detail-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+body.admin-page .detail-id {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-family: monospace;
+  margin-top: 3px;
+}
+body.admin-page .detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+body.admin-page .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+body.admin-page .stat-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+body.admin-page .stat-card .admin-btn-edit {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+}
+body.admin-page .stat-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+body.admin-page .stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+body.admin-page .stat-sub {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 3px;
+}
+
+/* Onboarding card: two compact rows (Tutorial, Intro Modal) sharing one
+   stat-card instead of each getting a full card of its own. */
+body.admin-page .onboarding-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+body.admin-page .onboarding-row-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+body.admin-page .onboarding-row-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  text-align: right;
+}
+body.admin-page .onboarding-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 10px 0;
+}
+body.admin-page .stat-card-onboarding .admin-btn-edit {
+  margin-top: 6px;
+}
+
+body.admin-page .admin-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+body.admin-page .dot-green {
+  background: #22c55e;
+}
+body.admin-page .dot-red {
+  background: #ef4444;
+}
+body.admin-page .dot-yellow {
+  background: #f59e0b;
+}
+body.admin-page .dot-gray {
+  background: #d1d5db;
+}
+
+body.admin-page .detail-section {
+  margin-bottom: 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 16px 18px;
+}
+body.admin-page .detail-section > summary.detail-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  user-select: none;
+}
+body.admin-page .detail-section > summary.detail-section-title::-webkit-details-marker {
+  display: none;
+}
+body.admin-page .detail-section[open] > summary.detail-section-title {
+  margin-bottom: 12px;
+}
+body.admin-page .detail-section-chevron {
+  display: inline-block;
+  font-size: 0.6rem;
+  color: #9aa1ad;
+  transition: transform 0.15s;
+}
+body.admin-page .detail-section[open] .detail-section-chevron {
+  transform: rotate(90deg);
+}
+
+body.admin-page .employee-table {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+body.admin-page .emp-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 12px;
+}
+body.admin-page .emp-row:last-child {
+  border-bottom: none;
+}
+body.admin-page .emp-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+body.admin-page .emp-priority {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+body.admin-page .pri-0 {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+body.admin-page .pri-1 {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+body.admin-page .pri-2 {
+  background: #fef3c7;
+  color: #92400e;
+}
+body.admin-page .emp-pin {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-family: monospace;
+  background: #f9fafb;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+body.admin-page .emp-pin-missing {
+  font-size: 0.8rem;
+  color: #ef4444;
+  font-style: italic;
+}
+body.admin-page .emp-empty {
+  padding: 20px 18px;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+/* ── Modal ── */
+body.admin-page .admin-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+body.admin-page .admin-modal-overlay.open {
+  display: flex;
+}
+body.admin-page .admin-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 28px 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+body.admin-page .admin-modal-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+body.admin-page .admin-field {
+  margin-bottom: 16px;
+}
+body.admin-page .admin-field label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+body.admin-page .admin-field input {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+body.admin-page .admin-field input:focus {
+  border-color: #3b82f6;
+}
+body.admin-page .admin-field-hint {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+body.admin-page .admin-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+body.admin-page .admin-btn-cancel {
+  background: #f3f4f6;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+body.admin-page .admin-btn-cancel:hover {
+  background: #e5e7eb;
+}
+body.admin-page .admin-modal-error {
+  font-size: 0.8125rem;
+  color: #ef4444;
+  margin-top: 10px;
+  min-height: 18px;
+}
