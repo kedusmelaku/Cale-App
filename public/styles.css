@@ -1803,6 +1803,36 @@ body.dark .settings-header {
   }
 }
 
+/* Small "still settling in" marker next to Ultra-efficient -- muted on the
+   plain toggle background, and re-tinted to sit legibly on the gold
+   shimmer once that mode is actually selected. */
+.beta-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 4px;
+  vertical-align: middle;
+  background: rgba(249, 168, 37, 0.15);
+  color: #b8770a;
+  border: 1px solid rgba(249, 168, 37, 0.4);
+  position: relative;
+  cursor: pointer;
+  z-index: 20;
+}
+.beta-tag:focus-visible {
+  outline: 2px solid var(--accent-on-tint);
+  outline-offset: 2px;
+}
+#mode-ultra.active .beta-tag {
+  background: rgba(58, 42, 0, 0.14);
+  color: #3a2a00;
+  border-color: rgba(58, 42, 0, 0.35);
+}
+
 /* ── Toggle Switch ── */
 .switch {
   position: relative;
