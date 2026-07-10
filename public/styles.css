@@ -3709,6 +3709,34 @@ body.admin-page .stat-sub {
   margin-top: 3px;
 }
 
+/* Onboarding card: two compact rows (Tutorial, Intro Modal) sharing one
+   stat-card instead of each getting a full card of its own. */
+body.admin-page .onboarding-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+body.admin-page .onboarding-row-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+body.admin-page .onboarding-row-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  text-align: right;
+}
+body.admin-page .onboarding-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 10px 0;
+}
+body.admin-page .stat-card-onboarding .admin-btn-edit {
+  margin-top: 6px;
+}
+
 body.admin-page .admin-dot {
   display: inline-block;
   width: 8px;
@@ -3731,15 +3759,40 @@ body.admin-page .dot-gray {
 }
 
 body.admin-page .detail-section {
-  margin-bottom: 28px;
+  margin-bottom: 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 16px 18px;
 }
-body.admin-page .detail-section-title {
+body.admin-page .detail-section > summary.detail-section-title {
   font-size: 0.78rem;
   font-weight: 700;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin: 0;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  user-select: none;
+}
+body.admin-page .detail-section > summary.detail-section-title::-webkit-details-marker {
+  display: none;
+}
+body.admin-page .detail-section[open] > summary.detail-section-title {
   margin-bottom: 12px;
+}
+body.admin-page .detail-section-chevron {
+  display: inline-block;
+  font-size: 0.6rem;
+  color: #9aa1ad;
+  transition: transform 0.15s;
+}
+body.admin-page .detail-section[open] .detail-section-chevron {
+  transform: rotate(90deg);
 }
 
 body.admin-page .employee-table {
