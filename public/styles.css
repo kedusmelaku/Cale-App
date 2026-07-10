@@ -1778,6 +1778,49 @@ body.dark .settings-header {
   background: #f0b429;
 }
 
+/* ── Understaffing signal ── */
+.understaffed-banner {
+  background: #fff8e1;
+  border: 1px solid #f9a825;
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  color: #7a5c00;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.understaffed-row {
+  padding: 2px 0;
+}
+
+.understaffed-row strong {
+  font-weight: 700;
+}
+
+/* Inline highlight on the timeline itself -- sits behind the worker
+   columns, spanning the block's full width, as a secondary complement to
+   the banner (which is the primary, most actionable surface). */
+.understaffed-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(249, 168, 37, 0.16);
+  border-top: 2px dashed #f9a825;
+  border-bottom: 2px dashed #f9a825;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #7a5c00;
+  letter-spacing: 0.02em;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  z-index: 0;
+}
+
 /* ── Slot hover tooltip ── */
 .slot-tooltip {
   position: fixed;
@@ -3549,9 +3592,59 @@ body.admin-page .admin-loading {
 
 /* ── Detail view ── */
 body.admin-page .detail-main {
-  max-width: 800px;
+  max-width: 1040px;
   margin: 40px auto;
   padding: 0 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+body.admin-page .detail-content {
+  flex: 1;
+  min-width: 0;
+  max-width: 800px;
+}
+
+/* Quick-nav sidebar -- sticky under the (also sticky) topbar, so it stays
+   visible as the detail page's sections get longer. */
+body.admin-page .detail-sidebar {
+  width: 168px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 76px;
+}
+body.admin-page .detail-sidebar-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9aa1ad;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  padding: 0 10px;
+}
+body.admin-page .detail-nav-link {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  color: #4b5563;
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 2px;
+  transition: background 0.12s, color 0.12s;
+}
+body.admin-page .detail-nav-link:hover {
+  background: #eef1f6;
+  color: #1a1a2e;
+}
+body.admin-page .detail-nav-link.active {
+  background: #eef2ff;
+  color: #4338ca;
+}
+/* Land a little below the sticky topbar when jumping to a section. */
+body.admin-page #detail-overview,
+body.admin-page .detail-section {
+  scroll-margin-top: 76px;
 }
 body.admin-page .detail-toprow {
   display: flex;

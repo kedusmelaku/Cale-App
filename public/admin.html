@@ -338,6 +338,14 @@
     <!-- ── Detail View ── -->
     <div id="view-detail" class="view">
       <div class="detail-main">
+        <nav class="detail-sidebar" id="detail-sidebar">
+          <div class="detail-sidebar-title">On this page</div>
+          <a class="detail-nav-link" href="#detail-overview" onclick="return detailNavClick(event,'#detail-overview')">Overview</a>
+          <a class="detail-nav-link" href="#detail-team" onclick="return detailNavClick(event,'#detail-team')">Team</a>
+          <a class="detail-nav-link" href="#detail-schedule" onclick="return detailNavClick(event,'#detail-schedule')">Hours &amp; Schedule</a>
+          <a class="detail-nav-link" href="#detail-keywords" onclick="return detailNavClick(event,'#detail-keywords')">Calendar Keywords</a>
+        </nav>
+        <div class="detail-content">
         <div class="detail-toprow">
           <div class="detail-title-block">
             <button
@@ -356,7 +364,7 @@
         </div>
 
         <!-- Stats row -->
-        <div class="stats-grid">
+        <div class="stats-grid" id="detail-overview">
           <div class="stat-card">
             <div class="stat-label">Employees</div>
             <div class="stat-value" id="d-emp-count">—</div>
@@ -412,7 +420,7 @@
         </div>
 
         <!-- Employee list -->
-        <div class="detail-section">
+        <div class="detail-section" id="detail-team">
           <div class="detail-section-title">Team</div>
           <div class="employee-table" id="d-emp-list">
             <div class="emp-empty">Loading…</div>
@@ -420,7 +428,7 @@
         </div>
 
         <!-- Operating schedule -->
-        <div class="detail-section">
+        <div class="detail-section" id="detail-schedule">
           <div class="detail-section-title">Hours &amp; Schedule</div>
           <div id="sched-body-detail" class="sched-editor">
             <div class="emp-empty">Loading…</div>
@@ -437,7 +445,7 @@
         </div>
 
         <!-- Calendar keywords -->
-        <div class="detail-section">
+        <div class="detail-section" id="detail-keywords">
           <div class="detail-section-title">Calendar Keywords</div>
           <div class="admin-field-hint" style="margin-bottom: 12px">
             Which words in a Google Calendar event's title count as a lesson (or
@@ -455,6 +463,7 @@
             </button>
             <span class="sched-save-msg" id="kw-save-msg-detail"></span>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -584,6 +593,39 @@
       function showDetail() {
         document.getElementById("view-list").classList.remove("active");
         document.getElementById("view-detail").classList.add("active");
+        initDetailSidebarScrollspy();
+      }
+
+      // ── Detail sidebar quick-nav ─────────────────────────────
+      function detailNavClick(e, sel) {
+        e.preventDefault();
+        const el = document.querySelector(sel);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        history.replaceState(null, "", sel);
+        return false;
+      }
+
+      let _detailSidebarInited = false;
+      function initDetailSidebarScrollspy() {
+        if (_detailSidebarInited) return;
+        _detailSidebarInited = true;
+        const links = Array.from(document.querySelectorAll(".detail-nav-link"));
+        const sections = links
+          .map((link) => document.querySelector(link.getAttribute("href")))
+          .filter(Boolean);
+
+        function onScroll() {
+          const threshold = 90; // a bit past the sticky topbar
+          let activeIdx = 0;
+          sections.forEach((sec, i) => {
+            if (sec.getBoundingClientRect().top - threshold <= 0) activeIdx = i;
+          });
+          links.forEach((link, i) =>
+            link.classList.toggle("active", i === activeIdx),
+          );
+        }
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
       }
 
       // ── List view ─────────────────────────────────────────────
@@ -1284,6 +1326,7 @@
             { start: 960, end: 1200 },
             { start: 900, end: 1200 },
           ],
+          minShiftLength: 120,
         };
       }
       function schedDefaultWindows() {
@@ -1308,6 +1351,23 @@
         let out = "";
         for (let m = SCHED_MIN; m <= SCHED_MAX; m += 30) {
           out += `<option value="${m}"${m === selected ? " selected" : ""}>${schedMinToLabel(m)}</option>`;
+        }
+        return out;
+      }
+
+      // Duration picker for minimum shift length: 30 min up to 4 hours,
+      // half-hour steps.
+      const MIN_SHIFT_FLOOR = 30;
+      const MIN_SHIFT_CEILING = 240;
+      function minShiftLabel(m) {
+        if (m < 60) return `${m} minutes`;
+        const h = m / 60;
+        return `${h} hour${m === 60 ? "" : "s"}`;
+      }
+      function minShiftOptionsHTML(selected) {
+        let out = "";
+        for (let m = MIN_SHIFT_FLOOR; m <= MIN_SHIFT_CEILING; m += 30) {
+          out += `<option value="${m}"${m === selected ? " selected" : ""}>${minShiftLabel(m)}</option>`;
         }
         return out;
       }
@@ -1429,6 +1489,23 @@
               }
             }
           });
+
+          // Minimum shift length vs. each open day's block lengths.
+          const minShift = v.minShiftLength;
+          if (typeof minShift === "number") {
+            for (const dk of SCHED_DAY_KEYS) {
+              const d = v[dk];
+              if (!d || !d.open) continue;
+              for (const b of d.blocks || []) {
+                if (b.end - b.start < minShift) {
+                  issues.push({
+                    level: "warning",
+                    msg: `${label}: ${SCHED_DAY_NAMES[dk]}'s block (${schedMinToLabel(b.start)}–${schedMinToLabel(b.end)}) is shorter than the minimum shift length — every shift that day will just be the whole block.`,
+                  });
+                }
+              }
+            }
+          }
         }
         return issues;
       }
@@ -1779,8 +1856,27 @@
             .join("")}
         </div>`;
 
+        // Minimum shift length for this variant — the shortest shift ultra
+        // mode will ever produce, even when demand at a block's edge tapers
+        // off sooner than that.
+        if (typeof s[_schedTab].minShiftLength !== "number") {
+          s[_schedTab].minShiftLength = 120;
+        }
+        const minShift = s[_schedTab].minShiftLength;
+        const minShiftHTML = `
+        <div class="sched-defaults">
+          <div class="sched-defaults-title">Minimum shift length</div>
+          <div class="sched-defaults-note">
+            The shortest shift Cale's ultra-efficient mode will ever schedule, even if actual
+            demand tapers off sooner than this at the edge of an operating block.
+          </div>
+          <div class="sched-default-row">
+            <select onchange="schedSetMinShift(this.value)">${minShiftOptionsHTML(minShift)}</select>
+          </div>
+        </div>`;
+
         schedContainer().innerHTML =
-          modeHTML + tabsHTML + daysHTML + defaultsHTML + warningsBoxHTML(s);
+          modeHTML + tabsHTML + daysHTML + defaultsHTML + minShiftHTML + warningsBoxHTML(s);
       }
 
       // Editor mutations (operate on _sched, then re-render where structure changes)
@@ -1848,6 +1944,12 @@
         if (!Array.isArray(v.defaults) || v.defaults.length !== 3)
           v.defaults = schedDefaultWindows();
         v.defaults[level][field] = parseInt(val, 10);
+        if (_schedTarget === "detail") _detailScheduleDirty = true;
+        refreshSchedWarnings();
+      }
+
+      function schedSetMinShift(val) {
+        _sched[_schedTab].minShiftLength = parseInt(val, 10);
         if (_schedTarget === "detail") _detailScheduleDirty = true;
         refreshSchedWarnings();
       }

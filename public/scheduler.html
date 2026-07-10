@@ -192,6 +192,10 @@
                 Regenerate
               </button>
             </div>
+            <div
+              class="understaffed-banner"
+              id="understaffed-banner"
+              style="display: none"></div>
             <div class="empty-state" id="empty-state">
               Enter a date and click <strong>Generate Schedule</strong>.
             </div>
@@ -826,6 +830,7 @@
         );
       }
       let scheduleData = [];
+      let understaffedData = [];
       let addShiftTarget = null;
       let dragState = null;
 
@@ -893,6 +898,7 @@
           }));
         });
         scheduleData = [];
+        understaffedData = [];
         renderAvailability();
         showEmptyState("default");
         document.getElementById("hours-summary-edit").style.display = "none";
@@ -907,6 +913,7 @@
           if (w.days && w.days.length) availability[w.name] = w.days;
         });
         scheduleData = [];
+        understaffedData = [];
         renderAvailability();
         showEmptyState("default");
         document.getElementById("hours-summary-edit").style.display = "none";
@@ -1582,6 +1589,7 @@
       function showEmptyState(reason) {
         document.getElementById("schedule-output").style.display = "none";
         document.getElementById("hours-summary").style.display = "none";
+        document.getElementById("understaffed-banner").style.display = "none";
         document.getElementById("copy-btn").disabled = true;
         document.getElementById("edit-btn").disabled = true;
         document.getElementById("finish-btn").style.display = "none";
@@ -1956,6 +1964,7 @@
         scheduleData = data.schedule.map((d) => ({
           ...d,
           date: dates[d.dayKey] || "",
+          shiftWindows: d.shiftWindows || [],
           assignments: d.assignments.map((a) => {
             const worker = workers.find((w) => w.name === a.name);
             const source = worker ? workerAvailDays(worker) : [];
@@ -1972,6 +1981,7 @@
             };
           }),
         }));
+        understaffedData = data.understaffed || [];
 
         const totalAssignments = data.schedule.reduce(
           (sum, d) => sum + d.assignments.length,
@@ -1996,8 +2006,30 @@
         output.style.display = "block";
         output.innerHTML = buildTimelineHTML(scheduleData, false);
         renderHoursSummary();
+        renderUnderstaffedBanner();
         const grid = document.querySelector(".schedule-grid");
         if (grid) grid.classList.add("has-schedule");
+      }
+
+      // ── Understaffing signal ────────────────────────────────
+      // understaffedData is the algorithm's own decided target compared
+      // against real availability -- never a client-side ratio recheck,
+      // which would false-flag a deliberate one-on-one "stress" moment.
+      function renderUnderstaffedBanner() {
+        const box = document.getElementById("understaffed-banner");
+        if (!understaffedData || understaffedData.length === 0) {
+          box.style.display = "none";
+          box.innerHTML = "";
+          return;
+        }
+        const rows = understaffedData
+          .map((u) => {
+            const need = u.shortBy === 1 ? "1 more person" : `${u.shortBy} more people`;
+            return `<div class="understaffed-row">⚠ <strong>${u.dayName}</strong> ${minToLabel(u.start)}–${minToLabel(u.end)} needs ${need}</div>`;
+          })
+          .join("");
+        box.innerHTML = rows;
+        box.style.display = "block";
       }
 
       function computeWorkerHours() {
@@ -2094,6 +2126,21 @@
               .map(() => '<div class="timeline-grid-line"></div>')
               .join("");
 
+            // Inline understaffing highlight: any unfilled shift-window
+            // that overlaps this block, spanning the full width behind the
+            // worker columns (a whole-timeframe "still needs someone" cue,
+            // not tied to any one worker's column).
+            const understaffedOverlay = (day.shiftWindows || [])
+              .filter((w) => !w.filled && w.start < ob.end && w.end > ob.start)
+              .map((w) => {
+                const s = Math.max(w.start, ob.start);
+                const e = Math.min(w.end, ob.end);
+                const top = ((s - ob.start) / 30) * SLOT_H;
+                const height = ((e - s) / 30) * SLOT_H;
+                return `<div class="understaffed-overlay" style="top:${top}px; height:${height}px;" title="Understaffed: ${minToLabel(s)}–${minToLabel(e)}">Short-staffed</div>`;
+              })
+              .join("");
+
             // One column per shift that falls in THIS block, keeping each
             // shift's original index in day.assignments so the edit handlers
             // (drag/resize/remove) stay valid.
@@ -2142,7 +2189,7 @@
                 <div class="timeline-panel-head">${minToLabel(ob.start)} – ${minToLabel(ob.end)}</div>
                 <div class="timeline-body">
                   <div class="timeline-slots" style="height:${panelH}px;">${slotLabels}</div>
-                  <div class="timeline-workers" style="height:${panelH}px;">${workerCols}</div>
+                  <div class="timeline-workers" style="height:${panelH}px;">${understaffedOverlay}${workerCols}</div>
                 </div>
               </div>`;
 

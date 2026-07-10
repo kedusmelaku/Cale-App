@@ -672,10 +672,38 @@ app.post("/generate", requireAuth, async (req, res) => {
         blocks: dayConfigs[i].blocks,
         slots: dayConfigs[i].slots,
         assignments,
+        // Every worker-shift the algorithm decided this day needs, filled or
+        // not -- this is the "decided target" itself, not a naive ratio
+        // recheck, so it can't false-flag a deliberate one-on-one "stress"
+        // moment as understaffing. See Day.js/SimplifiedDay.js for how each
+        // mode builds this.
+        shiftWindows: day.shiftWindows || [],
       };
     });
 
-    res.json({ schedule: scheduleOut, text: "" });
+    // Understaffing banner summary: merge identical unfilled windows (same
+    // day, same exact span) into one entry with a shortfall count, since
+    // that's overwhelmingly the common case for a single genuine gap. A
+    // partially-overlapping-but-not-identical set of unfilled windows within
+    // the same day would currently show as separate entries rather than one
+    // merged interval -- a real limitation, left as a future refinement if
+    // pilot feedback shows it's actually needed (per "ship a sensible
+    // default, refine on real feedback").
+    const understaffed = [];
+    for (const day of scheduleOut) {
+      const bySpan = new Map();
+      for (const win of day.shiftWindows) {
+        if (win.filled) continue;
+        const key = `${win.start}-${win.end}`;
+        bySpan.set(key, (bySpan.get(key) || 0) + 1);
+      }
+      for (const [key, shortBy] of bySpan) {
+        const [start, end] = key.split("-").map(Number);
+        understaffed.push({ dayKey: day.dayKey, dayName: day.dayName, start, end, shortBy });
+      }
+    }
+
+    res.json({ schedule: scheduleOut, understaffed, text: "" });
   } catch (err) {
     console.error("/generate:", err.message);
     res.status(500).json({ error: "Could not generate the schedule." });
