@@ -417,57 +417,6 @@
           </div>
         </div>
         <div class="settings-section">
-          <h3 class="settings-section-title">Model</h3>
-          <div class="settings-row">
-            <div>
-              <div
-                class="settings-label"
-                style="display: flex; align-items: center; gap: 6px">
-                Scheduling Mode
-                <span
-                  class="info-tag"
-                  tabindex="0"
-                  aria-label="Scheduling mode info: Normal assigns workers in shift blocks (4 to 8, 4 to 6, 6 to 8) — faster, clean regular shifts, best for most weeks. Ultra-efficient (beta) assigns workers slot by slot every 30 minutes based on exact student counts — more precise but may produce shorter or irregular shift times."
-                  >i<span class="info-tooltip" style="width: 260px"
-                    ><strong>Normal:</strong> Assigns workers in shift blocks
-                    (4–8, 4–6, 6–8). Faster and produces clean, regular shifts —
-                    best for most weeks.<br /><br /><strong
-                      >Ultra-efficient (beta):</strong
-                    >
-                    Assigns workers slot-by-slot every 30 minutes based on exact
-                    student counts. More precise but may produce shorter or
-                    irregular shift times.</span
-                  ></span
-                >
-              </div>
-              <div class="settings-sublabel">
-                Choose how the schedule is generated
-              </div>
-            </div>
-            <div class="toggle-group">
-              <button
-                class="toggle-opt active"
-                id="mode-simplified"
-                onclick="setMode('simplified')">
-                Normal
-              </button>
-              <button
-                class="toggle-opt"
-                id="mode-ultra"
-                onclick="setMode('ultra')">
-                Ultra-efficient<span
-                  class="beta-tag"
-                  aria-label="Beta: this feature is still in beta and may produce incorrect results. Please manually check the schedule for mistakes."
-                  >BETA<span class="info-tooltip"
-                    >Still in beta and may produce incorrect results — please
-                    manually check the schedule for mistakes.</span
-                  ></span
-                >
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="settings-section">
           <h3 class="settings-section-title">Other</h3>
           <div class="settings-row">
             <div>
@@ -642,7 +591,6 @@
       // ── Settings ───────────────────────────────────────────
       let settings = {
         theme: "light",
-        mode: "simplified",
         demo: false,
         calendarId: "",
         ...JSON.parse(localStorage.getItem("scheduler-settings") || "{}"),
@@ -662,12 +610,6 @@
         document
           .getElementById("theme-dark")
           .classList.toggle("active", settings.theme === "dark");
-        document
-          .getElementById("mode-simplified")
-          .classList.toggle("active", settings.mode === "simplified");
-        const ultraBtn = document.getElementById("mode-ultra");
-        if (ultraBtn)
-          ultraBtn.classList.toggle("active", settings.mode === "ultra");
       }
 
       function openSettings() {
@@ -713,13 +655,6 @@
         saveSettings();
         applyTheme();
         syncToggleButtons();
-      }
-
-      function setMode(val) {
-        settings.mode = val;
-        saveSettings();
-        syncToggleButtons();
-        markStale();
       }
 
       function setDemo(checked) {
@@ -1970,7 +1905,7 @@
               workers: payload,
               studentData,
               oneOnOneData,
-              mode: settings.mode === "ultra" ? "ultra" : "simplified",
+              mode: "ultra",
             }),
           });
           const data = await res.json();

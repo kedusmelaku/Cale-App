@@ -514,54 +514,6 @@
           </div>
         </div>
         <div class="settings-section">
-          <h3 class="settings-section-title">Model</h3>
-          <div class="settings-row">
-            <div>
-              <div
-                class="settings-label"
-                style="display: flex; align-items: center; gap: 6px">
-                Scheduling Mode
-                <span
-                  class="info-tag"
-                  tabindex="0"
-                  aria-label="Scheduling mode: Normal builds clean shift blocks (like 4–8 or 4–6). Ultra-efficient (beta) assigns workers slot by slot based on exact student counts — more precise but may produce irregular shift times."
-                  >i<span class="info-tooltip" style="width: 260px"
-                    ><strong>Normal:</strong> Builds clean shift blocks (e.g.
-                    4–8, 4–6, 6–8). Faster and easier to read — best for most
-                    weeks.<br /><br /><strong>Ultra-efficient (beta):</strong> Assigns
-                    workers every 30 minutes based on exact student counts. More
-                    precise but may produce shorter or irregular shifts.</span
-                  ></span
-                >
-              </div>
-              <div class="settings-sublabel">
-                Choose how the schedule is generated
-              </div>
-            </div>
-            <div class="toggle-group">
-              <button
-                class="toggle-opt active"
-                id="mode-simplified"
-                onclick="setMode('simplified')">
-                Normal
-              </button>
-              <button
-                class="toggle-opt"
-                id="mode-ultra"
-                onclick="setMode('ultra')">
-                Ultra-efficient<span
-                  class="beta-tag"
-                  aria-label="Beta: this feature is still in beta and may produce incorrect results. Please manually check the schedule for mistakes."
-                  >BETA<span class="info-tooltip"
-                    >Still in beta and may produce incorrect results — please
-                    manually check the schedule for mistakes.</span
-                  ></span
-                >
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="settings-section">
           <h3 class="settings-section-title">Other</h3>
           <div class="settings-row">
             <div>
@@ -1293,7 +1245,7 @@
           target: "#settings-panel .settings-modal",
           pos: "left",
           title: "Settings",
-          body: "Switch <strong>Light / Dark</strong> mode, choose <strong>Scheduling Mode</strong> (Normal = clean shift blocks; Ultra-efficient = slot-by-slot), toggle <strong>Demo Mode</strong>, and manage your <strong>Google Calendar</strong> connection. Close Settings when you're done.",
+          body: "Switch <strong>Light / Dark</strong> mode, toggle <strong>Demo Mode</strong>, and manage your <strong>Google Calendar</strong> connection. Close Settings when you're done.",
           hint: "Close Settings to continue",
           waitFor: "#settings-panel",
           waitForGone: true,
@@ -1679,7 +1631,6 @@
       // ── Settings ───────────────────────────────────────────
       let settings = {
         theme: "light",
-        mode: "simplified",
         demo: false,
         calendarId: "",
         ...JSON.parse(localStorage.getItem("scheduler-settings") || "{}"),
@@ -1692,9 +1643,9 @@
         document.body.classList.toggle("dark", settings.theme === "dark");
       }
 
-      // Updates the .active class on the theme and scheduling-mode toggle
-      // buttons to match the current settings. Shared by openSettings() and
-      // by setTheme()/setMode() after they update the relevant setting.
+      // Updates the .active class on the theme toggle buttons to match the
+      // current settings. Shared by openSettings() and by setTheme() after
+      // it updates the relevant setting.
       function syncToggleButtons() {
         document
           .getElementById("theme-light")
@@ -1702,12 +1653,6 @@
         document
           .getElementById("theme-dark")
           .classList.toggle("active", settings.theme === "dark");
-        document
-          .getElementById("mode-simplified")
-          .classList.toggle("active", settings.mode === "simplified");
-        const ultraBtn = document.getElementById("mode-ultra");
-        if (ultraBtn)
-          ultraBtn.classList.toggle("active", settings.mode === "ultra");
       }
 
       function openSettings() {
@@ -1777,13 +1722,6 @@
         saveSettings();
         applyTheme();
         syncToggleButtons();
-      }
-
-      function setMode(val) {
-        settings.mode = val;
-        saveSettings();
-        syncToggleButtons();
-        if (_calConnected === true) checkScheduleReadiness();
       }
 
       function setDemo(checked) {
@@ -3255,7 +3193,7 @@
               workers: submissionWorkers,
               studentData: evData.studentData,
               oneOnOneData: evData.oneOnOneData,
-              mode: settings.mode || "simplified",
+              mode: "ultra",
             }),
           });
           if (!genRes.ok) {
