@@ -681,25 +681,41 @@ app.post("/generate", requireAuth, async (req, res) => {
       };
     });
 
-    // Understaffing banner summary: merge identical unfilled windows (same
-    // day, same exact span) into one entry with a shortfall count, since
-    // that's overwhelmingly the common case for a single genuine gap. A
-    // partially-overlapping-but-not-identical set of unfilled windows within
-    // the same day would currently show as separate entries rather than one
-    // merged interval -- a real limitation, left as a future refinement if
-    // pilot feedback shows it's actually needed (per "ship a sensible
-    // default, refine on real feedback").
+    // Understaffing banner summary. Computed via a real sweep-line depth
+    // count, NOT a merge-by-exact-span bucket -- multiple unfilled windows
+    // covering the same moment often have DIFFERENT exact spans (e.g. a
+    // wide gap from one level and a narrower gap from another, both
+    // covering 3:30pm but with different start/end times), and bucketing
+    // by identical span only undercounts the true simultaneous shortfall,
+    // splitting one real "3 more needed at 3:30" into several misleading
+    // smaller entries instead. This walks every distinct time boundary
+    // across a day's unfilled windows and counts how many overlap each
+    // resulting slice, then merges adjacent slices that share the same
+    // depth into one reported span.
+    function computeUnderstaffed(day) {
+      const gaps = day.shiftWindows.filter((w) => !w.filled);
+      if (gaps.length === 0) return [];
+      const points = [...new Set(gaps.flatMap((g) => [g.start, g.end]))].sort((a, b) => a - b);
+      const merged = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const s = points[i];
+        const e = points[i + 1];
+        const shortBy = gaps.filter((g) => g.start <= s && g.end >= e).length;
+        if (shortBy === 0) continue;
+        const last = merged[merged.length - 1];
+        if (last && last.end === s && last.shortBy === shortBy) {
+          last.end = e;
+        } else {
+          merged.push({ start: s, end: e, shortBy });
+        }
+      }
+      return merged;
+    }
+
     const understaffed = [];
     for (const day of scheduleOut) {
-      const bySpan = new Map();
-      for (const win of day.shiftWindows) {
-        if (win.filled) continue;
-        const key = `${win.start}-${win.end}`;
-        bySpan.set(key, (bySpan.get(key) || 0) + 1);
-      }
-      for (const [key, shortBy] of bySpan) {
-        const [start, end] = key.split("-").map(Number);
-        understaffed.push({ dayKey: day.dayKey, dayName: day.dayName, start, end, shortBy });
+      for (const seg of computeUnderstaffed(day)) {
+        understaffed.push({ dayKey: day.dayKey, dayName: day.dayName, ...seg });
       }
     }
 
