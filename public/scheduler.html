@@ -2129,6 +2129,10 @@
         data.forEach((day, di) => {
           const dk = day.dayKey;
           const ops = SCHED.blocks(dk); // one or two operating blocks
+          // Runs across BOTH panels on a two-block day, so the within-day
+          // grow-in stagger reads as one continuous cascade rather than
+          // resetting partway through the day.
+          let colCounter = 0;
 
           let panelsHtml = "";
           ops.forEach((ob, bi) => {
@@ -2174,6 +2178,7 @@
                 const top = startIdx >= 0 ? startIdx * SLOT_H : 0;
                 const height = ((a.end - a.start) / 30) * SLOT_H;
                 const color = _getWorkerColor(a.name);
+                const colI = colCounter++;
                 const draggable = isEdit
                   ? `data-day="${di}" data-ai="${ai}"`
                   : "";
@@ -2198,7 +2203,7 @@
                 <div class="timeline-worker-col">
                   <div class="timeline-grid-lines">${gridLines}</div>
                   <div class="worker-block ${isEdit ? "draggable" : ""}"
-                    style="top:${top}px; height:${height}px; background:${color};"
+                    style="top:${top}px; height:${height}px; background:${color}; --col-i:${colI};"
                     title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
                     ${a.name}${oobOverlay}${resizableTop}${resizable}${removable}
                   </div>
@@ -2230,7 +2235,7 @@
             : "";
 
           html += `
-            <div class="timeline-day">
+            <div class="timeline-day${isEdit ? "" : " day-enter"}"${isEdit ? "" : ` style="--day-i:${di};"`}>
               <div class="timeline-day-header">${day.dayName}${dateStr}</div>
               <div class="timeline-day-stack">${panelsHtml}</div>
               ${addBtn}
