@@ -325,6 +325,7 @@ body.dark header {
 
 /* ── Buttons ── */
 .btn-primary {
+  position: relative;
   padding: 9px 20px;
   background: var(--accent);
   color: white;
@@ -347,6 +348,65 @@ body.dark header {
 .btn-primary:hover:not(:disabled) {
   background: var(--gradient);
   filter: none;
+}
+
+/* Generate button while the request is in flight: a slow shimmer sweep
+   instead of a static disabled look, so waiting reads as "working" rather
+   than "stuck." */
+.btn-primary.charging {
+  overflow: hidden;
+  cursor: wait;
+  opacity: 1;
+  background: linear-gradient(
+    100deg,
+    var(--accent) 0%,
+    #6fb2ff 50%,
+    var(--accent) 100%
+  );
+  background-size: 250% 100%;
+  animation: genCharging 1.1s ease-in-out infinite;
+}
+@keyframes genCharging {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 250% 50%;
+  }
+}
+
+/* One-shot release burst the moment a schedule successfully generates: a
+   quick scale pop plus an expanding ring that fades out -- the "done!"
+   payoff after the charging animation, not just a silent state change. */
+.btn-primary.just-generated {
+  animation: genRelease 0.6s ease-out;
+}
+.btn-primary.just-generated::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: genRing 0.6s ease-out;
+}
+@keyframes genRelease {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes genRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 123, 255, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 16px rgba(13, 123, 255, 0);
+  }
 }
 
 .btn-secondary {
@@ -1626,6 +1686,44 @@ body.dark .settings-header {
 .toggle-opt:not(.active):not(.disabled):hover {
   background: var(--surface2);
   color: var(--text);
+}
+
+/* Ultra-efficient mode gets its own identity when selected: a slow gold
+   shimmer sweeping across the button plus a pulsing glow, instead of the
+   plain accent-blue fill every other active toggle gets. Reads as "this
+   mode is doing something more precise/energetic" at a glance. */
+#mode-ultra.active {
+  position: relative;
+  background: linear-gradient(
+    100deg,
+    #f9a825 0%,
+    #ffd54f 25%,
+    #f9a825 50%,
+    #ffd54f 75%,
+    #f9a825 100%
+  );
+  background-size: 250% 100%;
+  color: #3a2a00;
+  animation:
+    ultraShimmer 3s linear infinite,
+    ultraGlow 2s ease-in-out infinite;
+}
+@keyframes ultraShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 250% 50%;
+  }
+}
+@keyframes ultraGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 0 rgba(249, 168, 37, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 14px 3px rgba(249, 168, 37, 0.8);
+  }
 }
 
 /* ── Toggle Switch ── */
@@ -3787,8 +3885,9 @@ body.admin-page .detail-section[open] > summary.detail-section-title {
 }
 body.admin-page .detail-section-chevron {
   display: inline-block;
-  font-size: 0.6rem;
-  color: #9aa1ad;
+  font-size: 1rem;
+  line-height: 1;
+  color: #6b7280;
   transition: transform 0.15s;
 }
 body.admin-page .detail-section[open] .detail-section-chevron {
