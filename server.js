@@ -6,6 +6,9 @@ const jwt = require("jsonwebtoken");
 const User = require("./User");
 const Week = require("./Week");
 const Day = require("./Day");
+// SimplifiedWeek/SimplifiedDay ("normal" mode): dormant. Not reachable from
+// either UI anymore (see /generate below), but left imported and wired so
+// normal mode can be reconnected without re-deriving this plumbing.
 const SimplifiedWeek = require("./SimplifiedWeek");
 const SimplifiedDay = require("./SimplifiedDay");
 const Employee = require("./Employee");
@@ -635,7 +638,22 @@ app.post("/generate", requireAuth, async (req, res) => {
       return user;
     });
 
-    const isUltra = mode === "ultra";
+    // Cale's main engine is the unified algorithm (Day.js/Week.js) --
+    // SimplifiedWeek/SimplifiedDay ("normal" mode) are no longer exposed in
+    // either UI (scheduler.html/dashboard.html always send mode: "ultra" as
+    // of the mode-toggle removal) but are DELIBERATELY left wired here,
+    // untouched, in case normal mode gets reconnected later.
+    //
+    // The mode check is written as an explicit opt-IN to normal mode, not an
+    // opt-in to ultra -- this is intentionally the reverse of how it used to
+    // read. With the old `mode === "ultra"` check, any request missing the
+    // mode field (a stray/older client, a bug, a future caller) would
+    // silently fall through to the old normal-mode engine with no error and
+    // no indication anything unusual happened. Flipping it so "ultra" is
+    // the default and "simplified" must be explicitly requested closes that
+    // silent-fallback path -- normal mode can only ever run if something
+    // asks for it by name.
+    const isUltra = mode !== "simplified";
     const week = isUltra
       ? new Week(users, dayConfigs)
       : new SimplifiedWeek(users, dayConfigs);
