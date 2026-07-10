@@ -189,10 +189,18 @@ class Day {
             windows.push({ start: es, end: ee, level, assignedWorker: null });
           }
         }
-        // Earliest windows get first pick of available workers; among
-        // same-start windows, the taller (higher-level) one is filled first
-        // since it represents the more time-critical need.
-        windows.sort((a, b) => a.start - b.start || b.level - a.level);
+        // Earliest windows get first pick of available workers. When two
+        // windows share a start (very common: a demand spike right at
+        // block-open produces both the wide base window and a narrower
+        // supplemental one starting at the same moment), the WIDER window
+        // is processed first, not the higher level. Processing the
+        // narrower one first would let it grab a broadly-available worker
+        // before the wide window gets a turn, locking that worker out of
+        // covering their own full availability and leaving the wide
+        // window's remainder falsely flagged as understaffed -- exactly
+        // the "available 3-8, assigned 3-5, and 5-8 shows as needing
+        // someone" bug this fixes.
+        windows.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
 
         // Assign one real worker per window. A worker already used in THIS
         // block is excluded from every other window in it -- this is the
