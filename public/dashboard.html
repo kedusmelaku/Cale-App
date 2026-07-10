@@ -524,11 +524,11 @@
                 <span
                   class="info-tag"
                   tabindex="0"
-                  aria-label="Scheduling mode: Normal builds clean shift blocks (like 4–8 or 4–6). Ultra-efficient assigns workers slot by slot based on exact student counts — more precise but may produce irregular shift times."
+                  aria-label="Scheduling mode: Normal builds clean shift blocks (like 4–8 or 4–6). Ultra-efficient (beta) assigns workers slot by slot based on exact student counts — more precise but may produce irregular shift times."
                   >i<span class="info-tooltip" style="width: 260px"
                     ><strong>Normal:</strong> Builds clean shift blocks (e.g.
                     4–8, 4–6, 6–8). Faster and easier to read — best for most
-                    weeks.<br /><br /><strong>Ultra-efficient:</strong> Assigns
+                    weeks.<br /><br /><strong>Ultra-efficient (beta):</strong> Assigns
                     workers every 30 minutes based on exact student counts. More
                     precise but may produce shorter or irregular shifts.</span
                   ></span
@@ -549,7 +549,14 @@
                 class="toggle-opt"
                 id="mode-ultra"
                 onclick="setMode('ultra')">
-                Ultra-efficient
+                Ultra-efficient<span
+                  class="beta-tag"
+                  aria-label="Beta: this feature is still in beta and may produce incorrect results. Please manually check the schedule for mistakes."
+                  >BETA<span class="info-tooltip"
+                    >Still in beta and may produce incorrect results — please
+                    manually check the schedule for mistakes.</span
+                  ></span
+                >
               </button>
             </div>
           </div>
@@ -3393,19 +3400,19 @@
           if (tip) tip.classList.remove("show");
         }
         document.addEventListener("mouseover", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) show(tag);
         });
         document.addEventListener("mouseout", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag && !tag.contains(e.relatedTarget)) hide();
         });
         document.addEventListener("focusin", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) show(tag);
         });
         document.addEventListener("focusout", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) hide();
         });
         window.addEventListener(

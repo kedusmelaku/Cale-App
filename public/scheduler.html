@@ -427,12 +427,12 @@
                 <span
                   class="info-tag"
                   tabindex="0"
-                  aria-label="Scheduling mode info: Normal assigns workers in shift blocks (4 to 8, 4 to 6, 6 to 8) — faster, clean regular shifts, best for most weeks. Ultra-efficient assigns workers slot by slot every 30 minutes based on exact student counts — more precise but may produce shorter or irregular shift times."
+                  aria-label="Scheduling mode info: Normal assigns workers in shift blocks (4 to 8, 4 to 6, 6 to 8) — faster, clean regular shifts, best for most weeks. Ultra-efficient (beta) assigns workers slot by slot every 30 minutes based on exact student counts — more precise but may produce shorter or irregular shift times."
                   >i<span class="info-tooltip" style="width: 260px"
                     ><strong>Normal:</strong> Assigns workers in shift blocks
                     (4–8, 4–6, 6–8). Faster and produces clean, regular shifts —
                     best for most weeks.<br /><br /><strong
-                      >Ultra-efficient:</strong
+                      >Ultra-efficient (beta):</strong
                     >
                     Assigns workers slot-by-slot every 30 minutes based on exact
                     student counts. More precise but may produce shorter or
@@ -455,7 +455,14 @@
                 class="toggle-opt"
                 id="mode-ultra"
                 onclick="setMode('ultra')">
-                Ultra-efficient
+                Ultra-efficient<span
+                  class="beta-tag"
+                  aria-label="Beta: this feature is still in beta and may produce incorrect results. Please manually check the schedule for mistakes."
+                  >BETA<span class="info-tooltip"
+                    >Still in beta and may produce incorrect results — please
+                    manually check the schedule for mistakes.</span
+                  ></span
+                >
               </button>
             </div>
           </div>
@@ -3404,19 +3411,19 @@
           if (tip) tip.classList.remove("show");
         }
         document.addEventListener("mouseover", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) show(tag);
         });
         document.addEventListener("mouseout", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag && !tag.contains(e.relatedTarget)) hide();
         });
         document.addEventListener("focusin", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) show(tag);
         });
         document.addEventListener("focusout", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag");
+          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) hide();
         });
         window.addEventListener(
