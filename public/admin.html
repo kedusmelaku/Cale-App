@@ -385,9 +385,12 @@
             <div class="stat-value" id="d-form-val">—</div>
             <div class="stat-sub" id="d-form-sub">—</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">Tutorial</div>
-            <div class="stat-value" id="d-tut-val">—</div>
+          <div class="stat-card stat-card-onboarding">
+            <div class="stat-label">Onboarding</div>
+            <div class="onboarding-row">
+              <span class="onboarding-row-label">Tutorial</span>
+              <span class="onboarding-row-val" id="d-tut-val">—</span>
+            </div>
             <div class="stat-sub" id="d-tut-sub">—</div>
             <button
               class="admin-btn-edit"
@@ -395,10 +398,11 @@
               onclick="toggleTutorialStatus()">
               Mark completed
             </button>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Intro Modal</div>
-            <div class="stat-value" id="d-intro-val">—</div>
+            <div class="onboarding-divider"></div>
+            <div class="onboarding-row">
+              <span class="onboarding-row-label">Intro Modal</span>
+              <span class="onboarding-row-val" id="d-intro-val">—</span>
+            </div>
             <div class="stat-sub" id="d-intro-sub"></div>
             <button
               class="admin-btn-edit"
@@ -420,50 +424,62 @@
         </div>
 
         <!-- Employee list -->
-        <div class="detail-section" id="detail-team">
-          <div class="detail-section-title">Team</div>
-          <div class="employee-table" id="d-emp-list">
-            <div class="emp-empty">Loading…</div>
+        <details class="detail-section" id="detail-team" open>
+          <summary class="detail-section-title">
+            <span class="detail-section-chevron">▸</span>Team
+          </summary>
+          <div class="detail-section-body">
+            <div class="employee-table" id="d-emp-list">
+              <div class="emp-empty">Loading…</div>
+            </div>
           </div>
-        </div>
+        </details>
 
         <!-- Operating schedule -->
-        <div class="detail-section" id="detail-schedule">
-          <div class="detail-section-title">Hours &amp; Schedule</div>
-          <div id="sched-body-detail" class="sched-editor">
-            <div class="emp-empty">Loading…</div>
+        <details class="detail-section" id="detail-schedule" open>
+          <summary class="detail-section-title">
+            <span class="detail-section-chevron">▸</span>Hours &amp; Schedule
+          </summary>
+          <div class="detail-section-body">
+            <div id="sched-body-detail" class="sched-editor">
+              <div class="emp-empty">Loading…</div>
+            </div>
+            <div
+              class="sched-save-row"
+              id="sched-save-row-detail"
+              style="display: none">
+              <button class="admin-btn-primary" onclick="saveDetailSchedule()">
+                Save Schedule
+              </button>
+              <span class="sched-save-msg" id="sched-save-msg-detail"></span>
+            </div>
           </div>
-          <div
-            class="sched-save-row"
-            id="sched-save-row-detail"
-            style="display: none">
-            <button class="admin-btn-primary" onclick="saveDetailSchedule()">
-              Save Schedule
-            </button>
-            <span class="sched-save-msg" id="sched-save-msg-detail"></span>
-          </div>
-        </div>
+        </details>
 
         <!-- Calendar keywords -->
-        <div class="detail-section" id="detail-keywords">
-          <div class="detail-section-title">Calendar Keywords</div>
-          <div class="admin-field-hint" style="margin-bottom: 12px">
-            Which words in a Google Calendar event's title count as a lesson (or
-            a one-on-one). Different centers often use different codes.
+        <details class="detail-section" id="detail-keywords">
+          <summary class="detail-section-title">
+            <span class="detail-section-chevron">▸</span>Calendar Keywords
+          </summary>
+          <div class="detail-section-body">
+            <div class="admin-field-hint" style="margin-bottom: 12px">
+              Which words in a Google Calendar event's title count as a lesson (or
+              a one-on-one). Different centers often use different codes.
+            </div>
+            <div id="kw-body-detail" class="sched-editor">
+              <div class="emp-empty">Loading…</div>
+            </div>
+            <div
+              class="sched-save-row"
+              id="kw-save-row-detail"
+              style="display: none">
+              <button class="admin-btn-primary" onclick="saveDetailKeywords()">
+                Save Keywords
+              </button>
+              <span class="sched-save-msg" id="kw-save-msg-detail"></span>
+            </div>
           </div>
-          <div id="kw-body-detail" class="sched-editor">
-            <div class="emp-empty">Loading…</div>
-          </div>
-          <div
-            class="sched-save-row"
-            id="kw-save-row-detail"
-            style="display: none">
-            <button class="admin-btn-primary" onclick="saveDetailKeywords()">
-              Save Keywords
-            </button>
-            <span class="sched-save-msg" id="kw-save-msg-detail"></span>
-          </div>
-        </div>
+        </details>
         </div>
       </div>
     </div>
@@ -600,7 +616,19 @@
       function detailNavClick(e, sel) {
         e.preventDefault();
         const el = document.querySelector(sel);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (el) {
+          if (el.tagName === "DETAILS" && !el.open) {
+            el.open = true;
+            // Let the newly-revealed content lay out before measuring where
+            // to scroll -- otherwise scrollIntoView can target the
+            // pre-expansion (wrong) position.
+            requestAnimationFrame(() =>
+              el.scrollIntoView({ behavior: "smooth", block: "start" }),
+            );
+          } else {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
         history.replaceState(null, "", sel);
         return false;
       }
@@ -620,6 +648,14 @@
           sections.forEach((sec, i) => {
             if (sec.getBoundingClientRect().top - threshold <= 0) activeIdx = i;
           });
+          // A short final section can end before the page has scrolled
+          // enough to ever cross the threshold line, so it would never win
+          // against whatever section is above it. Reaching the bottom of
+          // the page always means the last section, full stop.
+          const atBottom =
+            window.innerHeight + window.scrollY >=
+            document.documentElement.scrollHeight - 2;
+          if (atBottom) activeIdx = sections.length - 1;
           links.forEach((link, i) =>
             link.classList.toggle("active", i === activeIdx),
           );
@@ -1536,7 +1572,12 @@
       function openScheduleEditor(schedule, target) {
         _sched = schedule;
         _schedTarget = target;
-        _schedTab = "schoolYear";
+        // In the detail view, land on whichever variant is actually active
+        // right now -- editing the wrong one because the tab you're on
+        // doesn't match reality is exactly the mistake this avoids. A brand
+        // new center (target === "create") has no real "active" variant
+        // yet, so it still starts on School Year.
+        _schedTab = target === "detail" ? _detailActive : "schoolYear";
         if (target === "detail") _detailScheduleDirty = false;
         renderScheduleEditor();
       }
