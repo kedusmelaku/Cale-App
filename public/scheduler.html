@@ -2022,15 +2022,27 @@
       }
 
       // ── Schedule View ──────────────────────────────────────
+      let _revealLockTimer = null;
       function renderSchedule() {
         hideAllEmptyStates();
         const output = document.getElementById("schedule-output");
         output.style.display = "block";
+        const grid = document.querySelector(".schedule-grid");
+        // The reveal's final pop scales the whole (often wide) timeline up
+        // by a hair, which can otherwise cross this container's horizontal
+        // scroll threshold for an instant and flicker a scrollbar in and
+        // out right as it plays. Locking overflow for the whole reveal
+        // window sidesteps that instead of trying to tune the scale amount
+        // to always stay just under the threshold.
+        if (grid) grid.classList.add("revealing");
         output.innerHTML = buildTimelineHTML(scheduleData, false);
         renderHoursSummary();
         renderUnderstaffedBanner();
-        const grid = document.querySelector(".schedule-grid");
-        if (grid) grid.classList.add("has-schedule");
+        if (grid) {
+          grid.classList.add("has-schedule");
+          clearTimeout(_revealLockTimer);
+          _revealLockTimer = setTimeout(() => grid.classList.remove("revealing"), 3000);
+        }
       }
 
       // ── Understaffing signal ────────────────────────────────
@@ -2128,18 +2140,21 @@
       // successive block's gap from the previous one shrinks geometrically,
       // so blocks catch up to each other as the cascade goes -- the last
       // few arrive in a quick flurry rather than evenly spaced.
-      const BLOCK_RISE_MS = 420;
+      // The within-day bar reveal: NOT a fixed duration with only the start
+      // time accelerating -- the bar's OWN duration also shrinks each time,
+      // from a deliberately dramatic first bar down to a snappy floor. Bars
+      // overlap (each starts partway through the previous one's rise,
+      // rather than waiting for it to fully finish), so the sequence still
+      // reads as one continuous cascade rather than a slow relay race.
       const BLOCK_START_OFFSET = 150; // lets the day's own fade mostly settle first
-      const BLOCK_BASE_GAP = 110;
-      const BLOCK_GAP_RATIO = 0.55;
-      function blockDelayMs(colI) {
-        let delay = 0;
-        let gap = BLOCK_BASE_GAP;
-        for (let k = 0; k < colI; k++) {
-          delay += gap;
-          gap *= BLOCK_GAP_RATIO;
-        }
-        return Math.round(delay);
+      const BLOCK_DURATION_FLOOR = 220; // what later bars converge toward
+      const BLOCK_DURATION_EXTRA = 780; // extra length piled onto the first bar
+      const BLOCK_DURATION_RATIO = 0.42; // how fast duration decays toward the floor
+      const BLOCK_OVERLAP = 0.55; // each next bar starts 55% through the previous one's rise
+      function blockDurationMs(colI) {
+        return Math.round(
+          BLOCK_DURATION_FLOOR + BLOCK_DURATION_EXTRA * Math.pow(BLOCK_DURATION_RATIO, colI),
+        );
       }
 
       function buildTimelineHTML(data, isEdit) {
@@ -2150,9 +2165,10 @@
           const dk = day.dayKey;
           const ops = SCHED.blocks(dk); // one or two operating blocks
           // Runs across BOTH panels on a two-block day, so the within-day
-          // grow-in stagger reads as one continuous cascade rather than
-          // resetting partway through the day.
+          // cascade reads as one continuous sequence rather than resetting
+          // partway through the day.
           let colCounter = 0;
+          let cascadeCursor = 0; // ms, accumulates overlapping bar starts
 
           let panelsHtml = "";
           ops.forEach((ob, bi) => {
@@ -2199,9 +2215,12 @@
                 const height = ((a.end - a.start) / 30) * SLOT_H;
                 const color = _getWorkerColor(a.name);
                 const colI = colCounter++;
-                const blockDelay = di * DAY_STAGGER_MS + BLOCK_START_OFFSET + blockDelayMs(colI);
+                const dur = blockDurationMs(colI);
+                const startRel = cascadeCursor;
+                cascadeCursor += dur * BLOCK_OVERLAP;
+                const blockDelay = di * DAY_STAGGER_MS + BLOCK_START_OFFSET + Math.round(startRel);
                 if (!isEdit) {
-                  maxFinishMs = Math.max(maxFinishMs, blockDelay + BLOCK_RISE_MS);
+                  maxFinishMs = Math.max(maxFinishMs, blockDelay + dur);
                 }
                 const draggable = isEdit
                   ? `data-day="${di}" data-ai="${ai}"`
@@ -2227,7 +2246,7 @@
                 <div class="timeline-worker-col">
                   <div class="timeline-grid-lines">${gridLines}</div>
                   <div class="worker-block ${isEdit ? "draggable" : ""}"
-                    style="top:${top}px; height:${height}px; background:${color}; --block-delay:${blockDelay}ms;"
+                    style="top:${top}px; height:${height}px; background:${color}; --block-delay:${blockDelay}ms; --block-duration:${dur}ms;"
                     title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
                     ${a.name}${oobOverlay}${resizableTop}${resizable}${removable}
                   </div>

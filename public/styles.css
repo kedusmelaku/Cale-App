@@ -1268,6 +1268,12 @@ input[type="date"]:focus-visible {
 .schedule-grid {
   overflow-x: auto;
 }
+/* Locked for the whole reveal window (day cascade + bar rises + final pop)
+   so the pop's slight scale-up on a wide multi-day timeline can never
+   cross this container's scroll threshold and flicker a scrollbar. */
+.schedule-grid.revealing {
+  overflow-x: hidden;
+}
 
 .empty-state {
   text-align: center;
@@ -1423,28 +1429,33 @@ input[type="date"]:focus-visible {
   opacity: 1;
 }
 
-/* Layered on top of the day cascade above: each shift rises up from just
-   below its resting position, slower than the day cascade itself so the
-   two phases read as distinct beats (day arrives, THEN its shifts rise).
-   --block-delay is a precomputed ms value with an accelerating stagger
-   (each block's gap from the last shrinks), not a plain linear one -- see
-   blockDelayMs() in buildTimelineHTML. End state matches the resting 0.9
-   opacity exactly so there's no flash once the entrance finishes. */
+/* Layered on top of the day cascade above: each bar visibly EXTENDS upward
+   from its own bottom edge (transform-origin: bottom keeps that edge fixed
+   -- a real "growing bar chart" motion, not a small fade+nudge). The first
+   bar in a day plays deliberately slow and dramatic; each next one is
+   snappier, converging to a quick floor duration -- both --block-delay and
+   --block-duration are precomputed per-bar in buildTimelineHTML (variable
+   duration, overlapping starts), not fixed values. End state matches the
+   resting 0.9 opacity exactly so there's no flash once it finishes. */
 .timeline-day.day-enter .worker-block {
-  animation: blockRiseIn 420ms cubic-bezier(0.22, 0.9, 0.32, 1) both;
+  animation-name: blockRiseIn;
+  animation-duration: var(--block-duration, 300ms);
   animation-delay: var(--block-delay, 0ms);
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+  transform-origin: bottom center;
 }
 @keyframes blockRiseIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: scaleY(0);
   }
-  60% {
+  25% {
     opacity: 0.9;
   }
   to {
     opacity: 0.9;
-    transform: translateY(0);
+    transform: scaleY(1);
   }
 }
 
