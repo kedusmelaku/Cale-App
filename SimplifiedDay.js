@@ -42,19 +42,22 @@ class SimplifiedDay extends Day {
   }
 
   // Peak simultaneous workers needed anywhere inside a shift block.
+  //
+  // One-on-one target = ceil(groupStudents / 3) + numberOfInstructorsPulled
+  // (always 1 today -- see calendar.js's oneOnOneData boolean limitation),
+  // computed directly rather than incrementally: when a one-on-one pushes
+  // the needed headcount up, this jumps straight to the correct total in one
+  // step instead of the old peak++ bump-and-recheck, per the agreed design.
+  // No separate margin/hysteresis mechanism here -- normal mode already
+  // operates at whole-block granularity, so the "how long should a demand
+  // blip persist before we act" question ultra mode needs an explicit answer
+  // for is already implicitly resolved by the block boundaries themselves.
   findPeak(day, block) {
     let peak = 0;
     for (const slot of day.slots) {
       if (slot.time >= block.start && slot.time < block.end) {
-        const students = slot.students;
-        let workersNeeded;
-        if (slot.oneOnOne) {
-          const remaining = peak - 1;
-          if (remaining * 4 < students) peak++;
-          workersNeeded = Math.ceil(students / 4);
-        } else {
-          workersNeeded = Math.ceil(students / 3);
-        }
+        const base = Math.ceil(slot.students / 3);
+        const workersNeeded = slot.oneOnOne ? base + 1 : base;
         if (workersNeeded > peak) peak = workersNeeded;
       }
     }
@@ -63,6 +66,8 @@ class SimplifiedDay extends Day {
 
   willWork(week) {
     for (const day of week) {
+      day.shiftWindows = [];
+
       for (const block of day.blocks) {
         const peak = this.findPeak(day, block);
         if (peak === 0) continue;
@@ -105,6 +110,34 @@ class SimplifiedDay extends Day {
           })
           .sort((a, b) => a.points - b.points);
         if (candidates.length > 0) slot.oneOnOneWorker = candidates[0];
+      }
+
+      // Understaffing signal, computed per OPERATING block rather than per
+      // shift-TEMPLATE. day.blocks holds several overlapping candidate shapes
+      // for the same operating block (a full-from-open shift, a full-from-
+      // later-start shift, early/late halves) -- these are alternate shapes
+      // the same coverage could take, not independent demand periods, so
+      // computing a shortfall separately for each one would report the same
+      // underlying gap up to 4x over. This pass instead asks the coarser,
+      // block-level question the banner actually needs: does the peak this
+      // block needs anywhere in it have enough distinct people with ANY
+      // shift touching the block? One entry per still-needed worker, filled
+      // or not, feeding server.js's response the same way Day.js's do.
+      for (const opBlock of day.operatingBlocks) {
+        const peak = this.findPeak(day, opBlock);
+        if (peak === 0) continue;
+        const covering = day.totalWorkers.filter((worker) => {
+          const di = worker.days.indexOf(day.dayKey);
+          return (worker.working[di] || []).some(
+            (s) => s.start < opBlock.end && s.end > opBlock.start,
+          );
+        });
+        for (const w of covering.slice(0, peak)) {
+          day.shiftWindows.push({ start: opBlock.start, end: opBlock.end, filled: true, worker: w.name });
+        }
+        for (let i = covering.length; i < peak; i++) {
+          day.shiftWindows.push({ start: opBlock.start, end: opBlock.end, filled: false, worker: null });
+        }
       }
     }
   }

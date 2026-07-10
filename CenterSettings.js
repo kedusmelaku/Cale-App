@@ -47,6 +47,10 @@ const variantSchema = new mongoose.Schema(
     // (0 = Normal, 1 = Priority, 2 = High Priority). Applied Mon–Fri when an
     // employee marks a day "available all day"; weekends use full hours.
     defaults: { type: [windowSchema], default: undefined },
+    // The shortest shift ultra mode will ever produce for this variant
+    // (minutes). null on legacy documents saved before this field existed --
+    // callers should fall back to scheduleConfig.DEFAULT_MIN_SHIFT_LENGTH.
+    minShiftLength: { type: Number, default: null },
   },
   { _id: false },
 );

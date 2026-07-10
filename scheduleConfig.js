@@ -46,12 +46,15 @@ function variantToDayConfigs(variant) {
   const defaultStarts = [...new Set(defs.map((w) => w.start))].sort((a, b) => a - b);
 
   const out = [];
+  const minShiftLength = typeof variant.minShiftLength === "number"
+    ? variant.minShiftLength
+    : DEFAULT_MIN_SHIFT_LENGTH;
   for (const dk of DAY_KEYS) {
     const d = variant[dk];
     if (!d || !d.open || !(d.blocks || []).length) continue;
     const blocks = d.blocks.map((b) => ({ start: b.start, end: b.end })).sort((a, b) => a.start - b.start);
     const shiftStarts = isWeekendDay(dk) ? [] : defaultStarts;
-    out.push({ dayKey: dk, dayName: DAY_FULL[dk], blocks, slots: slotsForBlocks(blocks), shiftStarts });
+    out.push({ dayKey: dk, dayName: DAY_FULL[dk], blocks, slots: slotsForBlocks(blocks), shiftStarts, minShiftLength });
   }
   return out;
 }
@@ -59,6 +62,16 @@ function variantToDayConfigs(variant) {
 const MIN_TIME = 0;      // 12:00 AM
 const MAX_TIME = 1440;   // 12:00 AM next day (end-exclusive upper bound)
 const STEP = 30;         // half-hour granularity
+
+// Default minimum shift length ultra mode will ever produce, in minutes.
+// 2 hours reproduces what Kedus has observed at his own center ("never seen
+// a shift under 2 hours") -- but this is only the DEFAULT a fresh variant
+// starts with, not a hardcoded constant the algorithm itself relies on. Each
+// center can change it via admin.html, since "how short a shift a manager
+// tolerates" is a fact about that specific center, not a judgment call about
+// algorithm behavior (see the handoff doc's "configure the facts, decide the
+// philosophy" principle).
+const DEFAULT_MIN_SHIFT_LENGTH = 120;
 
 // Default operating window reproduces the app's original hardcoded behavior:
 //   Mon–Thu 3:00 PM – 8:00 PM, Saturday 10:00 AM – 2:00 PM, Fri/Sun closed.
@@ -91,6 +104,7 @@ function defaultVariant() {
     saturday:  { open: true,  blocks: [{ ...SAT_BLOCK }] },
     sunday:    { open: false, blocks: [] },
     defaults:  defaultPriorityWindows(),
+    minShiftLength: DEFAULT_MIN_SHIFT_LENGTH,
   };
 }
 
@@ -245,6 +259,15 @@ function validateSchedule(sched) {
         if (w.start >= w.end) return "A default level's start must be before its end.";
       }
     }
+
+    if (v.minShiftLength !== undefined) {
+      if (typeof v.minShiftLength !== "number" || v.minShiftLength % STEP !== 0) {
+        return "Minimum shift length must be a number of minutes on the half hour.";
+      }
+      if (v.minShiftLength < STEP || v.minShiftLength > MAX_TIME) {
+        return "Minimum shift length is out of range.";
+      }
+    }
   }
 
   return null;
@@ -284,6 +307,10 @@ function normalizeSchedule(sched) {
       ? v.defaults.map((w) => ({ start: w.start, end: w.end }))
       : defaultPriorityWindows();
     out[vName].defaults = defs;
+
+    out[vName].minShiftLength = typeof v.minShiftLength === "number"
+      ? v.minShiftLength
+      : DEFAULT_MIN_SHIFT_LENGTH;
   }
 
   return out;
@@ -305,6 +332,7 @@ module.exports = {
   MIN_TIME,
   MAX_TIME,
   STEP,
+  DEFAULT_MIN_SHIFT_LENGTH,
   slotsForBlocks,
   variantToDayConfigs,
   defaultVariant,

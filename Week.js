@@ -11,8 +11,12 @@ class Week{
     // server.js zips the two together by index afterward.
     constructor(users, dayConfigs){
         this.users = users;
+        // dc.minShiftLength doesn't exist yet -- scheduleConfig.js hasn't
+        // been updated to produce it -- so this is a no-op today (Day's
+        // default parameter kicks in) and starts working the moment that
+        // config change lands, with no further change needed here.
         this.week = (dayConfigs || []).map(
-            (dc) => new Day(dc.dayKey, dc.dayName, dc.slots),
+            (dc) => new Day(dc.dayKey, dc.dayName, dc.slots, dc.minShiftLength),
         );
     }
 
