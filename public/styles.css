@@ -1799,6 +1799,21 @@ body.dark .settings-header {
   color: var(--text);
 }
 
+/* Full-width variant: for a standalone segmented control that isn't sitting
+   next to a label in a settings-row (e.g. a "Manual" / "All at once" picker
+   taking up its own full-width slot in a form). The base .toggle-group is a
+   block-level flex container, so it already stretches to its parent's width
+   -- the "shoved to the left" look comes from its .toggle-opt children
+   defaulting to flex: 0 1 auto (natural content width only), leaving the
+   rest of that width as empty space after them. This variant makes each
+   option share the row equally and centers its label, without changing the
+   default (compact, content-width buttons) every other .toggle-group in the
+   app relies on -- add class="toggle-group toggle-group-fill" to opt in. */
+.toggle-group-fill .toggle-opt {
+  flex: 1;
+  text-align: center;
+}
+
 /* ── Toggle Switch ── */
 .switch {
   position: relative;
