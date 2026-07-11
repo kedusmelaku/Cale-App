@@ -1044,6 +1044,19 @@
       function tutStopPulseRing() {
         const ring = document.getElementById("tut-gear-pulse-ring");
         if (ring) ring.remove();
+        // Also cancel any in-flight big ripple. Without this, completion
+        // state arriving WHILE the ripple is still mid-animation (the
+        // center-settings fetch resolving a beat after page load, which is
+        // the common case for an already-completed center) left the ripple
+        // to keep playing to its natural end, at which point its own
+        // animationend handler used to start the pulse ring unconditionally
+        // -- resurrecting the "already completed" nudge right after this
+        // function had just turned it off. Removing the ripple here closes
+        // that gap; the animationend check below is a second, redundant
+        // guard for the rare case this fires in the same tick as the ripple
+        // finishing on its own.
+        const ripple = document.getElementById("tut-gear-ripple");
+        if (ripple) ripple.remove();
       }
 
       let _tutorialCompletionPending = false;
@@ -1139,7 +1152,14 @@
         positionTutorialPulseElements();
         ripple.addEventListener("animationend", function () {
           ripple.remove();
-          tutStartPulseRing();
+          // Re-check completion right before starting the ring, not just at
+          // the top of this init block -- the center-settings fetch is
+          // async and commonly resolves WHILE this ripple is still playing,
+          // so "not completed" at the moment the ripple started is no
+          // guarantee it's still true by the time the ripple ends.
+          if (!document.body.classList.contains("tut-completed")) {
+            tutStartPulseRing();
+          }
         });
       }
 
