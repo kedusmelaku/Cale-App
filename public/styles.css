@@ -1557,6 +1557,26 @@ input[type="date"]:focus-visible {
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+
+/* "No Students" card: replaces the normal per-block panels for a day with
+   zero matching calendar events, inside the same .timeline-day-stack shell
+   every other day card uses (so the border/radius/background stay
+   consistent across the week). Height is a fixed approximation of a
+   typical single-block day's real panel height, just so a week with a mix
+   of empty and staffed days doesn't look wildly uneven card-to-card. */
+.timeline-day-stack-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+.timeline-no-students {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
 /* Inside a panel the body drops its standalone border/radius (the panel
    supplies them). Scoped, so the base .timeline-body is untouched. */
 .timeline-panel .timeline-body {

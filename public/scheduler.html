@@ -1915,6 +1915,18 @@
             ...d,
             date: dates[d.dayKey] || "",
             understaffed: d.understaffed || [],
+            // True only if the calendar had ZERO matching student events
+            // anywhere in the day -- summed straight from the raw
+            // per-slot studentData sent to /generate, not from
+            // assignments.length. Those are different things: a day can
+            // have real (if light) demand and still end up with zero
+            // assignments because nobody was available, which is a
+            // genuine understaffing gap and should keep showing as an
+            // empty grid (with the understaffed banner explaining why),
+            // not get relabeled "No Students".
+            noStudents: !Object.values(studentData?.[d.dayKey] || {}).some(
+              (v) => v > 0,
+            ),
             assignments: d.assignments.map((a) => {
               const worker = workers.find((w) => w.name === a.name);
               const source = worker ? workerAvailDays(worker) : [];
@@ -2105,6 +2117,27 @@
         const DAY_STAGGER_MS = 35;
         data.forEach((day, di) => {
           const dk = day.dayKey;
+
+          // A day with zero matching calendar events anywhere gets a plain
+          // "No Students" card instead of the normal (visually identical
+          // to a real understaffing gap) empty grid -- but only in the
+          // main view. Edit mode always renders the full grid regardless,
+          // so a manager can still manually add a walk-in shift on a day
+          // the calendar had nothing on.
+          if (day.noStudents && !isEdit) {
+            const dateStr = day.date
+              ? ` <span class="day-date">${day.date}</span>`
+              : "";
+            daysHtml += `
+              <div class="timeline-day day-enter" style="--day-i:${di};">
+                <div class="timeline-day-header">${day.dayName}${dateStr}</div>
+                <div class="timeline-day-stack timeline-day-stack-empty">
+                  <div class="timeline-no-students">No Students</div>
+                </div>
+              </div>`;
+            return;
+          }
+
           const ops = SCHED.blocks(dk); // one or two operating blocks
           // Runs across BOTH panels on a two-block day, so the within-day
           // cascade reads as one continuous sequence rather than resetting
