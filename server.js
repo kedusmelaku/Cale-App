@@ -260,11 +260,12 @@ persist automatically — there's nothing else you need to do.</p>
 app.get("/cal-status", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const { getAuth, loadTokensFromDB } = require("./auth");
-    await loadTokensFromDB(req.centerId);
-    const auth = getAuth();
-    const creds = auth.credentials;
-    const connected = !!(creds && (creds.access_token || creds.refresh_token));
+    const { verifyConnection } = require("./auth");
+    // A live check, not a DB-presence check -- see verifyConnection's
+    // comment in auth.js. Presence-only used to keep reporting "connected"
+    // forever after someone revoked access from their Google Account
+    // settings instead of disconnecting inside Cale.
+    const connected = await verifyConnection(req.centerId);
     res.json({ connected });
   } catch {
     res.json({ connected: false });
@@ -910,6 +911,28 @@ app.get(
       const settings = await CenterSettings.findOne({ centerId });
       const oauthDoc = await OAuthToken.findOne({ centerId });
 
+      // Live check, same reasoning as /cal-status: a token row existing in
+      // the DB doesn't mean it still works, since revoking access from
+      // Google's side (rather than disconnecting inside Cale) leaves the
+      // stored token untouched but dead. A transient Google-side error
+      // falls back to the DB-presence guess rather than flipping the admin
+      // view to "disconnected" over a blip that has nothing to do with the
+      // center's actual connection.
+      const hasStoredToken = !!(
+        oauthDoc &&
+        oauthDoc.token &&
+        (oauthDoc.token.access_token || oauthDoc.token.refresh_token)
+      );
+      let calendarConnected = false;
+      if (hasStoredToken) {
+        try {
+          const { verifyConnection } = require("./auth");
+          calendarConnected = await verifyConnection(centerId);
+        } catch {
+          calendarConnected = hasStoredToken;
+        }
+      }
+
       // Current week's Monday (same logic as the frontend uses)
       const now = new Date();
       const day = now.getDay();
@@ -944,11 +967,7 @@ app.get(
           settings: settings || null,
           tutorialCompleted: !!(settings && settings.tutorialCompleted),
           introSeen: !!(settings && settings.introSeen),
-          calendarConnected: !!(
-            oauthDoc &&
-            oauthDoc.token &&
-            (oauthDoc.token.access_token || oauthDoc.token.refresh_token)
-          ),
+          calendarConnected,
           weekOf,
           submissionCount: submissions.length,
           lastActivityAt: anyLastSub ? anyLastSub.submittedAt : null,
