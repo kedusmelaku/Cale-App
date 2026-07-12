@@ -5,26 +5,202 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Privacy Policy — Cale</title>
     <link rel="stylesheet" href="styles.css" />
+    <style>
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap");
+
+      :root {
+        --blue: #0d7bff;
+        --blue-deep: #0a63d4;
+        --purple: #c3b9ff;
+        --purple-deep: #9f8fff;
+        --ink: #0b1526;
+        --ink-soft: #22304a;
+        --muted: #5a6b8c;
+        --muted-2: #8a97b5;
+        --bg: #fafbff;
+        --card: rgba(255, 255, 255, 0.66);
+        --card-solid: #ffffff;
+        --card-border: rgba(16, 32, 64, 0.08);
+        --radius: 18px;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+        font-size: 15px;
+        line-height: 1.62;
+      }
+      /* ambient field — same treatment as the pitch site */
+      .field { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+      .field::before, .field::after { content: ""; position: absolute; border-radius: 50%; filter: blur(90px); }
+      .field::before {
+        width: 60vw; height: 60vw;
+        background: radial-gradient(circle, rgba(195, 185, 255, 0.35), transparent 65%);
+        top: -22vw; right: -18vw;
+        animation: breathe1 18s var(--ease) infinite alternate;
+      }
+      .field::after {
+        width: 50vw; height: 50vw;
+        background: radial-gradient(circle, rgba(13, 123, 255, 0.12), transparent 65%);
+        bottom: -20vw; left: -16vw;
+        animation: breathe2 22s var(--ease) infinite alternate;
+      }
+      @keyframes breathe1 { to { transform: translate(-6vw, 8vw) scale(1.12); } }
+      @keyframes breathe2 { to { transform: translate(7vw, -6vw) scale(1.18); } }
+
+      .wrap { position: relative; z-index: 2; }
+
+      /* glass header */
+      header {
+        position: sticky; top: 0; z-index: 10;
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(18px) saturate(150%);
+        -webkit-backdrop-filter: blur(18px) saturate(150%);
+        border-bottom: 1px solid var(--card-border);
+        box-shadow: 0 10px 40px rgba(13, 123, 255, 0.06);
+        padding: 14px 28px;
+        display: flex; align-items: center;
+      }
+      .cale-logo-lockup { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+      .cale-logo-lockup img { width: 28px; height: 28px; display: block; }
+      .cale-wordmark {
+        font-family: "Sora", sans-serif;
+        font-size: 19px; font-weight: 700;
+        letter-spacing: -0.02em; color: var(--ink);
+      }
+
+      .page-body { padding: 56px 28px 80px; max-width: 780px; width: 100%; margin: 0 auto; }
+
+      .page-intro { margin-bottom: 30px; }
+      .eyebrow {
+        font-size: 12.5px; font-weight: 700; letter-spacing: 0.09em;
+        text-transform: uppercase; color: var(--blue); margin-bottom: 12px;
+      }
+      .page-intro h1 {
+        font-family: "Sora", sans-serif;
+        font-size: clamp(30px, 5vw, 42px); font-weight: 800;
+        letter-spacing: -0.03em; line-height: 1.08; color: var(--ink);
+        margin-bottom: 10px;
+      }
+      .page-intro .updated { color: var(--muted-2); font-size: 13.5px; }
+
+      .card {
+        padding: 24px 26px;
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 20px 60px rgba(13, 40, 90, 0.07);
+        margin-bottom: 18px;
+      }
+      .card h2 {
+        font-family: "Sora", sans-serif;
+        font-size: 17.5px; font-weight: 700;
+        letter-spacing: -0.01em; color: var(--ink);
+        margin-bottom: 10px;
+        display: flex; align-items: center; gap: 10px;
+      }
+      .card h2 .n {
+        width: 26px; height: 26px; flex: none; border-radius: 8px;
+        display: grid; place-items: center;
+        font-size: 13px; font-weight: 800; font-family: "Sora", sans-serif;
+        color: var(--blue-deep);
+        background: linear-gradient(135deg, rgba(13, 123, 255, 0.12), rgba(195, 185, 255, 0.3));
+        border: 1px solid rgba(13, 123, 255, 0.16);
+      }
+      .card p { color: var(--ink-soft); margin-bottom: 10px; }
+      .card p:last-child { margin-bottom: 0; }
+      .policy { padding: 34px 34px; }
+      .policy p { margin-bottom: 18px; font-size: 15.5px; line-height: 1.72; }
+      .policy p:last-child { margin-bottom: 0; }
+      .card strong { color: var(--ink); font-weight: 600; }
+      .card ul { margin: 4px 0 0; padding-left: 20px; color: var(--ink-soft); }
+      .card li { margin-bottom: 6px; }
+      .card a { color: var(--blue-deep); text-decoration: none; font-weight: 600; }
+      .card a:hover { text-decoration: underline; }
+
+      .scope-chip {
+        display: inline-block;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 12.5px; font-weight: 600;
+        color: var(--blue-deep);
+        background: rgba(13, 123, 255, 0.08);
+        border: 1px solid rgba(13, 123, 255, 0.16);
+        padding: 2px 9px; border-radius: 7px;
+      }
+
+      .footer-note { margin-top: 26px; font-size: 14.5px; }
+      .footer-note a { color: var(--blue-deep); text-decoration: none; font-weight: 600; }
+      .footer-note a:hover { text-decoration: underline; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .field::before, .field::after { animation: none; }
+      }
+      @media (max-width: 620px) {
+        header { padding: 12px 20px; }
+        .page-body { padding: 40px 20px 64px; }
+        .card { padding: 20px 20px; }
+      }
+    </style>
   </head>
   <body>
-    <main
-      style="
-        max-width: 780px;
-        margin: 36px auto;
-        padding: 20px;
-        font-size: 0.95rem;
-        line-height: 1.5;
-      "
-    >
-      <h1>Privacy Policy</h1>
-      <p>
-        This application ("Cale") connects to the Google Calendar API to
-        read student session bookings. We only request read-only access
-        (calendar.readonly) to calculate student-to-teacher ratios in real-time.
-        We do not store, save, or share any of your Google calendar data or
-        personal information on our servers, and no data is shared with third
-        parties.
-      </p>
+    <div class="field" aria-hidden="true"></div>
+
+    <div class="wrap">
+      <header>
+        <a class="cale-logo-lockup" href="index.html">
+          <img src="logo.svg" alt="Cale logo" />
+          <span class="cale-wordmark">Cale</span>
+        </a>
+      </header>
+
+      <main class="page-body">
+        <div class="page-intro">
+          <div class="eyebrow">Privacy</div>
+          <h1>Privacy Policy</h1>
+          <p class="updated">Last updated: July 12, 2026</p>
+        </div>
+
+        <div class="card policy">
+          <p>
+            <strong>Cale</strong> is a staff-scheduling tool for tutoring centers, available at
+            <strong>usecale.vercel.app</strong>. This policy explains what information Cale accesses, how it is used,
+            and the choices you have; it applies to the Cale web application and this website.
+          </p>
+          <p>
+            When you connect your Google account, Cale requests <strong>read-only</strong> access to your Google Calendar
+            using the <span class="scope-chip">calendar.readonly</span> scope. Cale reads your student session bookings
+            solely to calculate student-to-teacher ratios and staffing demand in real time, so it can generate an
+            appropriate weekly schedule. Cale requests only the access it needs, and it does not modify, create, or delete
+            any events on your calendar. Your calendar data is read on demand and used only to compute demand and build a
+            schedule: Cale does not store, copy, or retain your Google Calendar data on its servers, it does not sell your
+            data or share it with any third parties, and it does not use your Google data for advertising or for any purpose
+            other than the scheduling feature you requested. Cale's use and transfer of information received from Google APIs
+            to any other app will adhere to the
+            <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>,
+            including the Limited Use requirements.
+          </p>
+          <p>
+            Separately from Google data, staff members submit their weekly availability through a shared link, entering a
+            personal PIN, the days they can work, and their hours. This information is used only to build your center's
+            schedule and is visible to the center administrator who manages your Cale account; it is not used for advertising
+            and is not shared with third parties.
+          </p>
+          <p>
+            You can disconnect Cale from your Google account at any time within the app by opening
+            <strong>Settings</strong> (the gear icon in the top right) and pressing <strong>Disconnect</strong>; to fully remove
+            Cale's permissions, visit your
+            <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">Google Account permissions page</a>.
+            Once disconnected, Cale can no longer read your calendar. We may update this policy as Cale evolves; the
+            "last updated" date above will always reflect the current version. Questions about privacy? Contact
+            <a href="mailto:kedusmela@gmail.com">kedusmela@gmail.com</a>.
+          </p>
+        </div>
       <div
         style="
           margin-top: 18px;
