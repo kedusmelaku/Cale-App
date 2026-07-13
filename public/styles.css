@@ -360,8 +360,13 @@ body.dark header {
 /* ── Buttons ── */
 .btn-primary {
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
   padding: 9px 20px;
-  background: var(--accent);
+  background-color: var(--accent);
+  background-image: none;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   color: white;
   border: none;
   border-radius: var(--radius);
@@ -370,9 +375,26 @@ body.dark header {
   font-size: 0.85rem;
   font-weight: 600;
   transition:
-    background 0.2s,
-    filter 0.2s;
+    background-color 0.2s ease,
+    background-image 0.2s ease,
+    filter 0.2s ease;
   white-space: nowrap;
+}
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient);
+  transform: translateX(102%);
+  transform-origin: right center;
+  transition: transform 0.24s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+.btn-primary:hover:not(:disabled)::before,
+.btn-primary:focus-visible:not(:disabled)::before {
+  transform: translateX(0);
 }
 .btn-primary:disabled {
   opacity: 0.45;
@@ -380,7 +402,8 @@ body.dark header {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--gradient);
+  background-color: var(--accent);
+  background-image: none;
   filter: none;
 }
 
@@ -391,7 +414,8 @@ body.dark header {
   overflow: hidden;
   cursor: wait;
   opacity: 1;
-  background: linear-gradient(
+  background-color: var(--accent);
+  background-image: linear-gradient(
     100deg,
     var(--accent) 0%,
     #6fb2ff 50%,
@@ -3341,20 +3365,45 @@ body.tut-active .db-sub-pop {
 
 /* Build schedule button */
 .db-build-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   width: 100%;
   padding: 14px;
-  background: var(--accent);
+  background-color: var(--accent);
+  background-image: none;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   color: #fff;
   font-size: 0.95rem;
   font-weight: 700;
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background-color 0.15s ease,
+    background-image 0.15s ease;
   letter-spacing: -0.01em;
 }
+.db-build-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient);
+  transform: translateX(102%);
+  transform-origin: right center;
+  transition: transform 0.24s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+.db-build-btn:hover::before,
+.db-build-btn:focus-visible::before {
+  transform: translateX(0);
+}
 .db-build-btn:hover {
-  background: var(--accent-hover);
+  background-color: var(--accent);
+  background-image: none;
 }
 
 /* Window modal specific */
@@ -3837,7 +3886,9 @@ body.admin-page .detail-nav-link {
   text-decoration: none;
   font-weight: 500;
   margin-bottom: 2px;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 body.admin-page .detail-nav-link:hover {
   background: #eef1f6;
@@ -3985,7 +4036,9 @@ body.admin-page .detail-section > summary.detail-section-title {
   gap: 7px;
   user-select: none;
 }
-body.admin-page .detail-section > summary.detail-section-title::-webkit-details-marker {
+body.admin-page
+  .detail-section
+  > summary.detail-section-title::-webkit-details-marker {
   display: none;
 }
 body.admin-page .detail-section[open] > summary.detail-section-title {
