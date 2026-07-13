@@ -116,7 +116,7 @@
             Copy to Clipboard
           </button>
           <button class="btn-primary" id="btn-generate" onclick="generate()">
-            Generate Schedule
+            <span class="btn-label">Generate Schedule</span>
           </button>
           <button
             class="btn-gear tut-gear-intro"
@@ -1067,7 +1067,9 @@
         const eraseText = settings.demo
           ? ""
           : "\n\nThis will also erase this week's submitted employee availability (including what they entered on the availability form), so next week starts fresh.";
-        if (!confirm(`${oobText}Finish editing and return to start?${eraseText}`))
+        if (
+          !confirm(`${oobText}Finish editing and return to start?${eraseText}`)
+        )
           return false;
 
         await clearWeekSubmissions();
@@ -1145,9 +1147,7 @@
             return { on: false, allBlock: false, start: b.start, end: b.end };
           const start = Math.max(sb.start, b.start);
           const end = Math.min(sb.end, b.end);
-          const def = defaults.find(
-            (x) => x.start < b.end && x.end > b.start,
-          );
+          const def = defaults.find((x) => x.start < b.end && x.end > b.start);
           const allBlock = !!def && start === def.start && end === def.end;
           return { on: true, allBlock, start, end };
         });
@@ -1336,20 +1336,22 @@
         if (d.selected) {
           hoursHtml = op
             .map((b, i) => {
-              const es = d.edit[i] || (() => {
-                const priority = _workerPriority(name);
-                const def = clientDefaultBlocks(d.day, priority).find(
-                  (x) => x.start < b.end && x.end > b.start,
-                );
-                return def
-                  ? {
-                      on: true,
-                      allBlock: true,
-                      start: Math.max(def.start, b.start),
-                      end: Math.min(def.end, b.end),
-                    }
-                  : { on: true, allBlock: false, start: b.start, end: b.end };
-              })();
+              const es =
+                d.edit[i] ||
+                (() => {
+                  const priority = _workerPriority(name);
+                  const def = clientDefaultBlocks(d.day, priority).find(
+                    (x) => x.start < b.end && x.end > b.start,
+                  );
+                  return def
+                    ? {
+                        on: true,
+                        allBlock: true,
+                        start: Math.max(def.start, b.start),
+                        end: Math.min(def.end, b.end),
+                      }
+                    : { on: true, allBlock: false, start: b.start, end: b.end };
+                })();
               const on = multi ? es.on : true;
               const opts = blockTimeOpts(b.start, b.end);
               const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
@@ -1357,9 +1359,10 @@
               // default window for this block, clipped to it, NOT the block's
               // full open-to-close hours (that's what rangeLabel above is,
               // used for the "Morning block (...)" on/off label instead).
-              const defBlock = clientDefaultBlocks(d.day, _workerPriority(name)).find(
-                (x) => x.start < b.end && x.end > b.start,
-              );
+              const defBlock = clientDefaultBlocks(
+                d.day,
+                _workerPriority(name),
+              ).find((x) => x.start < b.end && x.end > b.start);
               const defRangeLabel = defBlock
                 ? `${minToLabel(Math.max(defBlock.start, b.start))} – ${minToLabel(Math.min(defBlock.end, b.end))}`
                 : rangeLabel;
@@ -1797,8 +1800,12 @@
           const dayOneOnOne = {};
           let count = 2 + Math.floor(Math.random() * 3); // start around 2–4
           slots.forEach((m) => {
-            const delta = Math.floor(Math.random() * (MAX_STEP * 2 + 1)) - MAX_STEP;
-            count = Math.max(MIN_STUDENTS, Math.min(MAX_STUDENTS, count + delta));
+            const delta =
+              Math.floor(Math.random() * (MAX_STEP * 2 + 1)) - MAX_STEP;
+            count = Math.max(
+              MIN_STUDENTS,
+              Math.min(MAX_STUDENTS, count + delta),
+            );
             daySlots[m] = count;
             if (count > 0 && Math.random() < 0.1) dayOneOnOne[m] = true;
           });
@@ -1931,7 +1938,8 @@
               const worker = workers.find((w) => w.name === a.name);
               const source = worker ? workerAvailDays(worker) : [];
               const avDay = source.find((x) => x.day === d.dayKey);
-              const avBlocks = avDay && avDay.selected ? avDay.blocks || [] : [];
+              const avBlocks =
+                avDay && avDay.selected ? avDay.blocks || [] : [];
               // The availability block this shift sits within (for OOB shading).
               const cover = avBlocks.find(
                 (b) => a.start < b.end && a.end > b.start,
@@ -1995,7 +2003,10 @@
         if (grid) {
           grid.classList.add("has-schedule");
           clearTimeout(_revealLockTimer);
-          _revealLockTimer = setTimeout(() => grid.classList.remove("revealing"), 3000);
+          _revealLockTimer = setTimeout(
+            () => grid.classList.remove("revealing"),
+            3000,
+          );
         }
       }
 
@@ -2012,7 +2023,8 @@
         }
         const rows = understaffedData
           .map((u) => {
-            const need = u.shortBy === 1 ? "1 more person" : `${u.shortBy} more people`;
+            const need =
+              u.shortBy === 1 ? "1 more person" : `${u.shortBy} more people`;
             return `<div class="understaffed-row">⚠ <strong>${u.dayName}</strong> ${minToLabel(u.start)}–${minToLabel(u.end)} needs ${need}</div>`;
           })
           .join("");
@@ -2107,7 +2119,8 @@
       const BLOCK_OVERLAP = 0.55; // each next bar starts 55% through the previous one's rise
       function blockDurationMs(colI) {
         return Math.round(
-          BLOCK_DURATION_FLOOR + BLOCK_DURATION_EXTRA * Math.pow(BLOCK_DURATION_RATIO, colI),
+          BLOCK_DURATION_FLOOR +
+            BLOCK_DURATION_EXTRA * Math.pow(BLOCK_DURATION_RATIO, colI),
         );
       }
 
@@ -2175,7 +2188,8 @@
                 const e = Math.min(w.end, ob.end);
                 const top = ((s - ob.start) / 30) * SLOT_H;
                 const height = ((e - s) / 30) * SLOT_H;
-                const label = w.shortBy === 1 ? "Short 1" : `Short ${w.shortBy}`;
+                const label =
+                  w.shortBy === 1 ? "Short 1" : `Short ${w.shortBy}`;
                 // Vertical text needs real room to not just overflow its
                 // box -- a single 30-min shortfall (very possible now that
                 // this is exact-slot precision, not block-shaped) is too
@@ -2201,7 +2215,10 @@
                 const dur = blockDurationMs(colI);
                 const startRel = cascadeCursor;
                 cascadeCursor += dur * BLOCK_OVERLAP;
-                const blockDelay = di * DAY_STAGGER_MS + BLOCK_START_OFFSET + Math.round(startRel);
+                const blockDelay =
+                  di * DAY_STAGGER_MS +
+                  BLOCK_START_OFFSET +
+                  Math.round(startRel);
                 if (!isEdit) {
                   maxFinishMs = Math.max(maxFinishMs, blockDelay + dur);
                 }
@@ -2272,8 +2289,12 @@
         // to land right after the very last block anywhere finishes rising
         // -- not a fixed guess, but the actual computed end of the slowest
         // day's cascade.
-        const wrapperClass = isEdit ? "timeline timeline-edit" : "timeline enter-pop";
-        const wrapperStyle = isEdit ? "" : ` style="--pop-delay:${maxFinishMs}ms;"`;
+        const wrapperClass = isEdit
+          ? "timeline timeline-edit"
+          : "timeline enter-pop";
+        const wrapperStyle = isEdit
+          ? ""
+          : ` style="--pop-delay:${maxFinishMs}ms;"`;
         return `<div class="${wrapperClass}"${wrapperStyle}>${daysHtml}</div>`;
       }
 
@@ -3387,19 +3408,23 @@
           if (tip) tip.classList.remove("show");
         }
         document.addEventListener("mouseover", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
+          const tag =
+            e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) show(tag);
         });
         document.addEventListener("mouseout", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
+          const tag =
+            e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag && !tag.contains(e.relatedTarget)) hide();
         });
         document.addEventListener("focusin", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
+          const tag =
+            e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) show(tag);
         });
         document.addEventListener("focusout", (e) => {
-          const tag = e.target.closest && e.target.closest(".info-tag, .beta-tag");
+          const tag =
+            e.target.closest && e.target.closest(".info-tag, .beta-tag");
           if (tag) hide();
         });
         window.addEventListener(
