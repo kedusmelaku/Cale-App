@@ -392,6 +392,10 @@ body.dark header {
   z-index: 0;
   pointer-events: none;
 }
+.btn-primary > * {
+  position: relative;
+  z-index: 1;
+}
 .btn-primary:hover:not(:disabled)::before,
 .btn-primary:focus-visible:not(:disabled)::before {
   transform: translateX(0);
@@ -3396,6 +3400,10 @@ body.tut-active .db-sub-pop {
   transition: transform 0.24s ease;
   z-index: 0;
   pointer-events: none;
+}
+.db-build-btn > * {
+  position: relative;
+  z-index: 1;
 }
 .db-build-btn:hover::before,
 .db-build-btn:focus-visible::before {
