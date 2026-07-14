@@ -173,34 +173,51 @@
             and the choices you have; it applies to the Cale web application and this website.
           </p>
           <p>
-            When you connect your Google account, Cale requests <strong>read-only</strong> access to your Google Calendar
-            using the <span class="scope-chip">calendar.readonly</span> scope. Cale reads your student session bookings
-            solely to calculate student-to-teacher ratios and staffing demand in real time, so it can generate an
-            appropriate weekly schedule. Cale requests only the access it needs, and it does not modify, create, or delete
-            any events on your calendar. Your calendar data is read on demand and used only to compute demand and build a
-            schedule: Cale does not store, copy, or retain your Google Calendar data on its servers, it does not sell your
-            data or share it with any third parties, and it does not use your Google data for advertising or for any purpose
-            other than the scheduling feature you requested. Cale's use and transfer of information received from Google APIs
-            to any other app will adhere to the
-            <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>,
-            including the Limited Use requirements.
+            When you connect your Google account, Cale requests
+            <strong>read-only</strong> access to your Google Calendar using the
+            <span class="scope-chip">calendar.readonly</span> scope. Cale reads
+            Google Calendar event information representing student sessions
+            solely to calculate student-to-teacher ratios and staffing demand in
+            real time, so it can generate an appropriate weekly schedule. Cale
+            requests only the access it needs, and it does not modify, create,
+            or delete any events on your calendar. Your calendar data is read on
+            demand and used only to compute demand and build a schedule: Cale
+            does not store, copy, or retain your Google Calendar data on its
+            servers, it does not sell your data or share it with third parties,
+            and it does not use your Google data for advertising or any purpose
+            other than the scheduling feature you requested. Cale's access to
+            and use of information received from Google APIs will adhere to the
+            <a
+              href="https://developers.google.com/terms/api-services-user-data-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Google API Services User Data Policy</a
+            >, including the Limited Use requirements.
           </p>
           <p>
-            Relating to Data protection, all data exchanged between your browser and Cale's servers is
-            transmitted over HTTPS using TLS encryption. Cale's backend
-            infrastructure is hosted on Vercel, which maintains
-            industry-standard security practices including encrypted connections
-            and access controls. Because Cale does not store your Google
-            Calendar data on its servers, there is no retained sensitive data to
-            protect at rest. Access to staff availability submissions is limited
-            to the center administrator authenticated to that account; no other
-            users or third parties can access it.
+            All data exchanged between your browser, Cale, and Google APIs is
+            transmitted over HTTPS using TLS encryption. Access to application
+            data is restricted through appropriate access controls and
+            authorization, and staff availability submissions are accessible
+            only to the center administrator associated with that account. Cale
+            follows the principle of least privilege by requesting only the
+            minimum Google Calendar permissions required to provide its
+            scheduling functionality. Google Calendar data is processed only in
+            memory while generating schedules and is not stored, copied, or
+            retained on Cale's servers after processing. Cale is hosted on
+            Vercel, which provides secure infrastructure and encrypted network
+            communications.
           </p>
           <p>
-            Separately from Google data, staff members submit their weekly availability through a shared link, entering a
-            personal PIN, the days they can work, and their hours. This information is used only to build your center's
-            schedule and is visible to the center administrator who manages your Cale account; it is not used for advertising
-            and is not shared with third parties.
+            Separately from Google data, staff members submit their weekly
+            availability through a shared link, entering a personal PIN, the
+            days they can work, and their hours. Staff availability PINs are
+            used only to verify staff access to the availability submission form
+            and are visible to the center administrator who manages the Cale
+            account. Information sourced from the availability form is used only
+            to build your center's schedule and is visible to the center
+            administrator; it is not used for advertising and is not shared with
+            third parties.
           </p>
           <p>
             You can disconnect Cale from your Google account at any time within the app by opening
