@@ -45,8 +45,49 @@ async function connectDB() {
 }
 
 const app = express();
+
+// ── Proxy trust ─────────────────────────────────────────────────────────────
+// This app runs behind Vercel's proxy, so the TCP peer is always Vercel, not
+// the visitor. Without this, req.ip is the proxy's address for EVERY request,
+// which would make the rate limiters below count all users as one person: a
+// single attacker would lock out every real customer at once.
+//
+// The value is 1 (trust exactly one hop), NOT `true`. `true` tells Express to
+// take the leftmost X-Forwarded-For entry as the client IP — but that header is
+// just a request header, so an attacker can send any value they like and get a
+// fresh rate-limit bucket per request, bypassing the limiter completely. With
+// 1, Express takes the entry Vercel itself appended and ignores anything the
+// client tried to prepend.
+//
+// If this app is ever moved off Vercel, or another proxy/CDN is put in front of
+// it, this number must change to match the real number of hops — see
+// https://expressjs.com/en/guide/behind-proxies.html
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// The rate limiters read and write counters in MongoDB, and they run BEFORE
+// the route handlers that would normally call connectDB(). On a cold start
+// that ordering means the store would issue a query with no connection open,
+// and mongoose would buffer it until it timed out. Gating the limited routes
+// on this keeps the connection setup in one place instead of duplicating
+// connectDB() into every limiter.
+async function ensureDB(req, res, next) {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("ensureDB:", err.message);
+    res.status(503).json({ error: "Service temporarily unavailable." });
+  }
+}
+
+const {
+  loginLimiter,
+  adminLoginLimiter,
+  pinLookupLimiter,
+} = require("./rateLimiters");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH MIDDLEWARE
@@ -125,7 +166,7 @@ app.get("/scheduler", requireAuth, (req, res) => {
 // AUTH API ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", ensureDB, loginLimiter, async (req, res) => {
   try {
     await connectDB();
     const { centerId, password } = req.body;
@@ -260,12 +301,11 @@ persist automatically — there's nothing else you need to do.</p>
 app.get("/cal-status", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const { verifyConnection } = require("./auth");
-    // A live check, not a DB-presence check -- see verifyConnection's
-    // comment in auth.js. Presence-only used to keep reporting "connected"
-    // forever after someone revoked access from their Google Account
-    // settings instead of disconnecting inside Cale.
-    const connected = await verifyConnection(req.centerId);
+    const { getAuth, loadTokensFromDB } = require("./auth");
+    await loadTokensFromDB(req.centerId);
+    const auth = getAuth();
+    const creds = auth.credentials;
+    const connected = !!(creds && (creds.access_token || creds.refresh_token));
     res.json({ connected });
   } catch {
     res.json({ connected: false });
@@ -433,7 +473,12 @@ app.put("/employees/:id", requireAuth, async (req, res) => {
     const employee = await Employee.findOneAndUpdate(
       { _id: req.params.id, centerId: req.centerId },
       updates,
-      { new: true },
+      // runValidators is required here: unlike .save(), findOneAndUpdate skips
+      // schema validators by default. Without it, Employee's 6-digit PIN check
+      // would apply when an employee is CREATED and be silently ignored every
+      // time one is EDITED — which is exactly the path a stale 4-digit PIN
+      // would come back through.
+      { new: true, runValidators: true },
     );
     if (!employee) return res.status(404).json({ error: "Employee not found." });
     res.json({ data: employee });
@@ -583,7 +628,10 @@ app.get("/availability/:centerId", (req, res) => {
 });
 
 // PIN lookup — given a PIN and centerId, returns the matching employee
-app.post("/availability/lookup", async (req, res) => {
+// PIN lookup — the most brute-forceable route in the app, and a clean oracle
+// (404 vs 200 confirms a guess). Rate limited per IP; see rateLimiters.js for
+// what that does and doesn't buy.
+app.post("/availability/lookup", ensureDB, pinLookupLimiter, async (req, res) => {
   try {
     await connectDB();
     const { pin, centerId } = req.body;
@@ -772,7 +820,7 @@ app.get("/admin", requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-app.post("/api/admin/login", async (req, res) => {
+app.post("/api/admin/login", ensureDB, adminLoginLimiter, async (req, res) => {
   try {
     const { password } = req.body;
     if (!password) return res.status(400).json({ error: "Password required." });
@@ -911,28 +959,6 @@ app.get(
       const settings = await CenterSettings.findOne({ centerId });
       const oauthDoc = await OAuthToken.findOne({ centerId });
 
-      // Live check, same reasoning as /cal-status: a token row existing in
-      // the DB doesn't mean it still works, since revoking access from
-      // Google's side (rather than disconnecting inside Cale) leaves the
-      // stored token untouched but dead. A transient Google-side error
-      // falls back to the DB-presence guess rather than flipping the admin
-      // view to "disconnected" over a blip that has nothing to do with the
-      // center's actual connection.
-      const hasStoredToken = !!(
-        oauthDoc &&
-        oauthDoc.token &&
-        (oauthDoc.token.access_token || oauthDoc.token.refresh_token)
-      );
-      let calendarConnected = false;
-      if (hasStoredToken) {
-        try {
-          const { verifyConnection } = require("./auth");
-          calendarConnected = await verifyConnection(centerId);
-        } catch {
-          calendarConnected = hasStoredToken;
-        }
-      }
-
       // Current week's Monday (same logic as the frontend uses)
       const now = new Date();
       const day = now.getDay();
@@ -967,7 +993,11 @@ app.get(
           settings: settings || null,
           tutorialCompleted: !!(settings && settings.tutorialCompleted),
           introSeen: !!(settings && settings.introSeen),
-          calendarConnected,
+          calendarConnected: !!(
+            oauthDoc &&
+            oauthDoc.token &&
+            (oauthDoc.token.access_token || oauthDoc.token.refresh_token)
+          ),
           weekOf,
           submissionCount: submissions.length,
           lastActivityAt: anyLastSub ? anyLastSub.submittedAt : null,

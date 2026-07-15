@@ -739,8 +739,8 @@
         <input
           type="text"
           id="edit-employee-pin"
-          placeholder="e.g. 1234"
-          maxlength="4"
+          placeholder="e.g. 123456"
+          maxlength="6"
           inputmode="numeric"
           pattern="[0-9]*" />
         <label class="field-label"
@@ -1205,7 +1205,7 @@
           target: ".db-add-btn",
           pos: "right",
           title: "Try Adding an Employee",
-          body: "Click <strong>+</strong> to add a new employee. Set their name and priority — a 4-digit <strong>PIN</strong> is auto-generated. Employees use that PIN to log in to the availability form. More on this form later.",
+          body: "Click <strong>+</strong> to add a new employee. Set their name and priority — a 6-digit <strong>PIN</strong> is auto-generated. Employees use that PIN to log in to the availability form. More on this form later.",
           hint: "Click the + button to open the Add Employee dialog",
           waitFor: "#modal",
         },
@@ -1601,12 +1601,12 @@
       function showTutLinkBlockedMsg() {}
 
       const DEMO_WORKERS = [
-        { _id: "demo-1", name: "Alex", priority: 2, pin: "1001" },
-        { _id: "demo-2", name: "Jordan", priority: 1, pin: "1002" },
-        { _id: "demo-3", name: "Taylor", priority: 0, pin: "1003" },
-        { _id: "demo-4", name: "Morgan", priority: 0, pin: "1004" },
-        { _id: "demo-5", name: "Casey", priority: 0, pin: "1005" },
-        { _id: "demo-6", name: "Riley", priority: 0, pin: "1006" },
+        { _id: "demo-1", name: "Alex", priority: 2, pin: "100001" },
+        { _id: "demo-2", name: "Jordan", priority: 1, pin: "100002" },
+        { _id: "demo-3", name: "Taylor", priority: 0, pin: "100003" },
+        { _id: "demo-4", name: "Morgan", priority: 0, pin: "100004" },
+        { _id: "demo-5", name: "Casey", priority: 0, pin: "100005" },
+        { _id: "demo-6", name: "Riley", priority: 0, pin: "100006" },
       ];
 
       function buildDemoSubmissions() {
@@ -2078,13 +2078,37 @@
       }
 
       // ── Add Employee Modal ─────────────────────────────────
-      // Generates a random 4-digit PIN not already used by another employee.
+      // Generates a random 6-digit PIN not already used by another employee.
+      //
+      // Uses crypto.getRandomValues, NOT Math.random. Math.random is a
+      // non-cryptographic PRNG (xorshift128+ in V8): its internal state can be
+      // recovered from a handful of observed outputs, so someone who knows a
+      // couple of PINs — their own and a colleague's, say — could potentially
+      // predict the rest. That would quietly undo the entire point of moving to
+      // 6 digits: the range would be 900,000 wide while the *effective* entropy
+      // stayed near zero for anyone who bothered to look.
+      //
+      // Range is 100000–999999 (900,000 values, no leading zeros), keeping the
+      // same shape as the old 1000–9999 generator. Rejection sampling avoids
+      // the modulo bias that `% 900000` would introduce.
       function generateUniquePin() {
         const used = new Set(workers.map((w) => w.pin).filter(Boolean));
+        const randomPin = () => {
+          const buf = new Uint32Array(1);
+          // 4294967295 is the largest Uint32. Discard draws in the final,
+          // partial bucket so every PIN is exactly equally likely.
+          const limit = Math.floor(4294967296 / 900000) * 900000;
+          let v;
+          do {
+            crypto.getRandomValues(buf);
+            v = buf[0];
+          } while (v >= limit);
+          return String(100000 + (v % 900000));
+        };
         let pin;
         let attempts = 0;
         do {
-          pin = String(Math.floor(1000 + Math.random() * 9000));
+          pin = randomPin();
           attempts++;
         } while (used.has(pin) && attempts < 50);
         return pin;
@@ -2195,7 +2219,7 @@
           .getElementById("edit-employee-pin")
           .value.trim();
         const pin = pinRaw
-          ? pinRaw.padStart(4, "0").slice(0, 4)
+          ? pinRaw.padStart(6, "0").slice(0, 6)
           : workers[editEmployeeIndex].pin || "";
         workers[editEmployeeIndex].name = name;
         workers[editEmployeeIndex].priority = editEmployeePriority;
