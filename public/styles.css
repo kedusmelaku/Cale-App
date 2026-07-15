@@ -394,7 +394,7 @@ body.dark header {
 }
 .btn-primary .btn-label {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: inline-block;
 }
 .btn-primary:hover:not(:disabled)::before,
@@ -420,13 +420,17 @@ body.dark header {
   cursor: wait;
   opacity: 1;
   background-color: var(--accent);
-  background-image: linear-gradient(
+  background-image: none;
+}
+.btn-primary.charging::before {
+  background: linear-gradient(
     100deg,
     var(--accent) 0%,
     #6fb2ff 50%,
     var(--accent) 100%
   );
   background-size: 250% 100%;
+  transform: translateX(0);
   animation: genCharging 1.1s ease-in-out infinite;
 }
 @keyframes genCharging {
