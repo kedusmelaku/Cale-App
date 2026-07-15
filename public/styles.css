@@ -392,10 +392,9 @@ body.dark header {
   z-index: 0;
   pointer-events: none;
 }
-.btn-primary .btn-label {
+.btn-primary > * {
   position: relative;
-  z-index: 2;
-  display: inline-block;
+  z-index: 1;
 }
 .btn-primary:hover:not(:disabled)::before,
 .btn-primary:focus-visible:not(:disabled)::before {
@@ -3406,10 +3405,9 @@ body.tut-active .db-sub-pop {
   z-index: 0;
   pointer-events: none;
 }
-.db-build-btn .btn-label {
+.db-build-btn > * {
   position: relative;
   z-index: 1;
-  display: inline-block;
 }
 .db-build-btn:hover::before,
 .db-build-btn:focus-visible::before {
