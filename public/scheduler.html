@@ -796,12 +796,12 @@
 
       // ── Demo ───────────────────────────────────────────────
       const DEMO_WORKERS = [
-        { _id: "demo-1", name: "Alex", priority: 2, pin: "1001" },
-        { _id: "demo-2", name: "Jordan", priority: 1, pin: "1002" },
-        { _id: "demo-3", name: "Taylor", priority: 0, pin: "1003" },
-        { _id: "demo-4", name: "Morgan", priority: 0, pin: "1004" },
-        { _id: "demo-5", name: "Casey", priority: 0, pin: "1005" },
-        { _id: "demo-6", name: "Riley", priority: 0, pin: "1006" },
+        { _id: "demo-1", name: "Alex", priority: 2, pin: "100001" },
+        { _id: "demo-2", name: "Jordan", priority: 1, pin: "100002" },
+        { _id: "demo-3", name: "Taylor", priority: 0, pin: "100003" },
+        { _id: "demo-4", name: "Morgan", priority: 0, pin: "100004" },
+        { _id: "demo-5", name: "Casey", priority: 0, pin: "100005" },
+        { _id: "demo-6", name: "Riley", priority: 0, pin: "100006" },
       ];
 
       function buildDemoAvailability() {
@@ -1287,20 +1287,13 @@
               })
             : html`<div class="av-no-submission">No submission</div>`;
 
-          setHTML(
-            section,
-            html` <div class="av-worker-header">
-                <div
-                  class="av-color"
-                  style="background:${_getWorkerColor(w.name)}"></div>
-                <span class="av-name">${w.name}</span>
-                <span
-                  class="av-priority ${trusted(PRIORITY_CLASSES[w.priority])}"
-                  >${PRIORITY_LABELS[w.priority]}</span
-                >
-              </div>
-              <div class="av-days">${daysHtml}</div>`,
-          );
+          setHTML(section, html`
+            <div class="av-worker-header">
+              <div class="av-color" style="background:${_getWorkerColor(w.name)}"></div>
+              <span class="av-name">${w.name}</span>
+              <span class="av-priority ${trusted(PRIORITY_CLASSES[w.priority])}">${PRIORITY_LABELS[w.priority]}</span>
+            </div>
+            <div class="av-days">${daysHtml}</div>`);
           list.appendChild(section);
         });
       }
@@ -1315,38 +1308,21 @@
           // own numeric config — markup we generate, not user input — so the
           // HTML one is explicitly marked trusted. The aria one is a plain
           // string and gets escaped as an attribute value like anything else.
-          setHTML(
-            section,
-            html` <div class="av-worker-header">
-                <div
-                  class="av-color"
-                  style="background:${_getWorkerColor(w.name)}"></div>
-                <span class="av-name">${w.name}</span>
-                <span
-                  class="av-priority ${trusted(PRIORITY_CLASSES[w.priority])}"
-                  >${PRIORITY_LABELS[w.priority]}</span
-                >
-                <span
-                  class="info-tag"
-                  tabindex="0"
-                  aria-label="${priorityTooltipAria(SCHED_DEFAULTS)}"
-                  >i<span class="info-tooltip"
-                    >${trusted(priorityTooltipHTML(SCHED_DEFAULTS))}</span
-                  ></span
-                >
-                <label class="av-select-all">
-                  <input
-                    type="checkbox"
-                    ${trusted(allSelected ? "checked" : "")}
-                    data-act="m-all"
-                    data-name="${w.name}" />
-                  <span>All days</span>
-                </label>
-              </div>
-              <div class="av-days">
-                ${av.map((d, di) => renderManualDayRow(w.name, d, di))}
-              </div>`,
-          );
+          setHTML(section, html`
+            <div class="av-worker-header">
+              <div class="av-color" style="background:${_getWorkerColor(w.name)}"></div>
+              <span class="av-name">${w.name}</span>
+              <span class="av-priority ${trusted(PRIORITY_CLASSES[w.priority])}">${PRIORITY_LABELS[w.priority]}</span>
+              <span class="info-tag" tabindex="0" aria-label="${priorityTooltipAria(SCHED_DEFAULTS)}">i<span class="info-tooltip">${trusted(priorityTooltipHTML(SCHED_DEFAULTS))}</span></span>
+              <label class="av-select-all">
+                <input type="checkbox" ${trusted(allSelected ? "checked" : "")}
+                  data-act="m-all" data-name="${w.name}">
+                <span>All days</span>
+              </label>
+            </div>
+            <div class="av-days">
+              ${av.map((d, di) => renderManualDayRow(w.name, d, di))}
+            </div>`);
           list.appendChild(section);
         });
       }
@@ -1360,149 +1336,92 @@
 
         let hoursHtml = "";
         if (d.selected) {
-          hoursHtml = op.map((b, i) => {
-            const es =
-              d.edit[i] ||
-              (() => {
-                const priority = _workerPriority(name);
-                const def = clientDefaultBlocks(d.day, priority).find(
-                  (x) => x.start < b.end && x.end > b.start,
-                );
-                return def
-                  ? {
-                      on: true,
-                      allBlock: true,
-                      start: Math.max(def.start, b.start),
-                      end: Math.min(def.end, b.end),
-                    }
-                  : { on: true, allBlock: false, start: b.start, end: b.end };
-              })();
-            const on = multi ? es.on : true;
-            const opts = blockTimeOpts(b.start, b.end);
-            const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
-            // The label next to "Default hours" — this priority's actual
-            // default window for this block, clipped to it, NOT the block's
-            // full open-to-close hours (that's what rangeLabel above is,
-            // used for the "Morning block (...)" on/off label instead).
-            const defBlock = clientDefaultBlocks(
-              d.day,
-              _workerPriority(name),
-            ).find((x) => x.start < b.end && x.end > b.start);
-            const defRangeLabel = defBlock
-              ? `${minToLabel(Math.max(defBlock.start, b.start))} – ${minToLabel(Math.min(defBlock.end, b.end))}`
-              : rangeLabel;
+          hoursHtml = op
+            .map((b, i) => {
+              const es =
+                d.edit[i] ||
+                (() => {
+                  const priority = _workerPriority(name);
+                  const def = clientDefaultBlocks(d.day, priority).find(
+                    (x) => x.start < b.end && x.end > b.start,
+                  );
+                  return def
+                    ? {
+                        on: true,
+                        allBlock: true,
+                        start: Math.max(def.start, b.start),
+                        end: Math.min(def.end, b.end),
+                      }
+                    : { on: true, allBlock: false, start: b.start, end: b.end };
+                })();
+              const on = multi ? es.on : true;
+              const opts = blockTimeOpts(b.start, b.end);
+              const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
+              // The label next to "Default hours" — this priority's actual
+              // default window for this block, clipped to it, NOT the block's
+              // full open-to-close hours (that's what rangeLabel above is,
+              // used for the "Morning block (...)" on/off label instead).
+              const defBlock = clientDefaultBlocks(
+                d.day,
+                _workerPriority(name),
+              ).find((x) => x.start < b.end && x.end > b.start);
+              const defRangeLabel = defBlock
+                ? `${minToLabel(Math.max(defBlock.start, b.start))} – ${minToLabel(Math.min(defBlock.end, b.end))}`
+                : rangeLabel;
 
-            // `name` is attacker-supplied and used to go straight into a JS
-            // string inside an inline handler — a hole no HTML escaping can
-            // close, since the parser decodes entities before JS parses. It
-            // now travels as a data-* attribute (escaped as an attribute
-            // value) and is read back via dataset by a delegated listener.
-            const onToggle = multi
-              ? html` <label class="av-hours-check">
-                  <input
-                    type="checkbox"
-                    ${trusted(on ? "checked" : "")}
-                    data-act="m-block-on"
-                    data-name="${name}"
-                    data-di="${di}"
-                    data-i="${i}" />
-                  <span>${blockName(b.start)} block (${rangeLabel})</span>
-                </label>`
-              : "";
+              // `name` is attacker-supplied and used to go straight into a JS
+              // string inside an inline handler — a hole no HTML escaping can
+              // close, since the parser decodes entities before JS parses. It
+              // now travels as a data-* attribute (escaped as an attribute
+              // value) and is read back via dataset by a delegated listener.
+              const onToggle = multi
+                ? html`
+              <label class="av-hours-check">
+                <input type="checkbox" ${trusted(on ? "checked" : "")}
+                  data-act="m-block-on" data-name="${name}" data-di="${di}" data-i="${i}">
+                <span>${blockName(b.start)} block (${rangeLabel})</span>
+              </label>`
+                : "";
 
-            let inner = "";
-            if (on) {
-              const fullCheck = html` <div
-                class="av-mode-toggle ${trusted(multi ? "av-sub-indent" : "")}"
-                role="group"
-                aria-label="${multi
-                  ? `${blockName(b.start)} block hours`
-                  : "Hours"}">
-                <button
-                  type="button"
-                  class="av-mode-btn ${trusted(es.allBlock ? "active" : "")}"
-                  aria-pressed="${es.allBlock ? "true" : "false"}"
-                  data-act="m-full"
-                  data-name="${name}"
-                  data-di="${di}"
-                  data-i="${i}"
-                  data-full="1">
-                  Default hours (${defRangeLabel})
-                </button>
-                <button
-                  type="button"
-                  class="av-mode-btn ${trusted(!es.allBlock ? "active" : "")}"
-                  aria-pressed="${!es.allBlock ? "true" : "false"}"
-                  data-act="m-full"
-                  data-name="${name}"
-                  data-di="${di}"
-                  data-i="${i}"
-                  data-full="0">
-                  Custom
-                </button>
-              </div>`;
-              let custom = "";
-              if (!es.allBlock) {
-                const startOpts = opts.filter((o) => o.value < b.end);
-                const endOpts = opts.filter((o) => o.value > b.start);
-                custom = html` <div
-                  class="av-time-inputs ${trusted(
-                    multi ? "av-sub-indent" : "",
-                  )}">
-                  <select
-                    aria-label="Start time"
-                    data-act="m-time"
-                    data-name="${name}"
-                    data-di="${di}"
-                    data-i="${i}"
-                    data-edge="start">
-                    ${startOpts.map(
-                      (o) =>
-                        html`<option
-                          value="${o.value}"
-                          ${trusted(o.value === es.start ? "selected" : "")}>
-                          ${o.label}
-                        </option>`,
-                    )}
-                  </select>
-                  <span>–</span>
-                  <select
-                    aria-label="End time"
-                    data-act="m-time"
-                    data-name="${name}"
-                    data-di="${di}"
-                    data-i="${i}"
-                    data-edge="end">
-                    ${endOpts.map(
-                      (o) =>
-                        html`<option
-                          value="${o.value}"
-                          ${trusted(o.value === es.end ? "selected" : "")}>
-                          ${o.label}
-                        </option>`,
-                    )}
-                  </select>
+              let inner = "";
+              if (on) {
+                const fullCheck = html`
+                <div class="av-mode-toggle ${trusted(multi ? "av-sub-indent" : "")}" role="group" aria-label="${multi ? `${blockName(b.start)} block hours` : "Hours"}">
+                  <button type="button" class="av-mode-btn ${trusted(es.allBlock ? "active" : "")}" aria-pressed="${es.allBlock ? "true" : "false"}"
+                    data-act="m-full" data-name="${name}" data-di="${di}" data-i="${i}" data-full="1">Default hours (${defRangeLabel})</button>
+                  <button type="button" class="av-mode-btn ${trusted(!es.allBlock ? "active" : "")}" aria-pressed="${!es.allBlock ? "true" : "false"}"
+                    data-act="m-full" data-name="${name}" data-di="${di}" data-i="${i}" data-full="0">Custom</button>
                 </div>`;
+                let custom = "";
+                if (!es.allBlock) {
+                  const startOpts = opts.filter((o) => o.value < b.end);
+                  const endOpts = opts.filter((o) => o.value > b.start);
+                  custom = html`
+                  <div class="av-time-inputs ${trusted(multi ? "av-sub-indent" : "")}">
+                    <select aria-label="Start time" data-act="m-time" data-name="${name}" data-di="${di}" data-i="${i}" data-edge="start">
+                      ${startOpts.map((o) => html`<option value="${o.value}" ${trusted(o.value === es.start ? "selected" : "")}>${o.label}</option>`)}
+                    </select>
+                    <span>–</span>
+                    <select aria-label="End time" data-act="m-time" data-name="${name}" data-di="${di}" data-i="${i}" data-edge="end">
+                      ${endOpts.map((o) => html`<option value="${o.value}" ${trusted(o.value === es.end ? "selected" : "")}>${o.label}</option>`)}
+                    </select>
+                  </div>`;
+                }
+                inner = html`${fullCheck}${custom}`;
               }
-              inner = html`${fullCheck}${custom}`;
-            }
-            return html`<div class="av-block-group">${onToggle}${inner}</div>`;
-          });
+              return html`<div class="av-block-group">${onToggle}${inner}</div>`;
+            });
         }
 
-        return html` <div
-          class="av-day-row ${trusted(d.selected ? "selected" : "")}">
-          <label class="av-day-check">
-            <input
-              type="checkbox"
-              ${trusted(d.selected ? "checked" : "")}
-              data-act="m-day"
-              data-name="${name}"
-              data-di="${di}" />
-            <span class="av-day-label">${SCHED.dayFull(d.day)}</span>
-          </label>
-          ${d.selected ? html`<div class="av-hours">${hoursHtml}</div>` : ""}
-        </div>`;
+        return html`
+          <div class="av-day-row ${trusted(d.selected ? "selected" : "")}">
+            <label class="av-day-check">
+              <input type="checkbox" ${trusted(d.selected ? "checked" : "")}
+                data-act="m-day" data-name="${name}" data-di="${di}">
+              <span class="av-day-label">${SCHED.dayFull(d.day)}</span>
+            </label>
+            ${d.selected ? html`<div class="av-hours">${hoursHtml}</div>` : ""}
+          </div>`;
       }
 
       function _workerPriority(name) {
@@ -1536,20 +1455,9 @@
         if (act === "m-all") toggleAllDays(name, t.checked);
         else if (act === "m-day") toggleDay(name, parseInt(di, 10), t.checked);
         else if (act === "m-block-on")
-          toggleManualBlockOn(
-            name,
-            parseInt(di, 10),
-            parseInt(i, 10),
-            t.checked,
-          );
+          toggleManualBlockOn(name, parseInt(di, 10), parseInt(i, 10), t.checked);
         else if (act === "m-time")
-          updateManualTime(
-            name,
-            parseInt(di, 10),
-            parseInt(i, 10),
-            edge,
-            t.value,
-          );
+          updateManualTime(name, parseInt(di, 10), parseInt(i, 10), edge, t.value);
       });
 
       document.addEventListener("click", (e) => {
@@ -1868,26 +1776,11 @@
         const oneOnOneTag = isOneOnOne
           ? trusted(' <span class="tooltip-tag ooo">1-on-1</span>')
           : "";
-        setHTML(
-          slotTooltip,
-          html` <div class="tooltip-time">${minToLabel(slotMin)}</div>
-            <div class="tooltip-row">
-              <span class="tooltip-label">Students</span
-              ><span class="tooltip-val">${students}${oneOnOneTag}</span>
-            </div>
-            <div class="tooltip-row">
-              <span class="tooltip-label">Needed</span
-              ><span class="tooltip-val">${needed}</span>
-            </div>
-            <div class="tooltip-row">
-              <span class="tooltip-label">Assigned</span
-              ><span class="tooltip-val"
-                >${workersHere.length > 0
-                  ? workersHere.map((w) => w.name).join(", ")
-                  : "none"}</span
-              >
-            </div>`,
-        );
+        setHTML(slotTooltip, html`
+          <div class="tooltip-time">${minToLabel(slotMin)}</div>
+          <div class="tooltip-row"><span class="tooltip-label">Students</span><span class="tooltip-val">${students}${oneOnOneTag}</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Needed</span><span class="tooltip-val">${needed}</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Assigned</span><span class="tooltip-val">${workersHere.length > 0 ? workersHere.map((w) => w.name).join(", ") : "none"}</span></div>`);
         slotTooltip.style.display = "block";
         positionTooltip(e);
       }
@@ -1997,19 +1890,9 @@
         if (payload.length === 0) return alert("No availability set.");
 
         const genBtn = document.getElementById("btn-generate");
-        const genLabel = genBtn.querySelector(".btn-label");
-        const genOrigText = (
-          genLabel ? genLabel.textContent : genBtn.textContent
-        ).trim();
-        const setGenLabel = (label) => {
-          if (genLabel) {
-            genLabel.textContent = label;
-          } else {
-            genBtn.textContent = label;
-          }
-        };
+        const genOrigText = genBtn.textContent;
         genBtn.disabled = true;
-        setGenLabel("Generating…");
+        genBtn.textContent = "Generating…";
         genBtn.classList.add("charging");
         let succeeded = false;
 
@@ -2131,7 +2014,7 @@
           // "Generating…". The release-burst animation only plays on an
           // actual successful generation, not on an early bail-out.
           genBtn.classList.remove("charging");
-          setGenLabel(genOrigText);
+          genBtn.textContent = genOrigText;
           genBtn.disabled = false;
           if (succeeded) {
             genBtn.classList.add("just-generated");
@@ -2181,12 +2064,7 @@
         const rows = understaffedData.map((u) => {
           const need =
             u.shortBy === 1 ? "1 more person" : `${u.shortBy} more people`;
-          return html`<div class="understaffed-row">
-            ⚠ <strong>${u.dayName}</strong> ${minToLabel(u.start)}–${minToLabel(
-              u.end,
-            )}
-            needs ${need}
-          </div>`;
+          return html`<div class="understaffed-row">⚠ <strong>${u.dayName}</strong> ${minToLabel(u.start)}–${minToLabel(u.end)} needs ${need}</div>`;
         });
         setHTML(box, html`${rows}`);
         box.style.display = "block";
@@ -2209,11 +2087,7 @@
         return html`${sorted.map(([name, hrs]) => {
           const color = _getWorkerColor(name);
           const label = (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + "h";
-          return html`<div class="hours-row">
-            <div class="hours-dot" style="background:${color}"></div>
-            <span class="hours-name">${name}</span
-            ><span class="hours-val">${label}</span>
-          </div>`;
+          return html`<div class="hours-row"><div class="hours-dot" style="background:${color}"></div><span class="hours-name">${name}</span><span class="hours-val">${label}</span></div>`;
         })}`;
       }
 
@@ -2226,13 +2100,7 @@
           return;
         }
         const rows = buildHoursRowsHTML(sorted);
-        setHTML(
-          el,
-          html`<div class="hours-summary">
-            <h3 class="hours-summary-title">Hours This Week</h3>
-            <div class="hours-summary-list">${rows}</div>
-          </div>`,
-        );
+        setHTML(el, html`<div class="hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`);
         el.style.display = "block";
       }
 
@@ -2317,14 +2185,13 @@
             const dateStr = day.date
               ? html` <span class="day-date">${day.date}</span>`
               : "";
-            daysHtml += html` <div
-              class="timeline-day day-enter"
-              style="--day-i:${di};">
-              <div class="timeline-day-header">${day.dayName}${dateStr}</div>
-              <div class="timeline-day-stack timeline-day-stack-empty">
-                <div class="timeline-no-students">No Students</div>
-              </div>
-            </div>`;
+            daysHtml += html`
+              <div class="timeline-day day-enter" style="--day-i:${di};">
+                <div class="timeline-day-header">${day.dayName}${dateStr}</div>
+                <div class="timeline-day-stack timeline-day-stack-empty">
+                  <div class="timeline-no-students">No Students</div>
+                </div>
+              </div>`;
             return;
           }
 
@@ -2347,21 +2214,10 @@
             // exceptions for "safe-looking" values.
             let slotLabels = bslots
               .map((min, i) => {
-                return html`<div
-                  class="timeline-line-label tooltip-sensor"
-                  style="top:${i * SLOT_H}px;"
-                  data-sensor="1"
-                  data-di="${di}"
-                  data-min="${min}">
-                  ${minToClock(min)}
-                </div>`;
+                return html`<div class="timeline-line-label tooltip-sensor" style="top:${i * SLOT_H}px;" data-sensor="1" data-di="${di}" data-min="${min}">${minToClock(min)}</div>`;
               })
               .join("");
-            slotLabels += html`<div
-              class="timeline-line-label"
-              style="top:${panelH}px;">
-              ${minToClock(ob.end)}
-            </div>`;
+            slotLabels += html`<div class="timeline-line-label" style="top:${panelH}px;">${minToClock(ob.end)}</div>`;
 
             const gridLines = bslots
               .map(() => '<div class="timeline-grid-line"></div>')
@@ -2387,14 +2243,7 @@
                 // short to hold it. Below that height, rely on the
                 // highlight itself plus the hover tooltip for the detail.
                 const showLabel = height >= 40;
-                return html`<div
-                  class="understaffed-overlay"
-                  style="top:${top}px; height:${height}px;"
-                  title="Understaffed ${minToLabel(s)}–${minToLabel(
-                    e,
-                  )}: needs ${w.shortBy} more">
-                  ${showLabel ? label : ""}
-                </div>`;
+                return html`<div class="understaffed-overlay" style="top:${top}px; height:${height}px;" title="Understaffed ${minToLabel(s)}–${minToLabel(e)}: needs ${w.shortBy} more">${showLabel ? label : ""}</div>`;
               })
               .join("");
 
@@ -2424,26 +2273,13 @@
                   ? trusted(`data-day="${di}" data-ai="${ai}"`)
                   : "";
                 const resizable = isEdit
-                  ? trusted(
-                      `<div class="resize-handle" data-nodrag="1" data-day="${di}" data-ai="${ai}"></div>`,
-                    )
+                  ? trusted(`<div class="resize-handle" data-nodrag="1" data-day="${di}" data-ai="${ai}"></div>`)
                   : "";
                 const resizableTop = isEdit
-                  ? trusted(
-                      `<div class="resize-handle-top" data-nodrag="1" data-day="${di}" data-ai="${ai}"></div>`,
-                    )
+                  ? trusted(`<div class="resize-handle-top" data-nodrag="1" data-day="${di}" data-ai="${ai}"></div>`)
                   : "";
                 const removable = isEdit
-                  ? html`<button
-                      type="button"
-                      class="remove-btn"
-                      aria-label="Remove ${a.name}'s shift on ${day.dayName}"
-                      data-nodrag="1"
-                      data-act="rm-shift"
-                      data-day="${di}"
-                      data-ai="${ai}">
-                      ✕
-                    </button>`
+                  ? html`<button type="button" class="remove-btn" aria-label="Remove ${a.name}'s shift on ${day.dayName}" data-nodrag="1" data-act="rm-shift" data-day="${di}" data-ai="${ai}">✕</button>`
                   : "";
                 const oobOverlay = isEdit
                   ? trusted(
@@ -2455,64 +2291,47 @@
                         .join(""),
                     )
                   : "";
-                return html` <div class="timeline-worker-col">
+                return html`
+                <div class="timeline-worker-col">
                   <div class="timeline-grid-lines">${trusted(gridLines)}</div>
-                  <div
-                    class="worker-block ${trusted(isEdit ? "draggable" : "")}"
+                  <div class="worker-block ${trusted(isEdit ? "draggable" : "")}"
                     style="top:${top}px; height:${height}px; background:${color}; --block-delay:${blockDelay}ms; --block-duration:${dur}ms;"
-                    title="${a.name}: ${minToLabel(a.start)}–${minToLabel(
-                      a.end,
-                    )}"
-                    ${draggable}>
+                    title="${a.name}: ${minToLabel(a.start)}–${minToLabel(a.end)}" ${draggable}>
                     ${a.name}${oobOverlay}${resizableTop}${resizable}${removable}
                   </div>
                 </div>`;
               })
               .join("");
 
-            panelsHtml += html` <div class="timeline-panel">
-              <div class="timeline-panel-head">
-                ${minToLabel(ob.start)} – ${minToLabel(ob.end)}
-              </div>
-              <div class="timeline-body">
-                <div class="timeline-slots" style="height:${panelH}px;">
-                  ${trusted(slotLabels)}
+            panelsHtml += html`
+              <div class="timeline-panel">
+                <div class="timeline-panel-head">${minToLabel(ob.start)} – ${minToLabel(ob.end)}</div>
+                <div class="timeline-body">
+                  <div class="timeline-slots" style="height:${panelH}px;">${trusted(slotLabels)}</div>
+                  <div class="timeline-workers" style="height:${panelH}px;">${trusted(understaffedOverlay)}${trusted(workerCols)}</div>
                 </div>
-                <div class="timeline-workers" style="height:${panelH}px;">
-                  ${trusted(understaffedOverlay)}${trusted(workerCols)}
-                </div>
-              </div>
-            </div>`;
+              </div>`;
 
             // Slim break divider between consecutive blocks.
             if (bi < ops.length - 1) {
               const nextStart = ops[bi + 1].start;
-              panelsHtml += html`<div class="timeline-break-divider">
-                break · ${minToClock(ob.end)}–${minToClock(nextStart)}
-              </div>`;
+              panelsHtml += html`<div class="timeline-break-divider">break · ${minToClock(ob.end)}–${minToClock(nextStart)}</div>`;
             }
           });
 
           const addBtn = isEdit
-            ? html`<button
-                class="add-shift-btn"
-                data-nodrag="1"
-                data-act="add-shift"
-                data-day="${di}">
-                + Add Employee
-              </button>`
+            ? html`<button class="add-shift-btn" data-nodrag="1" data-act="add-shift" data-day="${di}">+ Add Employee</button>`
             : "";
           const dateStr = day.date
             ? html` <span class="day-date">${day.date}</span>`
             : "";
 
-          daysHtml += html` <div
-            class="timeline-day${trusted(isEdit ? "" : " day-enter")}"
-            ${trusted(isEdit ? "" : ` style="--day-i:${di};"`)}>
-            <div class="timeline-day-header">${day.dayName}${dateStr}</div>
-            <div class="timeline-day-stack">${trusted(panelsHtml)}</div>
-            ${addBtn}
-          </div>`;
+          daysHtml += html`
+            <div class="timeline-day${trusted(isEdit ? "" : " day-enter")}"${trusted(isEdit ? "" : ` style="--day-i:${di};"`)}>
+              <div class="timeline-day-header">${day.dayName}${dateStr}</div>
+              <div class="timeline-day-stack">${trusted(panelsHtml)}</div>
+              ${addBtn}
+            </div>`;
         });
 
         // The final "settle" pop plays once, on the whole schedule, timed
@@ -2525,11 +2344,7 @@
         const wrapperStyle = isEdit
           ? ""
           : ` style="--pop-delay:${maxFinishMs}ms;"`;
-        return html`<div
-          class="${trusted(wrapperClass)}"
-          ${trusted(wrapperStyle)}>
-          ${trusted(daysHtml)}
-        </div>`;
+        return html`<div class="${trusted(wrapperClass)}"${trusted(wrapperStyle)}>${trusted(daysHtml)}</div>`;
       }
 
       // ── Edit Screen ────────────────────────────────────────
@@ -2538,10 +2353,7 @@
         let summaryHtml = "";
         if (sorted.length > 0) {
           const rows = buildHoursRowsHTML(sorted);
-          summaryHtml = html`<div class="hours-summary edit-hours-summary">
-            <h3 class="hours-summary-title">Hours This Week</h3>
-            <div class="hours-summary-list">${rows}</div>
-          </div>`;
+          summaryHtml = html`<div class="hours-summary edit-hours-summary"><h3 class="hours-summary-title">Hours This Week</h3><div class="hours-summary-list">${rows}</div></div>`;
         }
         setHTML(
           document.getElementById("edit-timeline"),
@@ -2556,10 +2368,7 @@
         const warnings = getOutOfBoundsWorkers();
         banner.style.display = warnings.length === 0 ? "none" : "block";
         if (warnings.length > 0)
-          setHTML(
-            banner,
-            html`⚠️ Scheduled outside availability: ${warnings.join(", ")}`,
-          );
+          setHTML(banner, html`⚠️ Scheduled outside availability: ${warnings.join(", ")}`);
       }
 
       // ── Delegated listeners for generated timeline markup ─────────────────
@@ -2571,11 +2380,7 @@
       document.addEventListener("mouseover", (e) => {
         const s = e.target.closest("[data-sensor]");
         if (!s) return;
-        showSlotTooltip(
-          e,
-          parseInt(s.dataset.di, 10),
-          parseInt(s.dataset.min, 10),
-        );
+        showSlotTooltip(e, parseInt(s.dataset.di, 10), parseInt(s.dataset.min, 10));
       });
       document.addEventListener("mouseout", (e) => {
         if (e.target.closest("[data-sensor]")) hideSlotTooltip();
@@ -2587,10 +2392,7 @@
       document.addEventListener("click", (e) => {
         const rm = e.target.closest('[data-act="rm-shift"]');
         if (rm) {
-          removeShift(
-            parseInt(rm.dataset.day, 10),
-            parseInt(rm.dataset.ai, 10),
-          );
+          removeShift(parseInt(rm.dataset.day, 10), parseInt(rm.dataset.ai, 10));
           return;
         }
         const add = e.target.closest('[data-act="add-shift"]');
@@ -2849,10 +2651,7 @@
 
         const workerSelect = document.getElementById("add-shift-worker");
         if (unassigned.length === 0) {
-          setHTML(
-            workerSelect,
-            trusted(`<option value="">No employees available</option>`),
-          );
+          setHTML(workerSelect, trusted(`<option value="">No employees available</option>`));
         } else {
           setHTML(
             workerSelect,
@@ -2870,11 +2669,7 @@
                     .join(", ");
               }
               const isUnavailable = !avDay || !avDay.selected;
-              return html`<option
-                value="${w.name}"
-                ${trusted(isUnavailable ? 'data-unavailable="true"' : "")}>
-                ${w.name}${avLabel}
-              </option>`;
+              return html`<option value="${w.name}" ${trusted(isUnavailable ? 'data-unavailable="true"' : "")}>${w.name}${avLabel}</option>`;
             })}`,
           );
         }
@@ -2886,12 +2681,8 @@
           });
 
         const points = dayTimePoints(dk);
-        const toOpt = (m) =>
-          html`<option value="${m}">${minToLabel(m)}</option>`;
-        setHTML(
-          document.getElementById("add-shift-start"),
-          html`${points.map(toOpt)}`,
-        );
+        const toOpt = (m) => html`<option value="${m}">${minToLabel(m)}</option>`;
+        setHTML(document.getElementById("add-shift-start"), html`${points.map(toOpt)}`);
         const endSel = document.getElementById("add-shift-end");
         setHTML(endSel, html`${points.map(toOpt)}`);
 

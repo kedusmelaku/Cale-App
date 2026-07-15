@@ -327,14 +327,24 @@
           <label class="field-label" for="pin-input">Your PIN</label>
           <div class="pin-row">
             <div class="pin-field">
+              <!--
+                type="text" + inputmode="numeric", NOT type="number".
+                maxlength is ignored on number inputs, so the old
+                maxlength="4" never actually stopped anyone typing more — and
+                a maxlength="6" here would have been just as decorative.
+                inputmode="numeric" still brings up the digit keypad on phones,
+                which is the only thing type="number" was buying us, and
+                pattern keeps it numeric. Length is now enforced for real,
+                and re-checked in lookupPin() below regardless.
+              -->
               <input
-                type="number"
+                type="text"
                 id="pin-input"
                 class="pin-input"
-                placeholder="0000"
-                maxlength="4"
-                min="0"
-                max="9999"
+                placeholder="000000"
+                maxlength="6"
+                inputmode="numeric"
+                pattern="[0-9]*"
                 autocomplete="off"
               />
             </div>
@@ -526,12 +536,12 @@
 
       // ── PIN lookup ─────────────────────────────────────────
       async function lookupPin() {
-        const pin = document.getElementById("pin-input").value.trim().padStart(4, "0");
+        const pin = document.getElementById("pin-input").value.trim().padStart(6, "0");
         const errEl = document.getElementById("pin-error");
         errEl.style.display = "none";
 
-        if (!pin || pin.length > 4) {
-          errEl.textContent = "Please enter your 4-digit PIN.";
+        if (!pin || pin.length > 6) {
+          errEl.textContent = "Please enter your 6-digit PIN.";
           errEl.style.display = "block";
           return;
         }
