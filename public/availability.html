@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Submit Availability — Cale</title>
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/safe-html.js"></script>
     <script src="/utils.js"></script>
     <style>
       /* ── Availability form page styles ── */
@@ -699,9 +700,15 @@
               const opts = blockTimeOptions(b.start, b.end);
               const rangeLabel = `${minToLabel(b.start)} – ${minToLabel(b.end)}`;
 
-              const onToggle = multi ? `
+              // Handlers are bound by delegation (see the listener block at the
+              // end of this script) using data-* attributes. Nothing that
+              // carries data goes into an inline handler: HTML-escaping cannot
+              // secure a JS context, because the parser decodes entities before
+              // the JS engine sees them.
+              const onToggle = multi ? html`
                 <label class="av-hours-check">
-                  <input type="checkbox" ${on ? "checked" : ""} onchange="toggleBlockOn('${d}',${i},this.checked)">
+                  <input type="checkbox" ${trusted(on ? "checked" : "")}
+                    data-act="block-on" data-day="${d}" data-i="${i}">
                   ${blockName(b.start)} block (${rangeLabel})
                 </label>` : "";
 
@@ -714,30 +721,30 @@
                 // default (via defaultBlocksFor/deriveBlockState above), and
                 // directly editable. Employees never see the words "default"
                 // or "priority" — that's manager-side vocabulary.
-                inner = `
-                  <div class="av-time-row ${multi ? "av-sub-indent" : ""}">
-                    <select aria-label="Start time" onchange="updateTime('${d}',${i},'start',this.value)">
-                      ${startOpts.map((o) => `<option value="${o.value}" ${o.value === bs.start ? "selected" : ""}>${o.label}</option>`).join("")}
+                inner = html`
+                  <div class="av-time-row ${trusted(multi ? "av-sub-indent" : "")}">
+                    <select aria-label="Start time" data-act="time" data-day="${d}" data-i="${i}" data-edge="start">
+                      ${startOpts.map((o) => html`<option value="${o.value}" ${trusted(o.value === bs.start ? "selected" : "")}>${o.label}</option>`)}
                     </select>
                     <span>–</span>
-                    <select aria-label="End time" onchange="updateTime('${d}',${i},'end',this.value)">
-                      ${endOpts.map((o) => `<option value="${o.value}" ${o.value === bs.end ? "selected" : ""}>${o.label}</option>`).join("")}
+                    <select aria-label="End time" data-act="time" data-day="${d}" data-i="${i}" data-edge="end">
+                      ${endOpts.map((o) => html`<option value="${o.value}" ${trusted(o.value === bs.end ? "selected" : "")}>${o.label}</option>`)}
                     </select>
                   </div>`;
               }
-              return `<div class="av-block-group">${onToggle}${inner}</div>`;
-            }).join("");
+              return html`<div class="av-block-group">${onToggle}${inner}</div>`;
+            });
           }
 
           const block = document.createElement("div");
           block.className = `av-day-block${st.selected ? " selected" : ""}`;
-          block.innerHTML = `
+          setHTML(block, html`
             <div class="av-day-top">
-              <input type="checkbox" id="day-${d}" ${st.selected ? "checked" : ""}
-                onchange="toggleDay('${d}', this.checked)" aria-label="${_sched.dayFull(d)}">
+              <input type="checkbox" id="day-${d}" ${trusted(st.selected ? "checked" : "")}
+                data-act="day" data-day="${d}" aria-label="${_sched.dayFull(d)}">
               <label class="av-day-name" for="day-${d}">${_sched.dayFull(d)}</label>
             </div>
-            ${st.selected ? `<div class="av-day-hours">${hoursHtml}</div>` : ""}`;
+            ${st.selected ? html`<div class="av-day-hours">${hoursHtml}</div>` : ""}`);
           list.appendChild(block);
         });
 
@@ -755,6 +762,31 @@
         _sched.days.forEach((d) => { ensureDayState(d).selected = checked; });
         renderDays();
       }
+
+      // ── Delegated event binding ───────────────────────────────────────────
+      // The day list is re-rendered wholesale on every change, so binding
+      // listeners to individual nodes would mean re-binding constantly. One
+      // listener on the stable container handles every generated control via
+      // data-* attributes. This is what replaced the old inline onchange=""
+      // handlers — those interpolated values into a JS context, which no
+      // escaping can make safe.
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (!t || !t.dataset || !t.closest("#day-list")) return;
+        const act = t.dataset.act;
+        if (act === "day") {
+          toggleDay(t.dataset.day, t.checked);
+        } else if (act === "block-on") {
+          toggleBlockOn(t.dataset.day, parseInt(t.dataset.i, 10), t.checked);
+        } else if (act === "time") {
+          updateTime(
+            t.dataset.day,
+            parseInt(t.dataset.i, 10),
+            t.dataset.edge,
+            t.value,
+          );
+        }
+      });
 
       function toggleDay(d, checked) {
         ensureDayState(d).selected = checked;
@@ -830,13 +862,13 @@
         }
 
         const list = document.getElementById("confirm-day-list");
-        list.innerHTML = chosen.map((c) => {
+        setHTML(list, html`${chosen.map((c) => {
           const hoursStr = c.blocks.map((b) => `${minToLabel(b.start)} – ${minToLabel(b.end)}`).join(", ");
-          return `<div class="confirm-day-row">
+          return html`<div class="confirm-day-row">
             <span class="confirm-day-name">${_sched.dayFull(c.day)}</span>
             <span class="confirm-day-hours">${hoursStr}</span>
           </div>`;
-        }).join("");
+        })}`);
 
         const btn = document.getElementById("confirm-submit-btn");
         btn.disabled = false;

@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="styles.css" />
     <!-- Tutorial styles are in styles.css -->
     <!-- Vercel Web Analytics -->
+    <script src="/safe-html.js"></script>
     <script src="/analytics.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
@@ -2021,22 +2022,38 @@
           const priClass = PRIORITY_CLASSES[w.priority];
           const card = document.createElement("div");
           card.className = "db-emp-card";
-          card.innerHTML = `
+          // w.name and w.pin are attacker-supplied (anyone with the public
+          // availability link can influence them), so they must never reach
+          // innerHTML unescaped. html`` escapes every interpolation by default.
+          setHTML(card, html`
             <div class="db-emp-stripe" style="background:${color}"></div>
             <div class="db-emp-info">
               <span class="db-emp-name">${w.name}</span>
-              <span class="db-emp-meta">${pinText} · <span class="av-priority ${priClass}">${priLabel}</span></span>
+              <span class="db-emp-meta">${pinText} · <span class="av-priority ${trusted(priClass)}">${priLabel}</span></span>
             </div>
             <div class="db-emp-actions">
-              <button class="db-emp-btn" onclick="openEditEmployeeModal(${wi})">Edit</button>
-              <button class="db-emp-btn db-emp-btn-remove" onclick="removeWorker(${wi})">✕</button>
-            </div>`;
+              <button class="db-emp-btn" data-act="emp-edit" data-wi="${wi}">Edit</button>
+              <button class="db-emp-btn db-emp-btn-remove" data-act="emp-remove" data-wi="${wi}">✕</button>
+            </div>`);
           grid.appendChild(card);
         });
         // Keep the submissions widget and status pills in sync whenever the
         // team changes (add / edit / remove), not just on full reload.
         if (typeof renderSubmissions === "function") renderSubmissions();
       }
+
+      // Delegated binding for the roster cards. The grid is re-rendered on
+      // every change, so one listener on the stable container beats re-binding
+      // per card — and it lets the generated markup carry plain data-*
+      // attributes instead of inline handlers.
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("#worker-grid [data-act]");
+        if (!btn) return;
+        const wi = parseInt(btn.dataset.wi, 10);
+        if (Number.isNaN(wi)) return;
+        if (btn.dataset.act === "emp-edit") openEditEmployeeModal(wi);
+        else if (btn.dataset.act === "emp-remove") removeWorker(wi);
+      });
 
       async function removeWorker(wi) {
         if (!confirm(`Remove ${workers[wi].name}?`)) return;
@@ -2365,12 +2382,16 @@
             return;
           }
 
-          select.innerHTML = _calendarListCache
-            .map((c) => {
+          // Calendar names come from Google and are controlled by whoever
+          // owns/shares the calendar — i.e. not necessarily this manager.
+          // Treat them as untrusted.
+          setHTML(
+            select,
+            html`${_calendarListCache.map((c) => {
               const label = c.primary ? `${c.name} (Primary)` : c.name;
-              return `<option value="${c.id}">${label}</option>`;
-            })
-            .join("");
+              return html`<option value="${c.id}">${label}</option>`;
+            })}`,
+          );
 
           // Preserve previously selected calendar if it's still present,
           // otherwise fall back to the first one in the list.
@@ -2868,15 +2889,15 @@
           (w) => !submittedIds.has(w._id?.toString()),
         );
         const list = document.getElementById("build-warning-list");
-        list.innerHTML =
+        setHTML(
+          list,
           pending.length > 0
-            ? pending
-                .map((w) => {
-                  const color = getWorkerColor(w.name);
-                  return `<li><span class="bw-stripe" style="background:${color}"></span>${w.name}</li>`;
-                })
-                .join("")
-            : "<li><em>Everyone has submitted</em></li>";
+            ? html`${pending.map((w) => {
+                const color = getWorkerColor(w.name);
+                return html`<li><span class="bw-stripe" style="background:${color}"></span>${w.name}</li>`;
+              })}`
+            : trusted("<li><em>Everyone has submitted</em></li>"),
+        );
         document.getElementById("build-warning-modal").classList.add("open");
       }
 
@@ -2991,13 +3012,21 @@
           });
           const row = document.createElement("div");
           row.className = "db-sub-row db-sub-row-done";
-          row.innerHTML = `
+          // employeeName arrives from the public submission form — untrusted.
+          setHTML(row, html`
             <span class="db-sub-order">#${s.order}</span>
             <span class="db-sub-stripe" style="background:${color}"></span>
             <span class="db-sub-name">${s.employeeName}</span>
             <button class="db-sub-view" type="button" title="View availability">View</button>
             <span class="db-sub-time">${time}</span>
-            ${settings.demo ? "" : `<button class="db-sub-remove" onclick="removeSubmission('${s._id}')" title="Remove submission">✕</button>`}`;
+            ${settings.demo ? "" : html`<button class="db-sub-remove" type="button" title="Remove submission">✕</button>`}`);
+          const rmBtn = row.querySelector(".db-sub-remove");
+          if (rmBtn) {
+            rmBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              removeSubmission(s._id);
+            });
+          }
           const viewBtn = row.querySelector(".db-sub-view");
           if (viewBtn) {
             viewBtn.addEventListener("click", (e) => {
@@ -3012,11 +3041,11 @@
           const color = getWorkerColor(w.name);
           const row = document.createElement("div");
           row.className = "db-sub-row db-sub-row-pending";
-          row.innerHTML = `
+          setHTML(row, html`
             <span class="db-sub-order">—</span>
             <span class="db-sub-stripe" style="background:${color}"></span>
             <span class="db-sub-name">${w.name}</span>
-            <span class="db-sub-time db-sub-pending">Not submitted</span>`;
+            <span class="db-sub-time db-sub-pending">Not submitted</span>`);
           list.appendChild(row);
         });
 
@@ -3068,16 +3097,15 @@
             const times = d.blocks
               .map((b) => `${subTimeLabel(b.start)}–${subTimeLabel(b.end)}`)
               .join(", ");
-            return `<div class="db-sub-pop-row"><span class="db-sub-pop-day">${DAY_LABELS[d.day] || d.day}</span><span class="db-sub-pop-time">${times}</span></div>`;
-          })
-          .join("");
+            return html`<div class="db-sub-pop-row"><span class="db-sub-pop-day">${DAY_LABELS[d.day] || d.day}</span><span class="db-sub-pop-time">${times}</span></div>`;
+          });
         const pop = document.createElement("div");
         pop.className = "db-sub-pop";
         pop.dataset.forBtn = btn.dataset.subId || "";
-        pop.innerHTML = `
+        setHTML(pop, html`
           <div class="db-sub-pop-title">${submission.employeeName}'s availability</div>
-          ${rows || `<div class="db-sub-pop-empty">No days selected</div>`}
-        `;
+          ${rows.length ? rows : html`<div class="db-sub-pop-empty">No days selected</div>`}
+        `);
         document.body.appendChild(pop);
         const r = btn.getBoundingClientRect();
         const pw = pop.offsetWidth || 200;

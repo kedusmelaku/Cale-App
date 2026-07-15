@@ -618,6 +618,7 @@
       </div>
     </div>
 
+    <script src="/safe-html.js"></script>
     <script>
       let _centers = [];
       let _editingCenterId = null;
@@ -736,24 +737,42 @@
             "<div class='admin-empty'>No centers yet. Add one to get started.</div>";
           return;
         }
-        el.innerHTML = _centers
-          .map(
-            (c) => `
-        <div class="center-card" onclick="openDetail('${esc(c.centerId)}')">
+        setHTML(
+          el,
+          html`${_centers.map(
+            (c) => html`
+        <div class="center-card" data-act="open" data-cid="${c.centerId}">
           <div>
-            <div class="center-name">${esc(c.name)}</div>
-            <div class="center-id">${esc(c.centerId)}</div>
+            <div class="center-name">${c.name}</div>
+            <div class="center-id">${c.centerId}</div>
           </div>
           <div class="card-right">
-            <button class="admin-btn-edit" onclick="event.stopPropagation(); openEditModal('${esc(c.centerId)}')">Edit</button>
-            <button class="admin-btn-delete" onclick="event.stopPropagation(); deleteCenter('${esc(c.centerId)}', '${esc(c.name)}')">Delete</button>
+            <button class="admin-btn-edit" data-act="edit" data-cid="${c.centerId}">Edit</button>
+            <button class="admin-btn-delete" data-act="delete" data-cid="${c.centerId}" data-cname="${c.name}">Delete</button>
             <span class="card-arrow">›</span>
           </div>
         </div>
       `,
-          )
-          .join("");
+          )}`,
+        );
       }
+
+      // Delegated binding for the center list. Replaces the inline onclick
+      // handlers that interpolated centerId/name straight into JS strings.
+      document.addEventListener("click", (e) => {
+        const t = e.target.closest("#centers-list [data-act]");
+        if (!t) return;
+        const act = t.dataset.act;
+        if (act === "edit") {
+          e.stopPropagation();
+          openEditModal(t.dataset.cid);
+        } else if (act === "delete") {
+          e.stopPropagation();
+          deleteCenter(t.dataset.cid, t.dataset.cname);
+        } else if (act === "open") {
+          openDetail(t.dataset.cid);
+        }
+      });
 
       // ── Detail view ───────────────────────────────────────────
       async function openDetail(centerId) {
@@ -1021,35 +1040,42 @@
         } else {
           const priorityLabel = ["Normal", "Priority", "High Priority"];
           const priorityClass = ["pri-0", "pri-1", "pri-2"];
-          empEl.innerHTML = employees
-            .sort(
-              (a, b) => b.priority - a.priority || a.name.localeCompare(b.name),
-            )
-            .map(
-              (e) => `
+          setHTML(
+            empEl,
+            html`${employees
+              .sort(
+                (a, b) => b.priority - a.priority || a.name.localeCompare(b.name),
+              )
+              .map(
+                (e) => html`
             <div class="emp-row">
-              <div class="emp-name">${esc(e.name)}</div>
-              <span class="emp-priority ${priorityClass[e.priority] || "pri-0"}">${priorityLabel[e.priority] || "Normal"}</span>
+              <div class="emp-name">${e.name}</div>
+              <span class="emp-priority ${trusted(priorityClass[e.priority] || "pri-0")}">${priorityLabel[e.priority] || "Normal"}</span>
               ${
                 e.hasPin
-                  ? `<span class="emp-pin">PIN: ${esc(e.pin)}</span>`
-                  : `<span class="emp-pin-missing">No PIN</span>`
+                  ? html`<span class="emp-pin">PIN: ${e.pin}</span>`
+                  : html`<span class="emp-pin-missing">No PIN</span>`
               }
             </div>
           `,
-            )
-            .join("");
+              )}`,
+          );
         }
       }
 
       // ── Helpers ───────────────────────────────────────────────
-      function esc(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
-      }
+      // The old local esc() lived here. It has been removed rather than fixed,
+      // for two reasons:
+      //   1. It never escaped `'`, so any single quote in a center name broke
+      //      out of the attribute it was sitting in.
+      //   2. More fundamentally, it was being used inside inline handlers like
+      //      onclick="deleteCenter('${esc(name)}')". No HTML-escaping function
+      //      can secure that position — the HTML parser decodes entities back
+      //      into real characters BEFORE the JS engine parses the attribute, so
+      //      an escaped quote becomes a live quote again.
+      // Markup is now built with html`` from /safe-html.js, which escapes every
+      // interpolation by default, and no generated markup carries an inline
+      // handler; data travels via data-* attributes read through dataset.
       function fmtDate(d) {
         return d.toLocaleDateString("en-US", {
           month: "short",
@@ -1594,21 +1620,21 @@
         return issues;
       }
 
+      // Returns a TrustedHTML fragment, so it composes inside other html``
+      // templates without being double-escaped.
       function warningsBoxHTML(schedule) {
         const issues = schedIssues(schedule);
-        const rows = issues
-          .map(
-            (x) => `<div class="sched-warn-row ${x.level}">${esc(x.msg)}</div>`,
-          )
-          .join("");
-        return `<div class="sched-warnings">${rows}</div>`;
+        const rows = issues.map(
+          (x) => html`<div class="sched-warn-row ${trusted(x.level)}">${x.msg}</div>`,
+        );
+        return html`<div class="sched-warnings">${rows}</div>`;
       }
 
       function refreshSchedWarnings() {
         const c = schedContainer();
         if (!c) return;
         const box = c.querySelector(".sched-warnings");
-        if (box) box.outerHTML = warningsBoxHTML(_sched);
+        if (box) box.outerHTML = String(warningsBoxHTML(_sched));
       }
 
       // Returns the first blocking error (or null) — used to gate saving.
@@ -1674,7 +1700,7 @@
       }
 
       function kwChipHTML(kind, i, value) {
-        return `<span class="kw-chip">${esc(value)}<button type="button" class="kw-chip-x" aria-label="Remove ${esc(value)}" onclick="removeKeyword('${kind}',${i})">×</button></span>`;
+        return html`<span class="kw-chip">${value}<button type="button" class="kw-chip-x" aria-label="Remove ${value}" data-act="kw-rm" data-kind="${kind}" data-i="${i}">×</button></span>`;
       }
 
       function toggleKwCaseSensitive(kind, checked) {
@@ -1690,15 +1716,11 @@
         if (!c || !_kw) return;
 
         const lessonChips = _kw.lessonKeywords.length
-          ? _kw.lessonKeywords
-              .map((v, i) => kwChipHTML("lesson", i, v))
-              .join("")
-          : `<span class="kw-empty">No keywords yet</span>`;
+          ? _kw.lessonKeywords.map((v, i) => kwChipHTML("lesson", i, v))
+          : html`<span class="kw-empty">No keywords yet</span>`;
         const oneOnOneChips = _kw.oneOnOneKeywords.length
-          ? _kw.oneOnOneKeywords
-              .map((v, i) => kwChipHTML("oneOnOne", i, v))
-              .join("")
-          : `<span class="kw-empty">None — one-on-ones won't be detected</span>`;
+          ? _kw.oneOnOneKeywords.map((v, i) => kwChipHTML("oneOnOne", i, v))
+          : html`<span class="kw-empty">None — one-on-ones won't be detected</span>`;
 
         const lessonHint = _kw.lessonCaseSensitive
           ? `Matching is case-sensitive — "HS" won't match "hs".`
@@ -1707,7 +1729,7 @@
           ? `Matching is case-sensitive — "1-ON-1" won't match "1-on-1".`
           : "Matching is case-insensitive.";
 
-        c.innerHTML = `
+        setHTML(c, html`
           <div class="kw-group">
             <div class="kw-group-label">Lesson keywords</div>
             <div class="admin-field-hint">
@@ -1715,19 +1737,13 @@
               (e.g. HS, MS, ES). ${lessonHint}
             </div>
             <label class="kw-case-toggle">
-              <input type="checkbox" ${_kw.lessonCaseSensitive ? "checked" : ""} onchange="toggleKwCaseSensitive('lesson',this.checked)">
+              <input type="checkbox" ${trusted(_kw.lessonCaseSensitive ? "checked" : "")} data-act="kw-case" data-kind="lesson">
               Case-sensitive
             </label>
             <div class="kw-chips">${lessonChips}</div>
             <div class="kw-add-row">
-              <input
-                type="text"
-                placeholder="Add a keyword…"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();addKeyword('lesson',this);}" />
-              <button
-                type="button"
-                class="admin-btn-edit"
-                onclick="addKeyword('lesson',this.previousElementSibling)">
+              <input type="text" placeholder="Add a keyword…" data-act="kw-input" data-kind="lesson" />
+              <button type="button" class="admin-btn-edit" data-act="kw-add" data-kind="lesson">
                 Add
               </button>
             </div>
@@ -1741,24 +1757,47 @@
               ${oneOnOneHint}
             </div>
             <label class="kw-case-toggle">
-              <input type="checkbox" ${_kw.oneOnOneCaseSensitive ? "checked" : ""} onchange="toggleKwCaseSensitive('oneOnOne',this.checked)">
+              <input type="checkbox" ${trusted(_kw.oneOnOneCaseSensitive ? "checked" : "")} data-act="kw-case" data-kind="oneOnOne">
               Case-sensitive
             </label>
             <div class="kw-chips">${oneOnOneChips}</div>
             <div class="kw-add-row">
-              <input
-                type="text"
-                placeholder="Add a keyword…"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();addKeyword('oneOnOne',this);}" />
-              <button
-                type="button"
-                class="admin-btn-edit"
-                onclick="addKeyword('oneOnOne',this.previousElementSibling)">
+              <input type="text" placeholder="Add a keyword…" data-act="kw-input" data-kind="oneOnOne" />
+              <button type="button" class="admin-btn-edit" data-act="kw-add" data-kind="oneOnOne">
                 Add
               </button>
             </div>
-          </div>`;
+          </div>`);
       }
+
+      // ── Delegated binding for the keywords editor ─────────────────────────
+      // The editor re-renders on every keystroke-committed change, so one
+      // listener per event type on document, matched by data-*.
+      document.addEventListener("click", (e) => {
+        const t = e.target.closest("[data-act]");
+        if (!t) return;
+        if (t.dataset.act === "kw-rm") {
+          removeKeyword(t.dataset.kind, parseInt(t.dataset.i, 10));
+        } else if (t.dataset.act === "kw-add") {
+          const input = t
+            .closest(".kw-add-row")
+            ?.querySelector('[data-act="kw-input"]');
+          addKeyword(t.dataset.kind, input);
+        }
+      });
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t?.dataset?.act === "kw-case") {
+          toggleKwCaseSensitive(t.dataset.kind, t.checked);
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        const t = e.target;
+        if (t?.dataset?.act === "kw-input" && e.key === "Enter") {
+          e.preventDefault();
+          addKeyword(t.dataset.kind, t);
+        }
+      });
 
       function addKeyword(kind, inputEl) {
         if (!inputEl || !_kw) return;
@@ -1898,31 +1937,29 @@
         </div>`;
 
         const v = s[_schedTab] || {};
-        const daysHTML = `<div class="sched-days-list">${SCHED_DAY_KEYS.map((dk) => {
+        const daysHTML = html`<div class="sched-days-list">${SCHED_DAY_KEYS.map((dk) => {
           const d = v[dk] || { open: false, blocks: [] };
           const blocks = d.blocks || [];
 
-          const blockRows = blocks
-            .map(
-              (b, i) => `
+          const blockRows = blocks.map(
+            (b, i) => html`
             <div class="sched-block">
-              ${blocks.length > 1 ? `<span class="sched-block-label">${i === 0 ? "Block 1" : "Block 2"}</span>` : ""}
-              <select onchange="schedSetBlockTime('${dk}',${i},'start',this.value)">${timeOptionsHTML(b.start)}</select>
+              ${blocks.length > 1 ? html`<span class="sched-block-label">${i === 0 ? "Block 1" : "Block 2"}</span>` : ""}
+              <select data-act="s-time" data-dk="${dk}" data-i="${i}" data-edge="start">${trusted(timeOptionsHTML(b.start))}</select>
               <span>–</span>
-              <select onchange="schedSetBlockTime('${dk}',${i},'end',this.value)">${timeOptionsHTML(b.end)}</select>
-              ${blocks.length > 1 ? `<button class="sched-block-rm" onclick="schedRemoveBlock('${dk}',${i})">Remove</button>` : ""}
+              <select data-act="s-time" data-dk="${dk}" data-i="${i}" data-edge="end">${trusted(timeOptionsHTML(b.end))}</select>
+              ${blocks.length > 1 ? html`<button class="sched-block-rm" data-act="s-rm-block" data-dk="${dk}" data-i="${i}">Remove</button>` : ""}
             </div>`,
-            )
-            .join("");
+          );
           const addBtn =
             d.open && blocks.length < 2
-              ? `<button class="sched-add-block" onclick="schedAddBlock('${dk}')">+ Split day</button>`
+              ? html`<button class="sched-add-block" data-act="s-add-block" data-dk="${dk}">+ Split day</button>`
               : "";
-          const checkbox = `<input type="checkbox" ${d.open ? "checked" : ""} onchange="schedToggleDay('${dk}', this.checked)">`;
-          const name = `<span class="sched-day-name">${SCHED_DAY_NAMES[dk]}</span>`;
+          const checkbox = html`<input type="checkbox" ${trusted(d.open ? "checked" : "")} data-act="s-toggle-day" data-dk="${dk}">`;
+          const name = html`<span class="sched-day-name">${SCHED_DAY_NAMES[dk]}</span>`;
 
           if (!d.open) {
-            return `
+            return html`
             <div class="sched-day-row-compact">
               ${checkbox}${name}<span class="sched-closed">Closed</span>
             </div>`;
@@ -1931,17 +1968,17 @@
           // common case, so keeping it on one line is most of the vertical
           // savings. Two-block days still need a second line for block 2.
           if (blocks.length <= 1) {
-            return `
+            return html`
             <div class="sched-day-row-compact is-open">
               ${checkbox}${name}${blockRows}${addBtn}
             </div>`;
           }
-          return `
+          return html`
           <div class="sched-day-row-compact is-open multi">
             <div class="sched-day-top">${checkbox}${name}</div>
             <div class="sched-blocks">${blockRows}${addBtn}</div>
           </div>`;
-        }).join("")}</div>`;
+        })}</div>`;
 
         // Per-priority default hours for this variant
         if (!Array.isArray(v.defaults) || v.defaults.length !== 3) {
@@ -1958,7 +1995,7 @@
         }
         const minShift = s[_schedTab].minShiftLength;
 
-        const defaultsHTML = `
+        const defaultsHTML = html`
         <div class="sched-defaults">
           <div class="sched-defaults-title">Default hours by priority level</div>
           <div class="sched-defaults-note">
@@ -1966,19 +2003,17 @@
             (after-school); weekends use each day's full hours.
           </div>
           <div class="sched-default-grid">
-          ${levelNames
-            .map(
-              (nm, i) => `
+          ${levelNames.map(
+            (nm, i) => html`
             <div class="sched-default-col">
               <span class="sched-default-name">${nm}</span>
               <div class="sched-default-times">
-                <select onchange="schedSetDefault(${i},'start',this.value)">${timeOptionsHTML(defs[i].start)}</select>
+                <select data-act="s-default" data-i="${i}" data-edge="start">${trusted(timeOptionsHTML(defs[i].start))}</select>
                 <span>–</span>
-                <select onchange="schedSetDefault(${i},'end',this.value)">${timeOptionsHTML(defs[i].end)}</select>
+                <select data-act="s-default" data-i="${i}" data-edge="end">${trusted(timeOptionsHTML(defs[i].end))}</select>
               </div>
             </div>`,
-            )
-            .join("")}
+          )}
           </div>
 
           <div class="sched-defaults-divider"></div>
@@ -1988,13 +2023,35 @@
             demand tapers off sooner than this at the edge of an operating block.
           </div>
           <div class="sched-default-row">
-            <select onchange="schedSetMinShift(this.value)">${minShiftOptionsHTML(minShift)}</select>
+            <select data-act="s-minshift">${trusted(minShiftOptionsHTML(minShift))}</select>
           </div>
         </div>`;
 
-        schedContainer().innerHTML =
-          modeHTML + tabsHTML + daysHTML + defaultsHTML + warningsBoxHTML(s);
+        setHTML(
+          schedContainer(),
+          html`${trusted(modeHTML)}${trusted(tabsHTML)}${daysHTML}${defaultsHTML}${warningsBoxHTML(s)}`,
+        );
       }
+
+      // ── Delegated binding for the schedule editor ─────────────────────────
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (!t || !t.dataset) return;
+        const { act, dk, i, edge } = t.dataset;
+        if (act === "s-toggle-day") schedToggleDay(dk, t.checked);
+        else if (act === "s-time")
+          schedSetBlockTime(dk, parseInt(i, 10), edge, t.value);
+        else if (act === "s-default")
+          schedSetDefault(parseInt(i, 10), edge, t.value);
+        else if (act === "s-minshift") schedSetMinShift(t.value);
+      });
+      document.addEventListener("click", (e) => {
+        const t = e.target.closest("[data-act]");
+        if (!t) return;
+        if (t.dataset.act === "s-add-block") schedAddBlock(t.dataset.dk);
+        else if (t.dataset.act === "s-rm-block")
+          schedRemoveBlock(t.dataset.dk, parseInt(t.dataset.i, 10));
+      });
 
       // Editor mutations (operate on _sched, then re-render where structure changes)
       function schedSetTab(tab) {
