@@ -372,7 +372,7 @@ body.dark header {
   );
   background-repeat: no-repeat;
   background-size: 220% 100%;
-  background-position: 100% 0;
+  background-position: 0% 0;
   color: white;
   border: none;
   border-radius: var(--radius);
@@ -393,7 +393,7 @@ body.dark header {
 
 .btn-primary:hover:not(:disabled),
 .btn-primary:focus-visible:not(:disabled) {
-  background-position: 0% 0;
+  background-position: 100% 0;
   filter: none;
 }
 
@@ -3370,7 +3370,7 @@ body.tut-active .db-sub-pop {
   );
   background-repeat: no-repeat;
   background-size: 220% 100%;
-  background-position: 100% 0;
+  background-position: 0% 0;
   color: #fff;
   font-size: 0.95rem;
   font-weight: 700;
@@ -3384,7 +3384,7 @@ body.tut-active .db-sub-pop {
 }
 .db-build-btn:hover,
 .db-build-btn:focus-visible {
-  background-position: 0% 0;
+  background-position: 100% 0;
 }
 
 /* Window modal specific */
