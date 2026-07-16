@@ -3996,6 +3996,46 @@ body.admin-page .dot-gray {
   background: #d1d5db;
 }
 
+/* ── List-view status badge (replaces the old Edit/Delete buttons) ── */
+body.admin-page .admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* ── One-time temp password reveal (center creation + password reset) ── */
+body.admin-page .temp-password-reveal {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+body.admin-page .temp-password-value {
+  font-family: monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #111827;
+  user-select: all;
+  word-break: break-all;
+}
+body.admin-page .temp-password-actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+body.admin-page .detail-info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 body.admin-page .detail-section {
   margin-bottom: 16px;
   background: #fff;

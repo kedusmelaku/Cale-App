@@ -158,28 +158,61 @@
       <img src="/logo.svg" alt="Cale logo" />
       <span class="cale-wordmark">Cale</span>
     </a>
-    <div class="subtitle">Manager sign-in</div>
+    <div class="subtitle" id="subtitle">Manager sign-in</div>
 
-    <label for="center-id">Center ID</label>
-    <input
-      type="text"
-      id="center-id"
-      autocomplete="username"
-      autofocus
-      placeholder="Enter Center ID"
-      style="margin-bottom: 16px;"
-    />
+    <!-- Step 1: sign in with Center ID + password (temp or permanent) -->
+    <div id="step-signin">
+      <label for="center-id">Center ID</label>
+      <input
+        type="text"
+        id="center-id"
+        autocomplete="username"
+        autofocus
+        placeholder="Enter Center ID"
+        style="margin-bottom: 16px;"
+      />
 
-    <label for="password">Password</label>
-    <input
-      type="password"
-      id="password"
-      autocomplete="current-password"
-      placeholder="Enter manager password"
-    />
-    <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        autocomplete="current-password"
+        placeholder="Enter manager password"
+      />
+      <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
 
-    <button type="button" id="submit-btn">Sign in</button>
+      <button type="button" id="submit-btn">Sign in</button>
+    </div>
+
+    <!-- Step 2: shown only when /api/login reports mustChangePassword. No
+         session cookie exists yet at this point -- see server.js's
+         /api/login -- so this screen is the ONLY thing reachable with a
+         temp password; there is nothing else to navigate to instead. -->
+    <div id="step-change" style="display: none;">
+      <div class="subtitle" style="margin-top: -20px; margin-bottom: 20px;">
+        Set a permanent password to finish signing in.
+      </div>
+
+      <label for="new-password">New password</label>
+      <input
+        type="password"
+        id="new-password"
+        autocomplete="new-password"
+        placeholder="At least 8 characters"
+        style="margin-bottom: 16px;"
+      />
+
+      <label for="confirm-password">Confirm password</label>
+      <input
+        type="password"
+        id="confirm-password"
+        autocomplete="new-password"
+        placeholder="Re-enter new password"
+      />
+      <div class="error-msg" id="change-error-msg" role="alert" aria-live="polite"></div>
+
+      <button type="button" id="change-submit-btn">Set password &amp; sign in</button>
+    </div>
   </div>
 
   <script>
@@ -187,6 +220,31 @@
     const input   = document.getElementById("password");
     const errorEl = document.getElementById("error-msg");
     const btn     = document.getElementById("submit-btn");
+
+    // Lives only in this tab's memory -- never a cookie, never persisted.
+    // It dies with the tab if the manager closes it before setting a real
+    // password, which is the point: it's single-purpose and short-lived
+    // (15 min, enforced server-side regardless of what happens here).
+    let _changeToken = null;
+
+    function showChangeStep() {
+      document.getElementById("subtitle").textContent = "Almost done";
+      document.getElementById("step-signin").style.display = "none";
+      document.getElementById("step-change").style.display = "";
+      document.getElementById("new-password").focus();
+    }
+
+    function showSigninStep(message) {
+      _changeToken = null;
+      document.getElementById("subtitle").textContent = "Manager sign-in";
+      document.getElementById("step-change").style.display = "none";
+      document.getElementById("step-signin").style.display = "";
+      document.getElementById("new-password").value = "";
+      document.getElementById("confirm-password").value = "";
+      input.value = "";
+      if (message) errorEl.textContent = message;
+      input.focus();
+    }
 
     async function attemptLogin() {
       const centerId = centerInput.value.trim();
@@ -211,11 +269,20 @@
           body: JSON.stringify({ centerId, password }),
         });
 
-        if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.mustChangePassword) {
+          // Correct temp password, but no session was issued — see
+          // server.js's /api/login. Hold the change token in memory and
+          // swap to the set-password step, same page, no navigation.
+          _changeToken = data.changeToken;
+          btn.disabled = false;
+          btn.textContent = "Sign in";
+          showChangeStep();
+        } else if (res.ok) {
           const params = new URLSearchParams(window.location.search);
           window.location.href = params.get("next") || "/";
         } else {
-          const data = await res.json().catch(() => ({}));
           errorEl.textContent = data.error || "Incorrect Center ID or password.";
           centerInput.classList.add("error-state");
           input.classList.add("error-state");
@@ -230,9 +297,72 @@
       }
     }
 
+    const changeErrorEl = document.getElementById("change-error-msg");
+    const changeBtn     = document.getElementById("change-submit-btn");
+    const newPwInput    = document.getElementById("new-password");
+    const confirmPwInput = document.getElementById("confirm-password");
+
+    async function attemptChangePassword() {
+      const newPassword = newPwInput.value;
+      const confirmPassword = confirmPwInput.value;
+      changeErrorEl.textContent = "";
+      newPwInput.classList.remove("error-state");
+      confirmPwInput.classList.remove("error-state");
+
+      if (!newPassword || newPassword.length < 8) {
+        changeErrorEl.textContent = "Password must be at least 8 characters.";
+        newPwInput.classList.add("error-state");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        changeErrorEl.textContent = "Passwords don't match.";
+        confirmPwInput.classList.add("error-state");
+        return;
+      }
+      if (!_changeToken) {
+        // Token was cleared (e.g. tab was reloaded) -- nothing to redeem.
+        showSigninStep("Please sign in again with your temporary password.");
+        return;
+      }
+
+      changeBtn.disabled = true;
+      changeBtn.textContent = "Setting password…";
+      try {
+        const res = await fetch("/api/change-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ changeToken: _changeToken, newPassword }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          const params = new URLSearchParams(window.location.search);
+          window.location.href = params.get("next") || "/";
+          return;
+        }
+        if (res.status === 401) {
+          // The 15-minute change token expired -- the temp password itself
+          // is still valid (mustChangePassword was never cleared), so the
+          // only way back in is signing in again to get a fresh token.
+          showSigninStep(data.error || "This link expired. Please sign in again.");
+          return;
+        }
+        changeErrorEl.textContent = data.error || "Something went wrong.";
+        changeBtn.disabled = false;
+        changeBtn.textContent = "Set password & sign in";
+      } catch {
+        changeErrorEl.textContent = "Could not reach the server. Please try again.";
+        changeBtn.disabled = false;
+        changeBtn.textContent = "Set password & sign in";
+      }
+    }
+
     btn.addEventListener("click", attemptLogin);
     centerInput.addEventListener("keydown", (e) => { if (e.key === "Enter") input.focus(); });
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
+
+    changeBtn.addEventListener("click", attemptChangePassword);
+    newPwInput.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmPwInput.focus(); });
+    confirmPwInput.addEventListener("keydown", (e) => { if (e.key === "Enter") attemptChangePassword(); });
   </script>
 </body>
 </html>
