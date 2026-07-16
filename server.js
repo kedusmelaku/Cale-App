@@ -84,6 +84,7 @@ async function ensureDB(req, res, next) {
 }
 
 const {
+  clearRateLimit,
   loginLimiter,
   adminLoginLimiter,
   pinLookupLimiter,
@@ -188,6 +189,11 @@ app.post("/api/login", ensureDB, loginLimiter, async (req, res) => {
       return res
         .status(401)
         .json({ error: "Incorrect Center ID or password." });
+
+    // Correct password — wipe this key's failed-attempt counter. Someone who
+    // fumbles their password twice and then gets it right shouldn't spend the
+    // next 15 minutes one mistake from a lockout.
+    clearRateLimit(loginLimiter, req);
 
     const token = jwt.sign(
       { centerId: center.centerId },
@@ -826,6 +832,12 @@ app.post("/api/admin/login", ensureDB, adminLoginLimiter, async (req, res) => {
     if (!password) return res.status(400).json({ error: "Password required." });
     const match = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
     if (!match) return res.status(401).json({ error: "Incorrect password." });
+
+    // Correct password — wipe this key's counter. This limiter is only 5 per
+    // HOUR, so without a reset here, signing in and out a few times while
+    // working on the app locks you out of your own admin panel.
+    clearRateLimit(adminLoginLimiter, req);
+
     const token = jwt.sign({ admin: true }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
