@@ -2285,18 +2285,33 @@
             signal: AbortSignal.timeout(4000),
           });
           const data = await res.json();
-          if (data.connected) {
+          // THREE states, not two — /cal-status now verifies against Google
+          // rather than just checking whether a token exists, so it can also
+          // answer "I couldn't tell" (connected: null) when Google itself is
+          // unreachable. Treating that as `false` would show a red "Not
+          // connected" banner and prompt a reconnect that can't succeed,
+          // because reconnecting requires reaching the service that's down.
+          if (data.connected === true) {
             dot.className = "cal-status-dot connected";
             text.textContent = "Connected";
             reconnectLink && (reconnectLink.style.display = "none");
             disconnectLink && (disconnectLink.style.display = "inline");
             _calConnected = true;
-          } else {
+          } else if (data.connected === false) {
             dot.className = "cal-status-dot disconnected";
             text.textContent = "Not connected";
             reconnectLink && (reconnectLink.style.display = "inline");
             disconnectLink && (disconnectLink.style.display = "none");
             _calConnected = false;
+          } else {
+            // connected === null — couldn't verify. Don't raise an alarm and
+            // don't claim it's fine. Offer reconnect anyway: it's harmless if
+            // the connection turns out to be healthy.
+            dot.className = "cal-status-dot unknown";
+            text.textContent = "Unable to verify";
+            reconnectLink && (reconnectLink.style.display = "inline");
+            disconnectLink && (disconnectLink.style.display = "inline");
+            _calConnected = null;
           }
         } catch (e) {
           dot.className = "cal-status-dot unknown";
