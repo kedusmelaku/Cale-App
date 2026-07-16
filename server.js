@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const helmet = require("helmet");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -45,6 +46,87 @@ async function connectDB() {
 }
 
 const app = express();
+
+// ── Security headers (helmet) ───────────────────────────────────────────────
+// Headers are instructions to the BROWSER: "refuse to do X". They cost nothing
+// at runtime and close off categories of attack server-side code can't reach.
+//
+// Mounted before express.static so the static pages get them too.
+//
+// A NOTE ON script-src 'unsafe-inline'
+// ------------------------------------
+// The biggest thing CSP can do about XSS is refuse to execute inline script.
+// This app can't take that today: every page carries its logic in one large
+// inline <script> (~100KB on the dashboard), there are ~119 inline onclick=
+// handlers in the static markup, and the OAuth callback page below is an inline
+// script too. Turning inline script off would blank every page.
+//
+// So 'unsafe-inline' is here deliberately, with eyes open: this CSP is NOT an
+// XSS backstop. That's an acceptable trade because XSS is already fixed at the
+// source -- public/safe-html.js escapes every interpolation by default, and no
+// generated markup carries inline handlers. CSP would have been defence in
+// depth on a bug class already closed.
+//
+// To upgrade later: move each page's inline <script> into its own .js file and
+// convert the static onclick= handlers to addEventListener (the generated ones
+// are already done). Then drop 'unsafe-inline' from scriptSrc -- nothing else
+// here needs to change.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+
+        // Same-origin scripts (/safe-html.js, /utils.js, /analytics.js,
+        // /_vercel/insights/script.js) are all covered by 'self'.
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+
+        // SEPARATE directive from scriptSrc, and helmet defaults it to 'none'.
+        // script-src-attr governs inline EVENT HANDLER ATTRIBUTES specifically,
+        // and 'unsafe-inline' on scriptSrc does not cover it. Left at helmet's
+        // default, this would silently kill all ~119 static onclick= handlers:
+        // pages would render perfectly and no button would do anything.
+        // Delete this line at the same time as the scriptSrc 'unsafe-inline' —
+        // i.e. once the static handlers become addEventListener calls.
+        scriptSrcAttr: ["'unsafe-inline'"],
+
+        // styles.css does @import url(https://fonts.googleapis.com/...), and
+        // login.html links it directly, so that origin must be allowed.
+        // 'unsafe-inline' is needed for style="" attributes -- the scheduler
+        // timeline computes style="top:...;height:..." per shift block, so it
+        // can't be dropped without rewriting layout. Style injection is a far
+        // weaker primitive than script injection, so this concession is much
+        // cheaper than the script one.
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+
+        // Google serves the font FILES from a different host than the CSS.
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+
+        imgSrc: ["'self'", "data:"], // logo.svg, login-bg.png
+        connectSrc: ["'self'"], // every fetch() targets our own API
+        objectSrc: ["'none'"], // no plugins/embeds, ever
+        frameAncestors: ["'none'"], // nobody may iframe Cale -- blocks clickjacking
+        baseUri: ["'self'"], // an injected <base> can't repoint relative URLs
+        formAction: ["'self'"], // a form can't be aimed at another origin
+        upgradeInsecureRequests: [],
+      },
+    },
+
+    // MUST be same-origin-allow-popups, NOT helmet's same-origin default.
+    //
+    // The Google Calendar flow opens a popup (window.open -> accounts.google.com)
+    // and the callback page at /oauth/callback calls
+    //   window.opener.postMessage({ type: 'oauth_success' }, '*')
+    // to tell the dashboard it worked. COOP: same-origin severs window.opener
+    // as soon as the popup goes cross-origin, so that message would never
+    // arrive: the popup opens, the manager approves access, and the dashboard
+    // just sits there -- a silent failure with nothing in the logs.
+    // same-origin-allow-popups keeps the opener link for popups this app opens
+    // itself, while still stopping other sites getting a handle on our windows.
+    // privacy.html's "Back to app" button relies on window.opener too.
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  }),
+);
 
 // ── Proxy trust ─────────────────────────────────────────────────────────────
 // This app runs behind Vercel's proxy, so the TCP peer is always Vercel, not
