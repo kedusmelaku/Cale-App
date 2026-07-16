@@ -107,10 +107,25 @@ function requireAuth(req, res, next) {
   if (token) {
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
+      // A valid signature is not enough — it must be a CENTER token.
+      //
+      // The admin session uses the same cookie name and the same signing
+      // secret, so an admin JWT verifies perfectly here. Without this check it
+      // fell straight through to next() with req.centerId === undefined, and
+      // every downstream query ran with centerId: undefined. The result was a
+      // dashboard that rendered but stayed permanently empty — and because the
+      // token really was valid, reloading never redirected to /login, so the
+      // only escape was signing out by hand.
+      //
+      // It's benign today only because centerId is `required` in every schema,
+      // so { centerId: null } matches nothing. Any future query where a missing
+      // centerId means "match everything" would turn this into a cross-tenant
+      // leak. Fail closed here instead of relying on that.
+      if (!payload.centerId) throw new Error("Not a center token");
       req.centerId = payload.centerId;
       return next();
     } catch {
-      /* invalid or expired — fall through */
+      /* invalid, expired, or an admin token — fall through */
     }
   }
   if (
@@ -570,9 +585,46 @@ app.get("/submissions", requireAuth, async (req, res) => {
 app.post("/submissions", async (req, res) => {
   try {
     await connectDB();
-    const { centerId, employeeId, employeeName, weekOf, days } = req.body;
+    const { submitToken, weekOf, days } = req.body;
 
-    if (!centerId || !employeeId || !weekOf || !days) {
+    // Identity comes from the TOKEN, never from the body.
+    //
+    // This is the whole point of the change. The body used to supply
+    // centerId, employeeId AND employeeName, all unverified, so:
+    //   - anyone with an employeeId could overwrite that employee's week
+    //   - employeeName was free text, which is how attacker-chosen markup
+    //     reached the manager's submissions list in the first place
+    // Reading all three from the signed token means the client can only
+    // choose WHAT they're available for, never WHO they are.
+    if (!submitToken) {
+      return res.status(401).json({
+        error: "Please enter your PIN again before submitting.",
+      });
+    }
+
+    let claims;
+    try {
+      claims = jwt.verify(submitToken, process.env.JWT_SECRET);
+    } catch {
+      // Covers both a tampered token and the ordinary case of the form
+      // sitting open past the 2-hour expiry.
+      return res.status(401).json({
+        error: "Your session expired. Please enter your PIN again.",
+      });
+    }
+
+    // A token minted for something else must not work here. Every token in
+    // this app is signed with the same secret, so without this check a center
+    // manager's login cookie would be accepted as a submission credential.
+    if (claims.purpose !== "availability-submit") {
+      return res.status(401).json({ error: "Invalid submission token." });
+    }
+
+    const centerId = claims.centerId;
+    const employeeId = claims.employeeId;
+    const employeeName = claims.name;
+
+    if (!weekOf || !days) {
       return res.status(400).json({ error: "Missing required fields." });
     }
 
@@ -650,7 +702,30 @@ app.post("/availability/lookup", ensureDB, pinLookupLimiter, async (req, res) =>
         .status(404)
         .json({ error: "No employee found with that PIN." });
 
+    // The PIN has now been proven. Issue a short-lived signed token carrying
+    // WHO this is, so /submissions doesn't have to take the client's word for
+    // it. Before this, the PIN guarded only the lookup: /submissions accepted
+    // whatever employeeId and employeeName were in the request body, so anyone
+    // who obtained an employeeId could overwrite that person's availability
+    // forever, under any name they liked, without ever knowing a PIN.
+    //
+    // Deliberately NOT a cookie: the employee's browser may be shared, and this
+    // is not a login. It lives in memory on the form's page and dies with the
+    // tab. 2 hours is enough to fill the form out with interruptions, and short
+    // enough that a stale token isn't a lingering credential.
+    const submitToken = jwt.sign(
+      {
+        employeeId: employee._id.toString(),
+        centerId: employee.centerId,
+        name: employee.name,
+        purpose: "availability-submit",
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "2h" },
+    );
+
     res.json({
+      submitToken,
       data: {
         _id: employee._id,
         name: employee.name,
