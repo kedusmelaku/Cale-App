@@ -395,6 +395,7 @@
     <script>
       // Day metadata + buildSchedule() come from utils.js.
       let _employee = null;
+      let _submitToken = null;
       let _weekOf = null;
       let _windowOpen = null;
       let _windowClose = null;
@@ -589,6 +590,11 @@
             return;
           }
           _employee = data.data;
+          // Proof that this PIN checked out, replayed on submit so the server
+          // doesn't have to trust the employeeId in the request body. Held in
+          // a plain variable on purpose: it dies with the tab, which is right
+          // for a form that may be filled in on a shared computer.
+          _submitToken = data.submitToken;
           showForm();
         } catch (e) {
           errEl.textContent = "Something went wrong. Please try again.";
@@ -904,9 +910,9 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              centerId: _centerId,
-              employeeId: _employee._id,
-              employeeName: _employee.name,
+              // No centerId/employeeId/employeeName — the server reads all
+              // three from the token, so they can't be forged from here.
+              submitToken: _submitToken,
               weekOf: _weekOf,
               days,
             }),
@@ -914,6 +920,27 @@
           const data = await res.json();
           closeConfirm();
           if (!res.ok) {
+            // 401 means the submit token is missing or past its 2-hour life —
+            // e.g. the form was left open over a lunch break. Showing "your
+            // session expired" next to a Submit button that will never work
+            // again is a dead end, so send them back to the PIN step, which is
+            // the one action that actually fixes it. Their filled-in
+            // availability stays in dayState, so re-entering the PIN drops
+            // them back on a form with their answers intact.
+            if (res.status === 401) {
+              _submitToken = null;
+              const pinErr = document.getElementById("pin-error");
+              pinErr.textContent =
+                data.error || "Your session expired. Please enter your PIN again.";
+              pinErr.style.display = "block";
+              document.getElementById("step-form").classList.remove("active");
+              document.getElementById("step-pin").classList.add("active");
+              document.getElementById("pin-input").value = "";
+              document.getElementById("pin-input").focus();
+              confirmBtn.disabled = false;
+              confirmBtn.textContent = "Submit →";
+              return;
+            }
             errEl.textContent = data.error || "Something went wrong. Please try again.";
             errEl.style.display = "block";
             confirmBtn.disabled = false;
