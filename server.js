@@ -190,8 +190,22 @@ function issueSessionCookie(res, centerId) {
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH MIDDLEWARE
 // Reads a signed JWT from the "token" cookie. Each serverless function
-// instance verifies it independently — no shared session store needed.
+// instance verifies the SIGNATURE independently — no shared session store.
 // Page routes redirect to /login. API routes return 401 JSON.
+//
+// A NOTE ON THE DATABASE READ BELOW
+// ---------------------------------
+// This middleware used to be pure crypto with zero I/O. It isn't anymore,
+// because freezing a center has to take effect IMMEDIATELY, and these
+// sessions are stateless 7-day JWTs: there is no session row to delete, so
+// a frozen manager's existing cookie stays cryptographically valid for up
+// to a week. The only way to revoke it is to check something authoritative
+// on each request. That's the cost freeze buys, and it's paid here.
+//
+// In practice the marginal cost is small: nearly every route behind this
+// middleware already opens a Mongo connection and queries. The exceptions
+// are the two page routes (/ and /scheduler), which now do one small
+// indexed lookup before sending a static file.
 // ─────────────────────────────────────────────────────────────────────────────
 function getTokenFromRequest(req) {
   const cookieHeader = req.headers.cookie || "";
@@ -199,39 +213,98 @@ function getTokenFromRequest(req) {
   return match ? match[1] : null;
 }
 
-function requireAuth(req, res, next) {
-  const token = getTokenFromRequest(req);
-  if (token) {
-    try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
-      // A valid signature is not enough — it must be a CENTER token.
-      //
-      // The admin session uses the same cookie name and the same signing
-      // secret, so an admin JWT verifies perfectly here. Without this check it
-      // fell straight through to next() with req.centerId === undefined, and
-      // every downstream query ran with centerId: undefined. The result was a
-      // dashboard that rendered but stayed permanently empty — and because the
-      // token really was valid, reloading never redirected to /login, so the
-      // only escape was signing out by hand.
-      //
-      // It's benign today only because centerId is `required` in every schema,
-      // so { centerId: null } matches nothing. Any future query where a missing
-      // centerId means "match everything" would turn this into a cross-tenant
-      // leak. Fail closed here instead of relying on that.
-      if (!payload.centerId) throw new Error("Not a center token");
-      req.centerId = payload.centerId;
-      return next();
-    } catch {
-      /* invalid, expired, or an admin token — fall through */
-    }
-  }
+// Clears the session cookie. Used when a frozen center's session is
+// rejected, so the browser stops replaying a cookie that will never work
+// again — otherwise every subsequent request re-does the DB lookup just to
+// be told no.
+function clearSessionCookie(res) {
+  res.setHeader(
+    "Set-Cookie",
+    "token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0",
+  );
+}
+
+function denyAuth(req, res, { frozen } = {}) {
   if (
     req.xhr ||
     (req.headers.accept && req.headers.accept.includes("application/json"))
   ) {
-    return res.status(401).json({ error: "Not authenticated." });
+    return res.status(401).json(
+      frozen
+        ? { error: "This account has been frozen.", frozen: true }
+        : { error: "Not authenticated." },
+    );
   }
-  res.redirect("/login");
+  res.redirect(frozen ? "/login?frozen=1" : "/login");
+}
+
+async function requireAuth(req, res, next) {
+  const token = getTokenFromRequest(req);
+  if (!token) return denyAuth(req, res);
+
+  let payload;
+  try {
+    payload = jwt.verify(token, process.env.JWT_SECRET);
+    // A valid signature is not enough — it must be a CENTER token.
+    //
+    // The admin session uses the same cookie name and the same signing
+    // secret, so an admin JWT verifies perfectly here. Without this check it
+    // fell straight through to next() with req.centerId === undefined, and
+    // every downstream query ran with centerId: undefined. The result was a
+    // dashboard that rendered but stayed permanently empty — and because the
+    // token really was valid, reloading never redirected to /login, so the
+    // only escape was signing out by hand.
+    //
+    // It's benign today only because centerId is `required` in every schema,
+    // so { centerId: null } matches nothing. Any future query where a missing
+    // centerId means "match everything" would turn this into a cross-tenant
+    // leak. Fail closed here instead of relying on that.
+    if (!payload.centerId) throw new Error("Not a center token");
+  } catch {
+    /* invalid, expired, or an admin token */
+    return denyAuth(req, res);
+  }
+
+  // The token is good. Now: is this center frozen right now?
+  try {
+    await connectDB();
+    const center = await Center.findOne(
+      { centerId: payload.centerId },
+      { frozen: 1 },
+    ).lean();
+
+    // The center was deleted out from under a live session.
+    if (!center) {
+      clearSessionCookie(res);
+      return denyAuth(req, res);
+    }
+
+    if (center.frozen) {
+      clearSessionCookie(res);
+      return denyAuth(req, res, { frozen: true });
+    }
+  } catch (err) {
+    // FAIL OPEN, deliberately — same reasoning as passOnStoreError in
+    // rateLimiters.js, and bought by the same outage (see the handoff's
+    // "incident worth remembering").
+    //
+    // The trade: if Mongo is unreachable, a frozen center gets through this
+    // check. But EVERY route behind this middleware reads its data from
+    // Mongo, so what they get through to is a dashboard that can't load
+    // anything — the freeze's actual purpose (the app is unusable to them)
+    // still holds incidentally. Failing closed instead would bounce every
+    // legitimate manager to /login during a transient blip, and /login
+    // needs Mongo too, so they couldn't get back in. That's the exact
+    // shape of the outage this codebase already learned from once.
+    //
+    // NOTE this makes a failure here SILENT. If freeze enforcement ever
+    // becomes load-bearing (a hostile ex-customer rather than a billing
+    // nudge), this is the line to revisit.
+    console.error("requireAuth frozen-check:", err.message);
+  }
+
+  req.centerId = payload.centerId;
+  next();
 }
 
 // Admin-only middleware — uses a separate ADMIN_PASSWORD, no centerId needed
@@ -308,6 +381,19 @@ app.post("/api/login", ensureDB, loginLimiter, async (req, res) => {
     // mustChangePassword below: they still proved they hold the credential.
     clearRateLimit(loginLimiter, req);
 
+    // Frozen: the password is correct, but this account is switched off.
+    // Checked AFTER the password so a frozen center's ID can't be used as
+    // an oracle by someone who doesn't hold the credential. The manager is
+    // told the account is frozen but never sees frozenReason — that note is
+    // admin-only (see Center.js).
+    if (center.frozen) {
+      return res.status(403).json({
+        error:
+          "This account has been frozen. Please contact support to restore access.",
+        frozen: true,
+      });
+    }
+
     // The password just checked out is a temp one the admin chose (new
     // center, or an admin-triggered reset). Do NOT issue the normal session
     // cookie — that would let them reach the dashboard on a credential only
@@ -376,11 +462,26 @@ app.post(
 
       const passwordHash = await bcrypt.hash(newPassword, 10);
       const center = await Center.findOneAndUpdate(
-        { centerId: payload.centerId },
-        { passwordHash, mustChangePassword: false },
+        // Frozen centers are excluded from the match, not checked
+        // afterwards: a change token issued moments BEFORE a freeze is
+        // still signature-valid for its full 15 minutes, and redeeming it
+        // would mint a fresh session cookie for an account that's supposed
+        // to be switched off. Filtering here closes that window atomically
+        // rather than read-then-write.
+        { centerId: payload.centerId, frozen: { $ne: true } },
+        {
+          passwordHash,
+          mustChangePassword: false,
+          passwordChangedAt: new Date(),
+        },
         { new: true },
       );
-      if (!center) return res.status(404).json({ error: "Center not found." });
+      if (!center) {
+        // Either the center is gone, or it's frozen. Don't distinguish.
+        return res.status(403).json({
+          error: "This account is not available. Please contact support.",
+        });
+      }
 
       issueSessionCookie(res, center.centerId);
       res.json({ ok: true });
@@ -1112,6 +1213,7 @@ app.get("/api/admin/centers", requireAdmin, async (req, res) => {
       centerId: c.centerId,
       name: c.name,
       mustChangePassword: !!c.mustChangePassword,
+      frozen: !!c.frozen,
       tutorialCompleted: tutByCenter.get(c.centerId) || false,
     }));
     res.json({ data });
@@ -1171,6 +1273,7 @@ app.post("/api/admin/centers", requireAdmin, async (req, res) => {
       name,
       passwordHash,
       mustChangePassword: true,
+      passwordChangedAt: new Date(),
     });
     await center.save();
 
@@ -1227,7 +1330,11 @@ app.post(
       const passwordHash = await bcrypt.hash(tempPassword, 10);
       const center = await Center.findOneAndUpdate(
         { centerId: req.params.centerId },
-        { passwordHash, mustChangePassword: true },
+        {
+          passwordHash,
+          mustChangePassword: true,
+          passwordChangedAt: new Date(),
+        },
         { new: true },
       );
       if (!center) return res.status(404).json({ error: "Center not found." });
@@ -1235,6 +1342,54 @@ app.post(
     } catch (err) {
       console.error("POST reset-password:", err.message);
       res.status(500).json({ error: "Could not reset the password." });
+    }
+  },
+);
+
+// Freeze a center: the manager can no longer sign in, and any live session
+// is rejected on its next request (see requireAuth). Reversible and
+// non-destructive — nothing is deleted, and the center's employees can
+// still submit availability, because that path is PIN-based and never goes
+// through requireAuth. Use DELETE for the permanent version.
+app.post(
+  "/api/admin/centers/:centerId/freeze",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const reason = String(req.body?.reason || "").trim().slice(0, 500);
+      const center = await Center.findOneAndUpdate(
+        { centerId: req.params.centerId },
+        { frozen: true, frozenAt: new Date(), frozenReason: reason },
+        { new: true, projection: { passwordHash: 0 } },
+      );
+      if (!center) return res.status(404).json({ error: "Center not found." });
+      res.json({ data: center });
+    } catch (err) {
+      console.error("POST freeze:", err.message);
+      res.status(500).json({ error: "Could not freeze the center." });
+    }
+  },
+);
+
+// Unfreeze. Clears the note too — it described a state that no longer
+// applies, and a stale reason on an active center is worse than none.
+app.post(
+  "/api/admin/centers/:centerId/unfreeze",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const center = await Center.findOneAndUpdate(
+        { centerId: req.params.centerId },
+        { frozen: false, frozenAt: null, frozenReason: "" },
+        { new: true, projection: { passwordHash: 0 } },
+      );
+      if (!center) return res.status(404).json({ error: "Center not found." });
+      res.json({ data: center });
+    } catch (err) {
+      console.error("POST unfreeze:", err.message);
+      res.status(500).json({ error: "Could not unfreeze the center." });
     }
   },
 );
