@@ -1609,18 +1609,27 @@
             signal: AbortSignal.timeout(4000),
           });
           const data = await res.json();
-          if (data.connected) {
+          // THREE states, not two — see the same block in dashboard.html.
+          // /cal-status verifies against Google now, so it can also answer
+          // "couldn't tell" (connected: null) when Google is unreachable.
+          if (data.connected === true) {
             dot.className = "cal-status-dot connected";
             text.textContent = "Connected";
             reconnectLink && (reconnectLink.style.display = "none");
             disconnectLink && (disconnectLink.style.display = "inline");
             _calConnected = true;
-          } else {
+          } else if (data.connected === false) {
             dot.className = "cal-status-dot disconnected";
             text.textContent = "Not connected";
             reconnectLink && (reconnectLink.style.display = "inline");
             disconnectLink && (disconnectLink.style.display = "none");
             _calConnected = false;
+          } else {
+            dot.className = "cal-status-dot unknown";
+            text.textContent = "Unable to verify";
+            reconnectLink && (reconnectLink.style.display = "inline");
+            disconnectLink && (disconnectLink.style.display = "inline");
+            _calConnected = null;
           }
         } catch (e) {
           dot.className = "cal-status-dot unknown";

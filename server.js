@@ -532,6 +532,33 @@ app.get("/oauth/start", requireAuth, (req, res) => {
 });
 
 app.get("/oauth/callback", requireAuth, async (req, res) => {
+  // ── Cross-Origin-Opener-Policy: unsafe-none, ONLY on this route ──────────
+  //
+  // helmet's app.use() above is global and unscoped, so every response --
+  // including this one -- gets `COOP: same-origin-allow-popups`. That value
+  // is correct for the DASHBOARD (the opener), but wrong for THIS page (the
+  // popup), and it silently breaks the whole connect flow.
+  //
+  // Per the COOP rules: two `same-origin-allow-popups` documents share a
+  // browsing context group only if they are same-origin AND both set it.
+  // This page is navigated to FROM accounts.google.com -- cross-origin --
+  // so it lands in a NEW browsing context group and `window.opener` is null.
+  // The script below is guarded on window.opener, so nothing is posted to
+  // the dashboard and window.close() never runs: the tab just sits on the
+  // success screen forever and the dashboard never flips to its own success
+  // state. Before helmet was added there was no COOP header at all, this
+  // page was unsafe-none, and it worked.
+  //
+  // `unsafe-none` documents CAN join the opener's group when the opener is
+  // same-origin-allow-popups -- which the dashboard is -- so this restores
+  // the link. Scoped to this route only: every other page keeps the strict
+  // header. The exposure is limited to this page, which holds no data of
+  // its own, renders a fixed success message, and immediately closes.
+  //
+  // If the connect flow ever silently stops closing the tab again, check
+  // this header first.
+  res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+
   const { code, state } = req.query;
   if (!code) return res.status(400).send("Missing code parameter from Google.");
   if (!state)
@@ -585,17 +612,50 @@ persist automatically — there's nothing else you need to do.</p>
 // ─────────────────────────────────────────────────────────────────────────────
 // CAL STATUS — used by the frontend to show connected/disconnected dot
 // ─────────────────────────────────────────────────────────────────────────────
+// Is this center's Google Calendar connection actually usable RIGHT NOW?
+//
+// This is the single source of truth for every connection indicator in the
+// app -- the settings dot, the dashboard pill, the warning banner, the
+// calendar picker, the readiness check. They all read _calConnected, which
+// comes from here, so this route's answer propagates to all of them.
+//
+// It used to answer a DIFFERENT question: "do we hold a token?"
+//     !!(creds && (creds.access_token || creds.refresh_token))
+// That is not the same thing. When someone revokes Cale's access from
+// myaccount.google.com, Google invalidates the token on their end and tells
+// us nothing -- our stored token stays byte-for-byte identical. So the
+// presence check kept answering "connected" forever after a revocation,
+// while /calendars (which makes a real call) correctly reported the
+// disconnect. That's why the calendar dropdown said "reconnect" and every
+// other indicator still claimed connected.
+//
+// verifyConnection() makes one cheap real call to Google and trusts THAT,
+// and clears the dead token so the center self-heals. It already existed in
+// auth.js, written for exactly this -- it just was never wired up here.
+//
+// THREE outcomes, not two:
+//   true  -- verified live against Google
+//   false -- verified dead (revoked, or no token at all)
+//   null  -- COULDN'T verify (Google unreachable, DB down, creds missing)
+//
+// null matters. verifyConnection deliberately THROWS rather than returning
+// false on a non-auth error, so a transient Google outage can't wipe a
+// perfectly good token. Collapsing that into `false` here would undo the
+// point: it would turn a 30-second Google hiccup into a red "Not connected"
+// banner telling the manager to reconnect -- an action that requires an
+// OAuth round-trip to the very service that's down, so it's guaranteed to
+// fail. null renders as a neutral "Unknown" instead, and raises no alarm.
 app.get("/cal-status", requireAuth, async (req, res) => {
   try {
     await connectDB();
-    const { getAuth, loadTokensFromDB } = require("./auth");
-    await loadTokensFromDB(req.centerId);
-    const auth = getAuth();
-    const creds = auth.credentials;
-    const connected = !!(creds && (creds.access_token || creds.refresh_token));
+    const { verifyConnection } = require("./auth");
+    const connected = await verifyConnection(req.centerId);
     res.json({ connected });
-  } catch {
-    res.json({ connected: false });
+  } catch (err) {
+    // Non-auth failure. We genuinely don't know -- say so rather than
+    // guessing in either direction.
+    console.error("/cal-status:", err.message);
+    res.json({ connected: null });
   }
 });
 
