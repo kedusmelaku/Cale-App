@@ -564,6 +564,14 @@
               Reset Password
             </button>
             <div id="d-info-reveal" class="temp-password-reveal" style="display: none"></div>
+            <div class="detail-info-meta">
+              <span class="detail-info-meta-label">Last changed</span>
+              <span class="detail-info-meta-val" id="d-info-pwchanged">—</span>
+            </div>
+
+            <div class="onboarding-divider"></div>
+
+            <div id="d-freeze-block"></div>
 
             <div class="onboarding-divider"></div>
 
@@ -814,10 +822,15 @@
       // At-a-glance status for the list view. Onboarding progress, not an
       // action — editing and password reset now live inside the center's
       // own detail page (Center Details section), not on this card.
+      //   red    -- frozen (checked first: it overrides everything else,
+      //             since a frozen center's onboarding state is moot)
       //   gray   -- hasn't gotten past their temp password yet
       //   yellow -- logged in, hasn't finished the tutorial
       //   green  -- fully onboarded
       function centerStatus(c) {
+        if (c.frozen) {
+          return { dotClass: "dot-red", label: "Frozen" };
+        }
         if (c.mustChangePassword) {
           return { dotClass: "dot-gray", label: "Awaiting first login" };
         }
@@ -1014,6 +1027,146 @@
         document.getElementById("d-info-centerid").value = center.centerId;
         document.getElementById("d-info-name-msg").textContent = "";
         document.getElementById("d-info-reveal").style.display = "none";
+        renderPasswordChanged(center);
+        renderFreezeBlock(center);
+      }
+
+      // Two states, rendered into the same slot.
+      //
+      // frozenReason is admin-only — it comes from the requireAdmin details
+      // endpoint and is never sent to a manager (see Center.js). It's still
+      // interpolated through html`` like everything else: it's data, and
+      // safe-html escapes data by default.
+      function renderFreezeBlock(center) {
+        const slot = document.getElementById("d-freeze-block");
+        if (center.frozen) {
+          setHTML(
+            slot,
+            html`
+        <div class="freeze-banner">
+          <div class="freeze-banner-title">
+            <span class="admin-dot dot-red"></span>This center is frozen
+          </div>
+          <div class="freeze-banner-meta">
+            Frozen ${center.frozenAt ? timeAgo(new Date(center.frozenAt)) : "—"}. The manager
+            can't sign in. Employees can still submit availability.
+          </div>
+          ${
+            center.frozenReason
+              ? html`<div class="freeze-banner-reason">
+                  <span class="freeze-reason-label">Your note</span>
+                  <span class="freeze-reason-text">${center.frozenReason}</span>
+                </div>`
+              : html`<div class="freeze-banner-reason">
+                  <span class="freeze-reason-text freeze-reason-empty">No reason recorded.</span>
+                </div>`
+          }
+        </div>
+        <button class="admin-btn-primary" id="d-unfreeze-btn">Unfreeze Center</button>
+      `,
+          );
+          slot.querySelector("#d-unfreeze-btn").addEventListener("click", unfreezeCenter);
+          return;
+        }
+
+        setHTML(
+          slot,
+          html`
+      <div class="admin-field-hint" style="margin-bottom: 10px">
+        Freezing blocks the manager from signing in and ends any session
+        they currently have. Employees can still submit availability, and
+        nothing is deleted — this is reversible.
+      </div>
+      <div class="admin-field">
+        <label for="d-freeze-reason">Reason (only you see this)</label>
+        <textarea id="d-freeze-reason" rows="2" placeholder="e.g. Invoice 60 days overdue — emailed 3/14"></textarea>
+      </div>
+      <button class="admin-btn-delete" id="d-freeze-btn">Freeze Center</button>
+      <span class="sched-save-msg" id="d-freeze-msg"></span>
+    `,
+        );
+        slot.querySelector("#d-freeze-btn").addEventListener("click", freezeCenter);
+      }
+
+      async function freezeCenter() {
+        if (!_detailCenterId) return;
+        const center = _centers.find((c) => c.centerId === _detailCenterId);
+        const name = center ? center.name : _detailCenterId;
+        const reason = document.getElementById("d-freeze-reason").value.trim();
+        if (
+          !confirm(
+            `Freeze "${name}"?\n\nThe manager will be signed out immediately and won't be able to sign back in. Employees can still submit availability. You can undo this at any time.`,
+          )
+        )
+          return;
+        const msgEl = document.getElementById("d-freeze-msg");
+        msgEl.textContent = "";
+        try {
+          const res = await fetch(
+            `/api/admin/centers/${_detailCenterId}/freeze`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reason }),
+            },
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            msgEl.textContent = data.error || "Could not freeze the center.";
+            return;
+          }
+          renderFreezeBlock(data.data);
+          await loadCenters(); // list status flips to red "Frozen"
+        } catch {
+          msgEl.textContent = "Something went wrong.";
+        }
+      }
+
+      async function unfreezeCenter() {
+        if (!_detailCenterId) return;
+        const center = _centers.find((c) => c.centerId === _detailCenterId);
+        const name = center ? center.name : _detailCenterId;
+        if (
+          !confirm(
+            `Unfreeze "${name}"?\n\nThey'll be able to sign in again with their existing password. Your note will be cleared.`,
+          )
+        )
+          return;
+        try {
+          const res = await fetch(
+            `/api/admin/centers/${_detailCenterId}/unfreeze`,
+            { method: "POST" },
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            alert(data.error || "Could not unfreeze the center.");
+            return;
+          }
+          renderFreezeBlock(data.data);
+          await loadCenters();
+        } catch {
+          alert("Something went wrong.");
+        }
+      }
+
+      // One timestamp, two meanings — mustChangePassword is what
+      // disambiguates them. If it's still set, the last write was an admin
+      // generating a temp password that nobody has redeemed yet; if it's
+      // clear, the last write was the manager choosing their own.
+      function renderPasswordChanged(center) {
+        const el = document.getElementById("d-info-pwchanged");
+        if (!center.passwordChangedAt) {
+          // Predates the field. We can't know, so don't guess.
+          el.textContent = "Unknown";
+          el.title = "This center's password predates change tracking";
+          return;
+        }
+        const when = new Date(center.passwordChangedAt);
+        const who = center.mustChangePassword
+          ? "temporary password generated"
+          : "set by manager";
+        el.textContent = `${timeAgo(when)} — ${who}`;
+        el.title = fmtDate(when);
       }
 
       async function saveDetailName() {
@@ -1099,6 +1252,13 @@
             document.getElementById("d-info-reveal"),
             data.data.tempPassword,
           );
+          // Update the metric in place rather than reloading the detail
+          // view -- openDetail() would re-render this section and destroy
+          // the reveal panel above, taking the one-time password with it.
+          renderPasswordChanged({
+            passwordChangedAt: new Date().toISOString(),
+            mustChangePassword: true,
+          });
           await loadCenters(); // status flips to "Awaiting first login"
         } catch {
           alert("Something went wrong.");

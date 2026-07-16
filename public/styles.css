@@ -4036,6 +4036,81 @@ body.admin-page .detail-info-row {
   margin-top: 4px;
 }
 
+body.admin-page .detail-info-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.8125rem;
+}
+body.admin-page .detail-info-meta-label {
+  color: #6b7280;
+  font-weight: 600;
+}
+body.admin-page .detail-info-meta-val {
+  color: #111827;
+}
+
+/* ── Freeze ── */
+body.admin-page .freeze-banner {
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+body.admin-page .freeze-banner-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #991b1b;
+  display: flex;
+  align-items: center;
+}
+body.admin-page .freeze-banner-meta {
+  font-size: 0.8125rem;
+  color: #7f1d1d;
+  margin-top: 4px;
+}
+body.admin-page .freeze-banner-reason {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #fecaca;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+body.admin-page .freeze-reason-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b91c1c;
+}
+body.admin-page .freeze-reason-text {
+  font-size: 0.8125rem;
+  color: #450a0a;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+body.admin-page .freeze-reason-empty {
+  color: #b91c1c;
+  font-style: italic;
+}
+body.admin-page #d-freeze-reason {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  resize: vertical;
+  color: #111827;
+}
+body.admin-page #d-freeze-reason:focus {
+  outline: none;
+  border-color: #0d7bff;
+}
+
 body.admin-page .detail-section {
   margin-bottom: 16px;
   background: #fff;
