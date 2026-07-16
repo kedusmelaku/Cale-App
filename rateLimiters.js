@@ -55,6 +55,14 @@ const LIMITS = {
   // which is why it's 6 digits and generated with a CSPRNG (see
   // dashboard.html's generateUniquePin and migrate-pins.js).
   pinLookup: { windowMs: 10 * MINUTE, max: 10 },
+
+  // Change-password. Reached either right after login (holding a valid
+  // change-password token) or from the dashboard. It isn't a credential
+  // oracle the way login/PIN are -- the token itself isn't guessable -- but
+  // it's still an unauthenticated-by-cookie endpoint an attacker could hit
+  // if they somehow obtained a token, so it gets the same speed-bump
+  // treatment as the others.
+  changePassword: { windowMs: 15 * MINUTE, max: 8 },
 };
 
 // ── Mongo-backed store ──────────────────────────────────────────────────────
@@ -219,6 +227,14 @@ const pinLookupLimiter = build(
   "Too many attempts. Please wait a few minutes, then check your PIN with your manager.",
 );
 
+// Keyed on IP alone: at this point the caller only holds an opaque token,
+// not a centerId we can trust from the body without first verifying it.
+const changePasswordLimiter = build(
+  LIMITS.changePassword,
+  ipKey("change-password"),
+  "Too many attempts. Please wait 15 minutes and try again.",
+);
+
 // ── Clearing a counter after a successful sign-in ───────────────────────────
 // Call this from a route once the credential has actually checked out. It
 // wipes the counter rather than refunding a single request, which is the
@@ -249,4 +265,5 @@ module.exports = {
   loginLimiter,
   adminLoginLimiter,
   pinLookupLimiter,
+  changePasswordLimiter,
 };

@@ -392,6 +392,7 @@
           <a class="detail-nav-link" href="#detail-team" onclick="return detailNavClick(event,'#detail-team')">Team</a>
           <a class="detail-nav-link" href="#detail-schedule" onclick="return detailNavClick(event,'#detail-schedule')">Hours &amp; Schedule</a>
           <a class="detail-nav-link" href="#detail-keywords" onclick="return detailNavClick(event,'#detail-keywords')">Calendar Keywords</a>
+          <a class="detail-nav-link" href="#detail-info" onclick="return detailNavClick(event,'#detail-info')">Center Details</a>
         </nav>
         <div class="detail-content">
         <div class="detail-toprow">
@@ -404,10 +405,6 @@
             </button>
             <div class="detail-name" id="d-name">—</div>
             <div class="detail-id" id="d-id">—</div>
-          </div>
-          <div class="detail-actions">
-            <button class="admin-btn-edit" id="d-edit-btn">Edit</button>
-            <button class="admin-btn-delete" id="d-delete-btn">Delete</button>
           </div>
         </div>
 
@@ -528,6 +525,57 @@
             </div>
           </div>
         </details>
+
+        <!-- Center details: name, id, password reset, delete -->
+        <details class="detail-section" id="detail-info">
+          <summary class="detail-section-title">
+            <span class="detail-section-chevron">▸</span>Center Details
+          </summary>
+          <div class="detail-section-body">
+            <div class="admin-field">
+              <label for="d-info-name">Display Name</label>
+              <input type="text" id="d-info-name" autocomplete="off" />
+            </div>
+            <div class="admin-field">
+              <label for="d-info-centerid">Center ID</label>
+              <input type="text" id="d-info-centerid" disabled />
+              <div class="admin-field-hint">
+                This is what managers type at login. Changing it isn't
+                supported yet — it touches every other record tied to this
+                center.
+              </div>
+            </div>
+            <div class="detail-info-row">
+              <button class="admin-btn-primary" onclick="saveDetailName()">
+                Save Name
+              </button>
+              <span class="sched-save-msg" id="d-info-name-msg"></span>
+            </div>
+
+            <div class="onboarding-divider"></div>
+
+            <div class="admin-field-hint" style="margin-bottom: 10px">
+              Generates a new temporary password and immediately invalidates
+              the current one. The manager will be asked to set their own
+              password the next time they sign in — use this for onboarding
+              a new center or if a manager forgets their password.
+            </div>
+            <button class="admin-btn-edit" onclick="resetDetailPassword()">
+              Reset Password
+            </button>
+            <div id="d-info-reveal" class="temp-password-reveal" style="display: none"></div>
+
+            <div class="onboarding-divider"></div>
+
+            <div class="admin-field-hint" style="margin-bottom: 10px">
+              Permanently deletes this center and all its employees,
+              submissions, and settings. This cannot be undone.
+            </div>
+            <button class="admin-btn-delete" onclick="deleteCenterFromDetail()">
+              Delete Center
+            </button>
+          </div>
+        </details>
         </div>
       </div>
     </div>
@@ -561,16 +609,9 @@
               placeholder="e.g. Arlington Heights Mathnasium"
               autocomplete="off" />
           </div>
-          <div class="admin-field">
-            <label for="m-password">Password</label>
-            <input
-              type="password"
-              id="m-password"
-              placeholder="Manager password for this center"
-              autocomplete="new-password" />
-            <div class="admin-field-hint" id="m-password-hint">
-              Leave blank to keep the existing password.
-            </div>
+          <div class="admin-field-hint">
+            A temporary password is generated automatically once the center
+            is created — you'll see it at the end of this form.
           </div>
         </div>
 
@@ -591,6 +632,16 @@
             page.
           </div>
           <div id="kw-body-create" class="sched-editor"></div>
+        </div>
+
+        <!-- Shown after the center is successfully created: the one-time
+             temp password. The admin can't get back to it after this. -->
+        <div id="modal-step-created" style="display: none">
+          <div class="admin-field-hint" style="margin-bottom: 12px">
+            Center created. Send this temporary password to the manager — they
+            will be asked to set their own password when they first sign in.
+          </div>
+          <div id="m-reveal" class="temp-password-reveal"></div>
         </div>
 
         <div class="admin-modal-error" id="modal-error"></div>
@@ -621,9 +672,11 @@
     <script src="/safe-html.js"></script>
     <script>
       let _centers = [];
-      let _editingCenterId = null;
       let _detailCenterId = null;
-      let _modalStep = "info"; // "info" | "sched" | "keywords" (Add flow)
+      // "info" | "sched" | "keywords" | "created". The modal is Add-only
+      // now — editing a center's name happens in the detail page's Center
+      // Details section, not here.
+      let _modalStep = "info";
       let _createSchedule = null; // working schedule for the Add flow
       let _sched = null; // schedule object the editor is mutating
       let _schedTab = "schoolYear"; // which variant tab is showing
@@ -747,8 +800,9 @@
             <div class="center-id">${c.centerId}</div>
           </div>
           <div class="card-right">
-            <button class="admin-btn-edit" data-act="edit" data-cid="${c.centerId}">Edit</button>
-            <button class="admin-btn-delete" data-act="delete" data-cid="${c.centerId}" data-cname="${c.name}">Delete</button>
+            <span class="admin-status-badge">
+              <span class="admin-dot ${centerStatus(c).dotClass}"></span>${centerStatus(c).label}
+            </span>
             <span class="card-arrow">›</span>
           </div>
         </div>
@@ -757,21 +811,28 @@
         );
       }
 
-      // Delegated binding for the center list. Replaces the inline onclick
-      // handlers that interpolated centerId/name straight into JS strings.
+      // At-a-glance status for the list view. Onboarding progress, not an
+      // action — editing and password reset now live inside the center's
+      // own detail page (Center Details section), not on this card.
+      //   gray   -- hasn't gotten past their temp password yet
+      //   yellow -- logged in, hasn't finished the tutorial
+      //   green  -- fully onboarded
+      function centerStatus(c) {
+        if (c.mustChangePassword) {
+          return { dotClass: "dot-gray", label: "Awaiting first login" };
+        }
+        if (!c.tutorialCompleted) {
+          return { dotClass: "dot-yellow", label: "Onboarding" };
+        }
+        return { dotClass: "dot-green", label: "Active" };
+      }
+
+      // Delegated binding for the center list. The card itself is the only
+      // click target now (edit/delete moved into the detail page).
       document.addEventListener("click", (e) => {
         const t = e.target.closest("#centers-list [data-act]");
         if (!t) return;
-        const act = t.dataset.act;
-        if (act === "edit") {
-          e.stopPropagation();
-          openEditModal(t.dataset.cid);
-        } else if (act === "delete") {
-          e.stopPropagation();
-          deleteCenter(t.dataset.cid, t.dataset.cname);
-        } else if (act === "open") {
-          openDetail(t.dataset.cid);
-        }
+        if (t.dataset.act === "open") openDetail(t.dataset.cid);
       });
 
       // ── Detail view ───────────────────────────────────────────
@@ -946,6 +1007,110 @@
         }
       }
 
+      // Fills the Center Details section's fields from the currently-open
+      // center. Called every time detail data loads/reloads.
+      function renderCenterDetailsSection(center) {
+        document.getElementById("d-info-name").value = center.name;
+        document.getElementById("d-info-centerid").value = center.centerId;
+        document.getElementById("d-info-name-msg").textContent = "";
+        document.getElementById("d-info-reveal").style.display = "none";
+      }
+
+      async function saveDetailName() {
+        if (!_detailCenterId) return;
+        const name = document.getElementById("d-info-name").value.trim();
+        const msgEl = document.getElementById("d-info-name-msg");
+        msgEl.textContent = "";
+        if (!name) {
+          msgEl.textContent = "Display name is required.";
+          return;
+        }
+        try {
+          const res = await fetch(`/api/admin/centers/${_detailCenterId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            msgEl.textContent = data.error || "Something went wrong.";
+            return;
+          }
+          document.getElementById("d-name").textContent = name;
+          msgEl.textContent = "Saved.";
+          await loadCenters(); // list-view name should stay in sync
+        } catch {
+          msgEl.textContent = "Something went wrong.";
+        }
+      }
+
+      // Shared by both center creation and password reset -- shows the
+      // one-time plaintext temp password with a copy button. `container` is
+      // the element to render into; `onDone`, if given, runs when the panel
+      // is dismissed.
+      function renderTempPasswordReveal(container, tempPassword, onDone) {
+        setHTML(
+          container,
+          html`
+        <div class="temp-password-value">${tempPassword}</div>
+        <div class="temp-password-actions">
+          <button class="admin-btn-edit" id="tp-copy-btn">Copy</button>
+          ${onDone ? html`<button class="admin-btn-primary" id="tp-done-btn">Done</button>` : ""}
+        </div>
+        <div class="admin-field-hint">This is shown once — copy it now and send it to the manager.</div>
+      `,
+        );
+        container.style.display = "";
+        const copyBtn = container.querySelector("#tp-copy-btn");
+        copyBtn.addEventListener("click", () => {
+          navigator.clipboard
+            .writeText(tempPassword)
+            .then(() => {
+              copyBtn.textContent = "Copied!";
+              setTimeout(() => (copyBtn.textContent = "Copy"), 2000);
+            })
+            .catch(() => {});
+        });
+        const doneBtn = container.querySelector("#tp-done-btn");
+        if (doneBtn) doneBtn.addEventListener("click", () => onDone());
+      }
+
+      async function resetDetailPassword() {
+        if (!_detailCenterId) return;
+        const center = _centers.find((c) => c.centerId === _detailCenterId);
+        const name = center ? center.name : _detailCenterId;
+        if (
+          !confirm(
+            `Generate a new temporary password for "${name}"?\n\nTheir current password will stop working immediately.`,
+          )
+        )
+          return;
+        try {
+          const res = await fetch(
+            `/api/admin/centers/${_detailCenterId}/reset-password`,
+            { method: "POST" },
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            alert(data.error || "Could not reset the password.");
+            return;
+          }
+          renderTempPasswordReveal(
+            document.getElementById("d-info-reveal"),
+            data.data.tempPassword,
+          );
+          await loadCenters(); // status flips to "Awaiting first login"
+        } catch {
+          alert("Something went wrong.");
+        }
+      }
+
+      function deleteCenterFromDetail() {
+        if (!_detailCenterId) return;
+        const center = _centers.find((c) => c.centerId === _detailCenterId);
+        deleteCenter(_detailCenterId, center ? center.name : _detailCenterId);
+      }
+
       function renderDetail(d) {
         const {
           center,
@@ -961,10 +1126,7 @@
 
         document.getElementById("d-name").textContent = center.name;
         document.getElementById("d-id").textContent = center.centerId;
-        document.getElementById("d-edit-btn").onclick = () =>
-          openEditModal(center.centerId);
-        document.getElementById("d-delete-btn").onclick = () =>
-          deleteCenter(center.centerId, center.name);
+        renderCenterDetailsSection(center);
 
         // Employees
         const pinCount = employees.filter((e) => e.hasPin).length;
@@ -1093,9 +1255,10 @@
         return fmtDate(d);
       }
 
-      // ── Add / Edit modal ──────────────────────────────────────
+      // ── Add Center modal ──────────────────────────────────────
+      // Add-only. Editing a center (name, password reset, delete) lives in
+      // the detail page's Center Details section.
       function openAddModal() {
-        _editingCenterId = null;
         _modalStep = "info";
         _createSchedule = clientDefaultSchedule();
         _createKeywords = {
@@ -1106,46 +1269,24 @@
         };
         document.getElementById("modal-title").textContent = "Add Center";
         document.getElementById("modal-submit").textContent = "Next →";
+        document.getElementById("modal-submit").style.display = "";
         document.getElementById("modal-back").style.display = "none";
+        document.getElementById("modal-cancel").textContent = "Cancel";
         document.getElementById("admin-modal").classList.remove("wide");
         document.getElementById("modal-step-info").style.display = "";
         document.getElementById("modal-step-sched").style.display = "none";
         document.getElementById("modal-step-keywords").style.display = "none";
-        document.getElementById("field-centerid").style.display = "";
-        document.getElementById("m-password-hint").style.display = "none";
+        document.getElementById("modal-step-created").style.display = "none";
         document.getElementById("m-centerid").value = "";
         document.getElementById("m-name").value = "";
-        document.getElementById("m-password").value = "";
         document.getElementById("modal-error").textContent = "";
         document.getElementById("modal-overlay").classList.add("open");
         setTimeout(() => document.getElementById("m-centerid").focus(), 50);
       }
 
-      function openEditModal(centerId) {
-        const center = _centers.find((c) => c.centerId === centerId);
-        if (!center) return;
-        _editingCenterId = centerId;
-        _modalStep = "info";
-        document.getElementById("modal-title").textContent = "Edit Center";
-        document.getElementById("modal-submit").textContent = "Save Changes";
-        document.getElementById("modal-back").style.display = "none";
-        document.getElementById("admin-modal").classList.remove("wide");
-        document.getElementById("modal-step-info").style.display = "";
-        document.getElementById("modal-step-sched").style.display = "none";
-        document.getElementById("modal-step-keywords").style.display = "none";
-        document.getElementById("field-centerid").style.display = "none";
-        document.getElementById("m-password-hint").style.display = "";
-        document.getElementById("m-name").value = center.name;
-        document.getElementById("m-password").value = "";
-        document.getElementById("modal-error").textContent = "";
-        document.getElementById("modal-overlay").classList.add("open");
-        setTimeout(() => document.getElementById("m-name").focus(), 50);
-      }
-
       function closeModal() {
         document.getElementById("modal-overlay").classList.remove("open");
         document.getElementById("admin-modal").classList.remove("wide");
-        _editingCenterId = null;
         _modalStep = "info";
       }
 
@@ -1155,7 +1296,6 @@
 
       async function submitModal() {
         const name = document.getElementById("m-name").value.trim();
-        const password = document.getElementById("m-password").value;
         const errorEl = document.getElementById("modal-error");
         const btn = document.getElementById("modal-submit");
         errorEl.textContent = "";
@@ -1166,91 +1306,84 @@
 
         btn.disabled = true;
         try {
-          if (_editingCenterId) {
-            const body = { name };
-            if (password) body.password = password;
-            const res = await fetch(`/api/admin/centers/${_editingCenterId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-              errorEl.textContent = data.error || "Something went wrong.";
-              btn.disabled = false;
-              return;
-            }
-            closeModal();
-            await loadCenters();
-            if (_detailCenterId === _editingCenterId)
-              openDetail(_detailCenterId);
-          } else {
-            const centerId = document
-              .getElementById("m-centerid")
-              .value.trim()
-              .toLowerCase();
-            if (!centerId) {
-              errorEl.textContent = "Center ID is required.";
-              btn.disabled = false;
-              return;
-            }
-            if (!password) {
-              errorEl.textContent = "Password is required.";
-              btn.disabled = false;
-              return;
-            }
-            if (!/^[a-z0-9-]+$/.test(centerId)) {
-              errorEl.textContent =
-                "Center ID can only contain lowercase letters, numbers, and hyphens.";
-              btn.disabled = false;
-              return;
-            }
-            const schedErr = firstSchedError(_createSchedule);
-            if (schedErr) {
-              refreshSchedWarnings();
-              errorEl.textContent =
-                "Please fix the highlighted schedule issue(s) before creating the center.";
-              btn.disabled = false;
-              return;
-            }
-            const kwErr = firstKwError(_createKeywords);
-            if (kwErr) {
-              errorEl.textContent = kwErr;
-              btn.disabled = false;
-              return;
-            }
-            const res = await fetch("/api/admin/centers", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                centerId,
-                name,
-                password,
-                schedule: _createSchedule,
-                calendarKeywords: _createKeywords,
-              }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-              errorEl.textContent = data.error || "Something went wrong.";
-              btn.disabled = false;
-              return;
-            }
-            closeModal();
-            await loadCenters();
+          const centerId = document
+            .getElementById("m-centerid")
+            .value.trim()
+            .toLowerCase();
+          if (!centerId) {
+            errorEl.textContent = "Center ID is required.";
+            btn.disabled = false;
+            return;
           }
+          if (!/^[a-z0-9-]+$/.test(centerId)) {
+            errorEl.textContent =
+              "Center ID can only contain lowercase letters, numbers, and hyphens.";
+            btn.disabled = false;
+            return;
+          }
+          const schedErr = firstSchedError(_createSchedule);
+          if (schedErr) {
+            refreshSchedWarnings();
+            errorEl.textContent =
+              "Please fix the highlighted schedule issue(s) before creating the center.";
+            btn.disabled = false;
+            return;
+          }
+          const kwErr = firstKwError(_createKeywords);
+          if (kwErr) {
+            errorEl.textContent = kwErr;
+            btn.disabled = false;
+            return;
+          }
+          // No password is sent — the server generates a temp one and
+          // returns it once, in this response. See server.js.
+          const res = await fetch("/api/admin/centers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              centerId,
+              name,
+              schedule: _createSchedule,
+              calendarKeywords: _createKeywords,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            errorEl.textContent = data.error || "Something went wrong.";
+            btn.disabled = false;
+            return;
+          }
+          await loadCenters();
+          showCreatedStep(data.data.tempPassword);
         } catch {
           errorEl.textContent = "Something went wrong.";
         }
         btn.disabled = false;
       }
 
-      // Primary-button dispatcher: Edit saves immediately; Add advances info → schedule → keywords → create.
+      // Final step of the Add flow: reveal the one-time temp password. The
+      // center already exists at this point, so there's nothing to cancel —
+      // the only action left is acknowledging it.
+      function showCreatedStep(tempPassword) {
+        _modalStep = "created";
+        document.getElementById("modal-title").textContent = "Center Created";
+        document.getElementById("modal-step-info").style.display = "none";
+        document.getElementById("modal-step-sched").style.display = "none";
+        document.getElementById("modal-step-keywords").style.display = "none";
+        document.getElementById("modal-step-created").style.display = "";
+        document.getElementById("admin-modal").classList.remove("wide");
+        document.getElementById("modal-back").style.display = "none";
+        document.getElementById("modal-submit").style.display = "none";
+        document.getElementById("modal-cancel").textContent = "Done";
+        document.getElementById("modal-error").textContent = "";
+        renderTempPasswordReveal(
+          document.getElementById("m-reveal"),
+          tempPassword,
+        );
+      }
+
+      // Primary-button dispatcher: Add advances info → schedule → keywords → create.
       function modalPrimary() {
-        if (_editingCenterId) {
-          submitModal();
-          return;
-        }
         if (_modalStep === "info") {
           goToSchedStep();
           return;
@@ -1270,7 +1403,6 @@
           .value.trim()
           .toLowerCase();
         const name = document.getElementById("m-name").value.trim();
-        const password = document.getElementById("m-password").value;
         if (!centerId) {
           errorEl.textContent = "Center ID is required.";
           return;
@@ -1282,10 +1414,6 @@
         }
         if (!name) {
           errorEl.textContent = "Display name is required.";
-          return;
-        }
-        if (!password) {
-          errorEl.textContent = "Password is required.";
           return;
         }
 

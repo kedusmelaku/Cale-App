@@ -170,7 +170,22 @@ const {
   loginLimiter,
   adminLoginLimiter,
   pinLookupLimiter,
+  changePasswordLimiter,
 } = require("./rateLimiters");
+const { generateTempPassword } = require("./tempPassword");
+
+// Issues the normal 7-day manager session cookie. Pulled out of /api/login
+// so /api/change-password can issue the exact same cookie once a manager
+// finishes setting their own password.
+function issueSessionCookie(res, centerId) {
+  const token = jwt.sign({ centerId }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+  res.setHeader(
+    "Set-Cookie",
+    `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`,
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH MIDDLEWARE
@@ -289,24 +304,92 @@ app.post("/api/login", ensureDB, loginLimiter, async (req, res) => {
 
     // Correct password — wipe this key's failed-attempt counter. Someone who
     // fumbles their password twice and then gets it right shouldn't spend the
-    // next 15 minutes one mistake from a lockout.
+    // next 15 minutes one mistake from a lockout. This applies regardless of
+    // mustChangePassword below: they still proved they hold the credential.
     clearRateLimit(loginLimiter, req);
 
-    const token = jwt.sign(
-      { centerId: center.centerId },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
-    res.setHeader(
-      "Set-Cookie",
-      `token=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`,
-    );
+    // The password just checked out is a temp one the admin chose (new
+    // center, or an admin-triggered reset). Do NOT issue the normal session
+    // cookie — that would let them reach the dashboard on a credential only
+    // the admin has ever seen. Instead issue a short-lived, single-purpose
+    // token that can only be used against /api/change-password. It's
+    // returned in the JSON body, not a cookie, so it lives only in the
+    // login page's memory and dies with the tab if unused.
+    if (center.mustChangePassword) {
+      const changeToken = jwt.sign(
+        { centerId: center.centerId, purpose: "password-change" },
+        process.env.JWT_SECRET,
+        { expiresIn: "15m" },
+      );
+      return res.json({ mustChangePassword: true, changeToken });
+    }
+
+    issueSessionCookie(res, center.centerId);
     res.json({ ok: true });
   } catch (err) {
     console.error("/api/login:", err.message);
     res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 });
+
+// Redeems a change-password token (issued by /api/login above, only when
+// mustChangePassword is true) for a permanent password, then issues the
+// same session cookie a normal login would. This is the only path that
+// clears mustChangePassword — both "first login on a new center" and
+// "manager forgot their password" (admin resets it, which sets
+// mustChangePassword again) end up here. A voluntary password change from
+// an already-logged-in session is a separate concern, out of scope for now.
+app.post(
+  "/api/change-password",
+  ensureDB,
+  changePasswordLimiter,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const { changeToken, newPassword } = req.body;
+      if (!changeToken || !newPassword) {
+        return res
+          .status(400)
+          .json({ error: "Change token and new password are required." });
+      }
+      if (newPassword.length < 8) {
+        return res
+          .status(400)
+          .json({ error: "New password must be at least 8 characters." });
+      }
+
+      let payload;
+      try {
+        payload = jwt.verify(changeToken, process.env.JWT_SECRET);
+      } catch {
+        return res.status(401).json({
+          error: "This session has expired. Please sign in again with your temporary password.",
+        });
+      }
+      // The purpose claim is load-bearing: everything is signed with the
+      // same JWT_SECRET, so without checking this a manager's normal login
+      // cookie (or anything else signed with the same secret) would be
+      // accepted here too. Same pattern as the availability-submit token.
+      if (payload.purpose !== "password-change" || !payload.centerId) {
+        return res.status(401).json({ error: "Invalid change token." });
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      const center = await Center.findOneAndUpdate(
+        { centerId: payload.centerId },
+        { passwordHash, mustChangePassword: false },
+        { new: true },
+      );
+      if (!center) return res.status(404).json({ error: "Center not found." });
+
+      issueSessionCookie(res, center.centerId);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("/api/change-password:", err.message);
+      res.status(500).json({ error: "Something went wrong. Please try again." });
+    }
+  },
+);
 
 app.post("/api/logout", (req, res) => {
   res.setHeader(
@@ -1014,7 +1097,24 @@ app.get("/api/admin/centers", requireAdmin, async (req, res) => {
   try {
     await connectDB();
     const centers = await Center.find({}, { passwordHash: 0 }); // never send hashes
-    res.json({ data: centers });
+    // tutorialCompleted lives on CenterSettings, a separate collection keyed
+    // by the same centerId string (see the handoff notes on why this isn't
+    // a real relational reference) — so the list-view status needs a second
+    // query and a merge rather than a single find().
+    const settingsRows = await CenterSettings.find(
+      {},
+      { centerId: 1, tutorialCompleted: 1 },
+    );
+    const tutByCenter = new Map(
+      settingsRows.map((s) => [s.centerId, !!s.tutorialCompleted]),
+    );
+    const data = centers.map((c) => ({
+      centerId: c.centerId,
+      name: c.name,
+      mustChangePassword: !!c.mustChangePassword,
+      tutorialCompleted: tutByCenter.get(c.centerId) || false,
+    }));
+    res.json({ data });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1024,11 +1124,11 @@ app.get("/api/admin/centers", requireAdmin, async (req, res) => {
 app.post("/api/admin/centers", requireAdmin, async (req, res) => {
   try {
     await connectDB();
-    const { centerId, name, password } = req.body;
-    if (!centerId || !name || !password) {
+    const { centerId, name } = req.body;
+    if (!centerId || !name) {
       return res
         .status(400)
-        .json({ error: "centerId, name, and password are required." });
+        .json({ error: "centerId and name are required." });
     }
     const existing = await Center.findOne({
       centerId: centerId.trim().toLowerCase(),
@@ -1059,8 +1159,19 @@ app.post("/api/admin/centers", requireAdmin, async (req, res) => {
     calendarKeywords = normalizeCalendarKeywords(calendarKeywords);
 
     const cleanId = centerId.trim().toLowerCase();
-    const passwordHash = await bcrypt.hash(password, 10);
-    const center = new Center({ centerId: cleanId, name, passwordHash });
+    // The admin no longer chooses the password — it's generated here and
+    // shown exactly once in this response. See tempPassword.js for why it's
+    // two words + a number rather than random characters: it only has to
+    // survive one accurate read-and-type before mustChangePassword forces
+    // it to be replaced.
+    const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const center = new Center({
+      centerId: cleanId,
+      name,
+      passwordHash,
+      mustChangePassword: true,
+    });
     await center.save();
 
     // Create the settings document up front so the schedule exists immediately.
@@ -1070,23 +1181,28 @@ app.post("/api/admin/centers", requireAdmin, async (req, res) => {
       { upsert: true, new: true },
     );
 
-    res.json({ data: { centerId: center.centerId, name: center.name } });
+    res.json({
+      data: { centerId: center.centerId, name: center.name, tempPassword },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update a center's name or password
+// Update a center's display name. Password changes are a separate, more
+// consequential action now — see /reset-password below — and centerId
+// renames are deferred (they'd require rewriting the key across Employee,
+// Submission, CenterSettings, and OAuthToken too; not a name-field edit).
 app.put("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
   try {
     await connectDB();
-    const { name, password } = req.body;
-    const update = {};
-    if (name) update.name = name;
-    if (password) update.passwordHash = await bcrypt.hash(password, 10);
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Display name is required." });
+    }
     const center = await Center.findOneAndUpdate(
       { centerId: req.params.centerId },
-      update,
+      { name: name.trim() },
       { new: true, projection: { passwordHash: 0 } },
     );
     if (!center) return res.status(404).json({ error: "Center not found." });
@@ -1095,6 +1211,33 @@ app.put("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Generates a brand-new temp password for an existing center and forces a
+// change on next login — the same mechanism as center creation, and also
+// the app's entire "forgot password" story: the admin re-runs this,
+// re-sends the credential the way they always contact this center anyway,
+// and the manager is walked through set-your-own-password on next login.
+app.post(
+  "/api/admin/centers/:centerId/reset-password",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await connectDB();
+      const tempPassword = generateTempPassword();
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      const center = await Center.findOneAndUpdate(
+        { centerId: req.params.centerId },
+        { passwordHash, mustChangePassword: true },
+        { new: true },
+      );
+      if (!center) return res.status(404).json({ error: "Center not found." });
+      res.json({ data: { centerId: center.centerId, tempPassword } });
+    } catch (err) {
+      console.error("POST reset-password:", err.message);
+      res.status(500).json({ error: "Could not reset the password." });
+    }
+  },
+);
 
 // Delete a center (and all its data)
 app.delete("/api/admin/centers/:centerId", requireAdmin, async (req, res) => {
