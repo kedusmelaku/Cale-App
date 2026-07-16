@@ -15,11 +15,13 @@
 // address. What actually secures the PIN endpoint is the PIN's own length —
 // see dashboard.html's generateUniquePin.
 //
-// Every request counts, successes included. Employees submit from home, not
-// from a shared office connection, so a per-IP budget is already roughly a
-// per-person budget; and a legitimate employee looks their PIN up once or
-// twice and is done. There's no population of honest heavy users to protect,
-// so there's no reason for the extra bookkeeping of refunding successes.
+// Every request counts, successes included — a limiter that refunded successes
+// would let anyone holding one valid credential farm the endpoint. Instead, the
+// two LOGIN routes call clearRateLimit() once a password actually checks out,
+// which wipes that key's counter entirely. So honest users who fumble their
+// password a few times and then get in carry no penalty, while a guesser — who
+// never succeeds — keeps accumulating. See clearRateLimit() at the bottom for
+// why the PIN lookup deliberately does NOT do this.
 //
 // TUNING: the numbers in LIMITS are the knobs. They're deliberately in one
 // place — raise them if real users ever hit a wall.
@@ -102,7 +104,19 @@ class MongoStore {
           },
         },
       ],
-      { upsert: true, new: true },
+      {
+        upsert: true,
+        new: true,
+        // REQUIRED by Mongoose 9. Passing an aggregation pipeline (an array)
+        // to findOneAndUpdate silently worked in Mongoose 8 and earlier; 9
+        // throws unless you opt in explicitly:
+        //   "Cannot pass an array to query updates unless the
+        //    `updatePipeline` option is set."
+        // Without this every call to increment() throws, which — because the
+        // limiter sits in front of both login routes — took the whole app's
+        // auth down. See lib/query.js:3528 in mongoose 9.
+        updatePipeline: true,
+      },
     );
     return { totalHits: doc.hits, resetTime: doc.expiresAt };
   }
@@ -166,6 +180,21 @@ function build({ windowMs, max }, keyGenerator, message) {
     standardHeaders: true, // RateLimit-* headers, so the client can see limits
     legacyHeaders: false,
     message: { error: message },
+    // Fail OPEN if the store itself errors. This is a deliberate tradeoff, and
+    // it was bought the hard way: a bug in MongoStore.increment() made every
+    // call throw, and because express-rate-limit fails closed by default, that
+    // turned a rate-limiting bug into a total auth outage — nobody could log in
+    // at all.
+    //
+    // The reasoning: this limiter is a speed bump against casual guessing, not
+    // the thing securing the PIN (its length does that). Trading "an attacker
+    // gets un-throttled while Mongo is unreachable" against "no customer can
+    // sign in while Mongo is unreachable" is not a close call — and if Mongo is
+    // down, login is broken anyway, since it needs the DB to check the password.
+    //
+    // NOTE: this only covers STORE failures. Actually hitting the limit still
+    // returns 429 as normal.
+    passOnStoreError: true,
     // Deliberately NOT disabling the trustProxy validator: if `trust proxy`
     // is ever misconfigured, we want the loud startup error rather than a
     // limiter that silently keys every user to the same proxy IP.
@@ -190,9 +219,33 @@ const pinLookupLimiter = build(
   "Too many attempts. Please wait a few minutes, then check your PIN with your manager.",
 );
 
+// ── Clearing a counter after a successful sign-in ───────────────────────────
+// Call this from a route once the credential has actually checked out. It
+// wipes the counter rather than refunding a single request, which is the
+// difference that matters: someone who mistypes their password three times and
+// then gets it right should be back to a clean slate, not sitting one mistake
+// away from a lockout for the next 15 minutes.
+//
+// This is safe for the LOGIN routes specifically, because each of their keys
+// maps to exactly one credential (IP+centerId → that center's password;
+// IP → the single admin password). Succeeding proves you hold that credential,
+// so there is nothing left for the counter to protect.
+//
+// It is deliberately NOT used on the PIN lookup. That key is (IP, centerId),
+// and MANY PINs are valid under it — one per employee. An employee attacking
+// their own center could guess nine times, look up their OWN PIN to wipe the
+// counter, and repeat forever. Resetting there would hand unlimited guesses to
+// exactly the person most likely to be attacking.
+function clearRateLimit(limiter, req) {
+  if (req.rateLimit && req.rateLimit.key) {
+    limiter.resetKey(req.rateLimit.key);
+  }
+}
+
 module.exports = {
   LIMITS,
   MongoStore,
+  clearRateLimit,
   loginLimiter,
   adminLoginLimiter,
   pinLookupLimiter,
