@@ -762,9 +762,23 @@
           // enough to ever cross the threshold line, so it would never win
           // against whatever section is above it. Reaching the bottom of
           // the page always means the last section, full stop.
+          //
+          // ...but only when the page can actually SCROLL. On first open
+          // every section is a collapsed <details>, so the whole view is
+          // shorter than the viewport: scrollHeight ≈ innerHeight and
+          // scrollY is 0, which satisfies the test below while you are
+          // still sitting at the very top. That highlighted the LAST link
+          // the moment the detail view opened, and only looked correct
+          // again once expanding or scrolling made the page tall enough for
+          // the test to start meaning something. If there's nothing to
+          // scroll, "at the bottom" and "at the top" are the same place, so
+          // the rule has to sit out.
+          const scrollable =
+            document.documentElement.scrollHeight > window.innerHeight + 2;
           const atBottom =
+            scrollable &&
             window.innerHeight + window.scrollY >=
-            document.documentElement.scrollHeight - 2;
+              document.documentElement.scrollHeight - 2;
           if (atBottom) activeIdx = sections.length - 1;
           links.forEach((link, i) =>
             link.classList.toggle("active", i === activeIdx),
@@ -1081,7 +1095,7 @@
         <label for="d-freeze-reason">Reason (only you see this)</label>
         <textarea id="d-freeze-reason" rows="2" placeholder="e.g. Invoice 60 days overdue — emailed 3/14"></textarea>
       </div>
-      <button class="admin-btn-delete" id="d-freeze-btn">Freeze Center</button>
+      <button class="admin-btn-warn" id="d-freeze-btn">Freeze Center</button>
       <span class="sched-save-msg" id="d-freeze-msg"></span>
     `,
         );

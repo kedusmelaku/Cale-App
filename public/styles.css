@@ -3626,10 +3626,23 @@ body.admin-page .admin-error-msg {
   min-height: 18px;
 }
 body.admin-page .admin-submit-btn {
+  /* Gradient slide — same technique as .btn-primary / .admin-btn-primary. */
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   margin-top: 20px;
   width: 100%;
   padding: 11px;
-  background: var(--accent);
+  background-color: var(--accent);
+  background-image: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent) 60%,
+    #c3b9ff 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 220% 100%;
+  background-position: 0% 0;
   color: #fff;
   font-size: 0.9375rem;
   font-weight: 600;
@@ -3637,10 +3650,15 @@ body.admin-page .admin-submit-btn {
   border-radius: 7px;
   cursor: pointer;
   font-family: "Inter", sans-serif;
-  transition: background 0.2s;
+  transition:
+    background-position 0.24s ease,
+    background-color 0.2s ease,
+    filter 0.2s ease;
 }
-body.admin-page .admin-submit-btn:hover:not(:disabled) {
-  background: var(--gradient);
+body.admin-page .admin-submit-btn:hover:not(:disabled),
+body.admin-page .admin-submit-btn:focus-visible:not(:disabled) {
+  background-position: 100% 0;
+  filter: none;
 }
 body.admin-page .admin-submit-btn:disabled {
   opacity: 0.55;
@@ -3733,7 +3751,24 @@ body.admin-page .admin-section-title {
   font-weight: 700;
 }
 body.admin-page .admin-btn-primary {
-  background: var(--accent);
+  /* Gradient slide, matching .btn-primary — see that rule for why.
+     `background: color` → `background: gradient` cannot be interpolated, so
+     the old hover swapped instantly and flashed. Instead the gradient is
+     always painted, sized wider than the button, and its POSITION is what
+     transitions — which is a real animatable property. */
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--accent);
+  background-image: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent) 60%,
+    #c3b9ff 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 220% 100%;
+  background-position: 0% 0;
   color: #fff;
   border: none;
   padding: 9px 18px;
@@ -3742,10 +3777,15 @@ body.admin-page .admin-btn-primary {
   font-weight: 600;
   font-family: "Inter", sans-serif;
   cursor: pointer;
-  transition: background 0.2s;
+  transition:
+    background-position 0.24s ease,
+    background-color 0.2s ease,
+    filter 0.2s ease;
 }
-body.admin-page .admin-btn-primary:hover:not(:disabled) {
-  background: var(--gradient);
+body.admin-page .admin-btn-primary:hover:not(:disabled),
+body.admin-page .admin-btn-primary:focus-visible:not(:disabled) {
+  background-position: 100% 0;
+  filter: none;
 }
 body.admin-page .admin-btn-primary:disabled {
   opacity: 0.5;
@@ -3812,6 +3852,28 @@ body.admin-page .admin-btn-delete {
 }
 body.admin-page .admin-btn-delete:hover {
   background: #fecaca;
+}
+
+/* Reversible-but-serious actions (freeze), as distinct from PERMANENT ones
+   (delete). These sat next to each other in Center Details both wearing
+   .admin-btn-delete, which made "you can undo this" and "this is gone
+   forever" look like the same button. Amber reads as caution, red stays
+   reserved for destruction — so the colour now carries the severity rather
+   than just decorating it. */
+body.admin-page .admin-btn-warn {
+  background: #fef3c7;
+  color: #92400e;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background 0.15s;
+}
+body.admin-page .admin-btn-warn:hover {
+  background: #fde68a;
 }
 body.admin-page .admin-empty {
   color: #9ca3af;
