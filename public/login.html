@@ -119,11 +119,18 @@
     }
 
     .error-msg {
-      /* Darker than the usual light red: the card is only ~25% opaque, so
-         this text often sits directly over the bright sun in the background
-         image, where a light red washes out entirely. */
+      /* Blood red, and deliberately this dark. The card is only ~25% opaque
+         and sits dead centre — which is exactly where the sun is in the
+         background image — so at every desktop width this text renders on a
+         light warm glow (~rgb(190,126,101)). Measured contrast against that:
+             #f87171 (was)  1.19:1   effectively invisible
+             #8b0000        3.03:1
+             #6e0000        3.83:1   <- here
+         Darker still keeps climbing but stops reading as red. The 600 weight
+         is doing real work too; don't drop it back to normal. */
       font-size: 0.8125rem;
-      color: #dc2626;
+      color: #6e0000;
+      font-weight: 600;
       margin-top: 8px;
       min-height: 18px;
     }
@@ -158,6 +165,27 @@
     .pw-toggle:hover {
       color: rgba(255, 255, 255, 0.9);
       background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Chrome/Safari paint an autofilled field with an opaque near-white
+       background through a UA rule that ordinary `background` declarations
+       lose to — and the white eye above vanished into it.
+       Rather than fight the background (the usual dodge is a ~7-day
+       background-color transition, which is an undocumented hack that fails
+       silently if the UA ever changes), key off the state itself:
+       :-webkit-autofill matches for exactly as long as the field is
+       autofilled, and .pw-toggle is its SIBLING — so the icon can just go
+       dark for precisely that state. No JS, no timing, and it cannot fall
+       out of sync with what's actually painted on screen. */
+    input:-webkit-autofill ~ .pw-toggle,
+    input:autofill ~ .pw-toggle {
+      color: #1f2937;
+    }
+
+    input:-webkit-autofill ~ .pw-toggle:hover,
+    input:autofill ~ .pw-toggle:hover {
+      color: #0d7bff;
+      background: rgba(0, 0, 0, 0.06);
     }
 
     .pw-toggle:focus-visible {
