@@ -600,10 +600,18 @@ persist automatically — there's nothing else you need to do.</p>
 </script>
 </body></html>`);
   } catch (err) {
+    // The raw error stays here, in the server log, where it's useful. It is
+    // deliberately NOT rendered into the page: this screen is read by a
+    // center director, and Google's error text ("invalid_grant", "redirect
+    //_uri_mismatch") tells them nothing they can act on. Interpolating it
+    // also put unescaped text straight into HTML, which is the pattern
+    // safe-html.js exists to eliminate everywhere else.
     console.error("/oauth/callback:", err.message);
     res.status(500)
       .send(`<h2 style="font-family:sans-serif;color:red;padding:40px;">
-      Connection failed: ${err.message}<br><br>
+      We couldn't finish connecting your Google Calendar.<br><br>
+      Nothing on your account was changed. Please close this tab and try
+      connecting again from Cale.<br><br>
       <a href="javascript:history.back()">Go back and try again</a>
     </h2>`);
   }

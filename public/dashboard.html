@@ -2381,7 +2381,10 @@
           setAuthState("disconnected");
           closeSettings();
         } catch (err) {
-          alert("Error disconnecting: " + (err.message || err));
+          console.error("disconnectCalendar:", err);
+          alert(
+            "We couldn't disconnect your Google Calendar. Please try again.",
+          );
         }
       }
 
@@ -2501,7 +2504,15 @@
           _oauthWin = window.open(d.url, "_blank");
           if (!_oauthWin) window.location.href = d.url;
         } catch (e) {
-          setAuthState("error", e.message);
+          // Raw detail to the console for debugging; plain language on screen.
+          // This catch covers a network failure and any /oauth/start error
+          // (e.g. missing Google credentials) -- none of which a center
+          // director can read, let alone act on.
+          console.error("startOAuth:", e);
+          setAuthState(
+            "error",
+            "We couldn't start the connection to Google Calendar. Please try again — if this keeps happening, contact support.",
+          );
         }
       }
 
@@ -2515,11 +2526,20 @@
         }
         const r = await fetch("/cal-status");
         const d = await r.json();
-        if (d.connected) {
+        // Only a VERIFIED failure is an error. connected === null means we
+        // couldn't reach Google to check — but OAuth just succeeded and the
+        // token is already saved (that's why this message fired at all), so
+        // treating null as failure would tell the manager their connection
+        // broke when it didn't. Show success; checkCalendarStatus() will
+        // report the unverified state honestly in the status pill.
+        if (d.connected === false) {
+          setAuthState(
+            "error",
+            "The connection didn't go through. Please try connecting again.",
+          );
+        } else {
           setAuthState("success");
           checkCalendarStatus();
-        } else {
-          setAuthState("error", "Token not saved — please try again.");
         }
       });
 
