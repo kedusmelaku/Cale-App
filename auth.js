@@ -59,20 +59,33 @@ async function saveTokenToDB(centerId, token) {
 
 // Loads the stored token for this center onto the auth client. Falls back to
 // the GOOGLE_TOKEN env var (one-time seed) if the database has none yet.
-// Returns true if a token was loaded, false otherwise.
+// Returns true if a token was loaded, false if this center genuinely has no
+// token stored.
+//
+// THROWS if the database can't be read, and that distinction is the whole
+// point. This used to catch, log, and `return false` -- so "this center has
+// never connected Google Calendar" and "we couldn't reach Mongo just now"
+// came back as the same value. verifyConnection() turns a false into a
+// definitive `connected: false`, which the dashboard renders as a red "Not
+// connected" pill plus a warning banner telling the manager to reconnect --
+// on a center whose calendar is fine, because a query timed out.
+//
+// A missing token is an ANSWER. A failed read is the absence of one. The
+// caller has to be able to tell them apart to report honestly, so the error
+// propagates now and each caller decides:
+//   - /cal-status      -> connected: null  -> "Unable to verify" (neutral)
+//   - /calendars, /events -> 500 calendar_error, NOT a 401 "auth" (which
+//     would tell the picker the connection is dead and offer a reconnect
+//     that has nothing to fix)
 async function loadTokensFromDB(centerId) {
   const auth = getAuth();
   auth._centerId = centerId; // store so the token-refresh event handler can use it
-  try {
-    const doc = await OAuthToken.findOne({ centerId });
-    if (doc && doc.token) {
-      auth.setCredentials(doc.token);
-      return true;
-    }
-  } catch (e) {
-    console.error("Failed to load token from DB:", e.message);
+  const doc = await OAuthToken.findOne({ centerId });
+  if (doc && doc.token) {
+    auth.setCredentials(doc.token);
+    return true;
   }
-  return false;
+  return false; // no token stored for this center -- a real answer
 }
 
 // Called by server.js after a successful OAuth callback. Persists to DB and
@@ -117,6 +130,16 @@ async function clearTokens(centerId) {
 // failure it also clears the now-dead token from the DB, so the center
 // self-heals to a correct "disconnected" state instead of needing every
 // future status check to independently rediscover the same revocation.
+//
+// THREE outcomes, not two -- callers must handle all of them:
+//   true   -- verified live against Google
+//   false  -- verified dead: revoked, or no token stored at all
+//   THROWS -- couldn't find out (Mongo unreachable, Google's API down,
+//             credentials missing). Deliberately NOT collapsed into false:
+//             "I couldn't check" is not "it's broken", and reporting the
+//             latter sends the manager off to fix something that isn't
+//             wrong. It's also what protects a perfectly good token from
+//             being cleared over a transient blip.
 async function verifyConnection(centerId) {
   const { google } = require("googleapis");
   const hasToken = await loadTokensFromDB(centerId);
