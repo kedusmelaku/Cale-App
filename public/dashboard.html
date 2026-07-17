@@ -1045,19 +1045,46 @@
       function tutStopPulseRing() {
         const ring = document.getElementById("tut-gear-pulse-ring");
         if (ring) ring.remove();
-        // Also cancel any in-flight big ripple. Without this, completion
-        // state arriving WHILE the ripple is still mid-animation (the
-        // center-settings fetch resolving a beat after page load, which is
-        // the common case for an already-completed center) left the ripple
-        // to keep playing to its natural end, at which point its own
-        // animationend handler used to start the pulse ring unconditionally
-        // -- resurrecting the "already completed" nudge right after this
-        // function had just turned it off. Removing the ripple here closes
-        // that gap; the animationend check below is a second, redundant
-        // guard for the rare case this fires in the same tick as the ripple
-        // finishing on its own.
+        // Also cancel an in-flight bloom. The nudge now only starts once the
+        // server has confirmed the tutorial isn't done (see
+        // tutStartGearNudge), so this no longer covers a page-load race --
+        // it covers the ordinary case of the manager finishing the tutorial
+        // while the bloom happens to be playing.
         const ripple = document.getElementById("tut-gear-ripple");
         if (ripple) ripple.remove();
+      }
+
+      // Has the one-time bloom played during THIS page load? The pulse ring
+      // is idempotent, but the bloom is an intro flourish -- it shouldn't
+      // replay every time center settings are re-fetched.
+      let _tutNudgeIntroPlayed = false;
+
+      // The full "you haven't done the tutorial" nudge: a bloom, then the
+      // continuous ring.
+      //
+      // ONLY call this once the SERVER has said the tutorial isn't complete.
+      // This used to run synchronously at script-parse time, gated on
+      // localStorage alone -- so the rule was effectively "unknown means
+      // nudge". On a first login, a new browser, or a private window there
+      // is no localStorage, so the bloom fired for centers that had finished
+      // the tutorial months ago, and got cancelled a beat later when
+      // /center-settings finally answered. That was a wrong default, not a
+      // slow page: it was wrong on a fast connection too, just invisible.
+      function tutStartGearNudge() {
+        if (tut.active) return;
+        if (_tutNudgeIntroPlayed) {
+          tutStartPulseRing();
+          return;
+        }
+        _tutNudgeIntroPlayed = true;
+        const ripple = document.createElement("div");
+        ripple.id = "tut-gear-ripple";
+        document.body.appendChild(ripple);
+        positionTutorialPulseElements();
+        ripple.addEventListener("animationend", function () {
+          ripple.remove();
+          tutStartPulseRing();
+        });
       }
 
       let _tutorialCompletionPending = false;
@@ -1074,7 +1101,9 @@
           tutStopPulseRing();
         } else if (!tut.active) {
           tutStopPulseRing();
-          tutStartPulseRing();
+          // Server-confirmed not-completed — this is the ONLY thing that
+          // starts the nudge now.
+          tutStartGearNudge();
         }
       }
 
@@ -1143,25 +1172,14 @@
 
       // ── Gear nudge init ─────────────────────────────────────────────
       ensureTutorialPulseObservers();
+      // Optimistic ONLY. This suppresses the gear badge and tour buttons
+      // flashing on a device that already knows the tutorial is done -- it
+      // is a hint, not a decision, and it deliberately does NOT start the
+      // nudge animation. Starting the nudge is applyTutorialCompletionState's
+      // job, once the server has actually answered. See tutStartGearNudge
+      // for why the old "no localStorage means nudge" default was wrong.
       if (localStorage.getItem("scheduler-tut-completed") === "1") {
         document.body.classList.add("tut-completed");
-      } else {
-        // Big bloom-and-contract ripple, then start the continuous pulse ring
-        const ripple = document.createElement("div");
-        ripple.id = "tut-gear-ripple";
-        document.body.appendChild(ripple);
-        positionTutorialPulseElements();
-        ripple.addEventListener("animationend", function () {
-          ripple.remove();
-          // Re-check completion right before starting the ring, not just at
-          // the top of this init block -- the center-settings fetch is
-          // async and commonly resolves WHILE this ripple is still playing,
-          // so "not completed" at the moment the ripple started is no
-          // guarantee it's still true by the time the ripple ends.
-          if (!document.body.classList.contains("tut-completed")) {
-            tutStartPulseRing();
-          }
-        });
       }
 
       // ══════════════════════════════════════════════════════════════════
@@ -2617,7 +2635,12 @@
         return new Date(upcomingMondayDate().getTime() + offset);
       }
 
-      async function loadCenterSettings() {
+      // `deferSubmissions` exists for startup only: loadSubmissions() needs
+      // the employee roster to work out who is still pending, so at startup
+      // the caller waits for BOTH this and loadEmployees() and fires it
+      // itself. Every other caller wants the default (fetch settings, then
+      // refresh submissions immediately).
+      async function loadCenterSettings({ deferSubmissions = false } = {}) {
         if (settings.demo) return;
         try {
           const res = await fetch("/center-settings");
@@ -2629,7 +2652,7 @@
           }
           updateFormCard();
           updateStatusPills();
-          loadSubmissions(true);
+          if (!deferSubmissions) loadSubmissions(true);
         } catch (e) {
           console.warn("Could not load center settings:", e.message);
         }
@@ -3367,19 +3390,28 @@
         // correct per-block shape when the manager moves to the scheduler.
         loadSchedule();
 
-        // Load the team first, then the form settings + submissions. Loading
-        // employees first means the submissions widget can correctly compute
-        // who is still pending on its first render.
-        loadEmployees()
+        // /center-settings does NOT depend on /employees. Only
+        // loadSubmissions() does -- it needs the roster to work out who is
+        // still pending -- so that is the ONLY thing that waits for both.
+        //
+        // These used to be chained, which parked the tutorial state, the
+        // intro modal, the form card and the status pills behind an
+        // unrelated round-trip. On a cold start that is a long time to sit
+        // showing a default the server is about to contradict.
+        const employeesP = loadEmployees()
           .then(() => {
             renderWorkers();
-            return loadCenterSettings();
           })
           .catch((err) => {
-            console.error("Startup load failed:", err);
+            console.error("Startup: employees failed:", err);
             renderWorkers();
-            loadCenterSettings();
           });
+
+        const settingsP = loadCenterSettings({ deferSubmissions: true });
+
+        Promise.all([employeesP, settingsP]).then(() => {
+          loadSubmissions(true);
+        });
       }
       startSubmissionPolling();
 
