@@ -4037,6 +4037,125 @@ body.admin-page .stat-card-onboarding .admin-btn-edit {
   margin-top: 6px;
 }
 
+/* ── Loading skeletons ────────────────────────────────────────────────────
+   Grey placeholders with a shimmer sweep, shown while the dashboard's first
+   fetches are still in flight. These regions used to sit blank: the roster
+   grid and submissions list are empty in the static markup, and the status
+   pills read "Checking…" / "—", so a cold start looked like a broken page
+   rather than a loading one.
+
+   The sweep animates `transform` (compositor-only) rather than
+   `background-position`, because unlike the button hover this runs
+   continuously and on several elements at once.
+
+   NOTE: a skeleton is only honest when the answer really is "not yet". It
+   must never be used to cover up a WRONG value that arrives and then gets
+   corrected — hiding the flash would just make a bug invisible instead of
+   fixing it. */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--border);
+  border-radius: 6px;
+}
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    transparent 100%
+  );
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skel-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Skeleton employee card — mirrors .db-emp-card's shape so the layout
+   doesn't jump when real cards replace it. */
+.skel-emp-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  margin-bottom: 8px;
+}
+.skel-emp-stripe {
+  width: 4px;
+  height: 30px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.skel-emp-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.skel-line {
+  height: 9px;
+}
+
+/* Skeleton submission row */
+.skel-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.skel-sub-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Status pills: turn the value text itself into a shimmer bar rather than
+   restructuring the markup. color:transparent keeps the element in flow so
+   the pill doesn't resize when the real value lands. */
+body.db-loading .db-status-val {
+  display: inline-block;
+  min-width: 62px;
+  color: transparent !important;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  background: var(--border);
+}
+body.db-loading .db-status-val::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    transparent 100%
+  );
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+}
+body.db-loading .db-status-dot {
+  opacity: 0.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel::after,
+  body.db-loading .db-status-val::after {
+    animation: none;
+  }
+}
+
 body.admin-page .admin-dot {
   display: inline-block;
   width: 8px;

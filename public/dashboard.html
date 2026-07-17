@@ -18,7 +18,7 @@
     <script src="/analytics.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
-  <body>
+  <body class="db-loading">
     <!-- Tutorial overlay -->
     <div id="tut-overlay">
       <div id="tut-dim"></div>
@@ -137,7 +137,34 @@
               +
             </button>
           </div>
-          <div class="db-roster" id="worker-grid"></div>
+          <div class="db-roster" id="worker-grid">
+            <!-- Skeletons live in the STATIC markup on purpose: they paint on
+                 first render with no JS and no fetch, which is exactly when
+                 they're needed. renderWorkers() clears this container, so
+                 they're removed by the first real render with nothing extra
+                 to remember to do. -->
+            <div class="skel-emp-card">
+              <div class="skel-emp-stripe skel"></div>
+              <div class="skel-emp-lines">
+                <div class="skel-line skel" style="width: 42%"></div>
+                <div class="skel-line skel" style="width: 66%"></div>
+              </div>
+            </div>
+            <div class="skel-emp-card">
+              <div class="skel-emp-stripe skel"></div>
+              <div class="skel-emp-lines">
+                <div class="skel-line skel" style="width: 55%"></div>
+                <div class="skel-line skel" style="width: 48%"></div>
+              </div>
+            </div>
+            <div class="skel-emp-card">
+              <div class="skel-emp-stripe skel"></div>
+              <div class="skel-emp-lines">
+                <div class="skel-line skel" style="width: 36%"></div>
+                <div class="skel-line skel" style="width: 60%"></div>
+              </div>
+            </div>
+          </div>
         </aside>
 
         <!-- ── Right panel: Weekly workflow ── -->
@@ -292,7 +319,23 @@
                 </div>
               </div>
             </div>
-            <div class="db-submissions-list" id="av-submissions-list"></div>
+            <div class="db-submissions-list" id="av-submissions-list">
+              <!-- See #worker-grid for why these are static. This list is the
+                   slowest thing on the page: it waits for /employees AND
+                   /center-settings before its own fetch even starts. -->
+              <div class="skel-sub-row">
+                <div class="skel-sub-dot skel"></div>
+                <div class="skel-line skel" style="width: 38%"></div>
+              </div>
+              <div class="skel-sub-row">
+                <div class="skel-sub-dot skel"></div>
+                <div class="skel-line skel" style="width: 52%"></div>
+              </div>
+              <div class="skel-sub-row">
+                <div class="skel-sub-dot skel"></div>
+                <div class="skel-line skel" style="width: 44%"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Build schedule button -->
@@ -1849,6 +1892,13 @@
 
       async function loadEmployees() {
         const res = await fetch("/employees");
+        // fetch() only rejects on NETWORK failure -- an HTTP 500 or 401
+        // resolves perfectly happily. Without this check the error body
+        // parses fine, data.data is undefined, `workers` silently becomes
+        // [], and the roster confidently renders "No employees yet. Click +
+        // to add one." to a center with twenty people. Fail loudly so the
+        // caller can say what actually happened.
+        if (!res.ok) throw new Error(`/employees returned ${res.status}`);
         const data = await res.json();
         workers = data.data || [];
       }
@@ -2644,6 +2694,14 @@
         if (settings.demo) return;
         try {
           const res = await fetch("/center-settings");
+          // See loadEmployees: an HTTP error resolves, so without this the
+          // error body parses, _centerSettings becomes undefined, and
+          // applyTutorialCompletionState reads that as "tutorial not
+          // completed" -- firing the gear nudge because a fetch FAILED.
+          // That's the same "unknown means nudge" default coming back in
+          // through a different door. Throwing skips the call entirely,
+          // which correctly leaves the nudge alone.
+          if (!res.ok) throw new Error(`/center-settings returned ${res.status}`);
           const data = await res.json();
           _centerSettings = data.data;
           applyTutorialCompletionState(_centerSettings);
@@ -3003,6 +3061,9 @@
             ? getMondayStrictlyAfter(new Date(_centerSettings.windowOpen))
             : getNextMondayStr();
           const res = await fetch(`/submissions?weekOf=${weekOf}`);
+          // See loadEmployees -- an HTTP error would otherwise read as
+          // "nobody has submitted yet".
+          if (!res.ok) throw new Error(`/submissions returned ${res.status}`);
           const data = await res.json();
           const incoming = data.data || [];
           // Re-render if forced (initial load / explicit refresh) or if the
@@ -3018,6 +3079,24 @@
           }
         } catch (e) {
           console.warn("Could not load submissions:", e.message);
+          // This list is seeded with shimmer skeletons in the static markup,
+          // and the skeletons are only cleared by a render. Returning here
+          // without one leaves them shimmering forever, which reads as
+          // "still loading" rather than "failed" — the widget would look
+          // permanently stuck.
+          //
+          // Guarded on the skeletons still being present so this only fires
+          // on the FIRST load. A failed background poll should leave the
+          // real data on screen, not replace it with an error.
+          const list = document.getElementById("av-submissions-list");
+          if (list && list.querySelector(".skel-sub-row")) {
+            setHTML(
+              list,
+              html`<p class="db-roster-empty">
+                Couldn't load submissions.<br />Please refresh the page.
+              </p>`,
+            );
+          }
         }
       }
 
@@ -3363,7 +3442,9 @@
 
       // ── Init ───────────────────────────────────────────────
       applyTheme();
-      checkCalendarStatus();
+      // Captured so the startup skeletons can wait on it too — the calendar
+      // pill is one of the things wearing one.
+      const _calStatusP = checkCalendarStatus();
       closeOnOverlayClick("window-modal", closeFormModal);
       closeOnOverlayClick("build-warning-modal", closeBuildWarning);
 
@@ -3385,6 +3466,11 @@
       if (settings.demo) {
         document.body.classList.add("demo-active");
         activateDemo();
+        // activateDemo() renders the roster and submissions itself, which
+        // clears their skeletons; the pills still need the flag dropped.
+        _calStatusP.finally(() =>
+          document.body.classList.remove("db-loading"),
+        );
       } else {
         // Load the operating schedule so availability can be built in the
         // correct per-block shape when the manager moves to the scheduler.
@@ -3404,14 +3490,35 @@
           })
           .catch((err) => {
             console.error("Startup: employees failed:", err);
-            renderWorkers();
+            // Deliberately NOT renderWorkers(). `workers` is still [], so it
+            // would print "No employees yet. Click + to add one." — a
+            // confident claim about the roster, made only because a fetch
+            // failed. A center with twenty people would be told it has none,
+            // and invited to start adding them again. Say what actually
+            // happened instead.
+            const grid = document.getElementById("worker-grid");
+            if (grid) {
+              setHTML(
+                grid,
+                html`<p class="db-roster-empty">
+                  Couldn't load your team.<br />Please refresh the page.
+                </p>`,
+              );
+            }
           });
 
         const settingsP = loadCenterSettings({ deferSubmissions: true });
 
-        Promise.all([employeesP, settingsP]).then(() => {
-          loadSubmissions(true);
-        });
+        const subsP = Promise.all([employeesP, settingsP]).then(() =>
+          loadSubmissions(true),
+        );
+
+        // Drop the skeletons once the first round of data has settled —
+        // allSettled, not all, so a single failed fetch doesn't leave the
+        // status pills shimmering forever.
+        Promise.allSettled([employeesP, settingsP, subsP, _calStatusP]).then(
+          () => document.body.classList.remove("db-loading"),
+        );
       }
       startSubmissionPolling();
 
