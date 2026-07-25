@@ -1492,7 +1492,25 @@ app.get(
 
       const employees = await Employee.find({ centerId });
       const settings = await CenterSettings.findOne({ centerId });
-      const oauthDoc = await OAuthToken.findOne({ centerId });
+      // Live-verify the Google Calendar connection instead of trusting a
+      // stored token that may have been revoked from the user's Google account.
+      // This is the same check /cal-status runs for the manager dashboard, so
+      // the admin panel and the dashboard can no longer disagree about a center.
+      //   true  -- verified live against Google
+      //   false -- verified dead (revoked, or no token stored at all)
+      //   null  -- couldn't verify (Google/DB/creds unreachable). verifyConnection
+      //            THROWS on a non-auth error rather than guessing, so a transient
+      //            outage can't wipe a good token or show a false "disconnected".
+      // Kept in its own try/catch so a verify failure degrades to null instead
+      // of 500ing the whole detail view. This is the detail route (one center at
+      // a time), so it's one round-trip per opened center, not per list row.
+      let calendarConnected = null;
+      try {
+        const { verifyConnection } = require("./auth");
+        calendarConnected = await verifyConnection(centerId);
+      } catch (err) {
+        console.error("admin center-details cal verify:", err.message);
+      }
 
       // Current week's Monday (same logic as the frontend uses)
       const now = new Date();
@@ -1528,11 +1546,7 @@ app.get(
           settings: settings || null,
           tutorialCompleted: !!(settings && settings.tutorialCompleted),
           introSeen: !!(settings && settings.introSeen),
-          calendarConnected: !!(
-            oauthDoc &&
-            oauthDoc.token &&
-            (oauthDoc.token.access_token || oauthDoc.token.refresh_token)
-          ),
+          calendarConnected,
           weekOf,
           submissionCount: submissions.length,
           lastActivityAt: anyLastSub ? anyLastSub.submittedAt : null,

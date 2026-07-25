@@ -1318,10 +1318,19 @@
         document.getElementById("d-sub-sub").textContent =
           `for week of ${weekOf}`;
 
-        // Calendar
-        document.getElementById("d-cal-val").innerHTML = calendarConnected
-          ? `<span class="admin-dot dot-green"></span>Connected`
-          : `<span class="admin-dot dot-red"></span>Not connected`;
+        // Calendar — three states, mirroring /cal-status so admin and the
+        // manager dashboard can't disagree:
+        //   true  -> Connected (green)
+        //   false -> Not connected (red)
+        //   null  -> couldn't verify; neutral "Unknown" (gray), not an alarm
+        setHTML(
+          document.getElementById("d-cal-val"),
+          calendarConnected === null
+            ? html`<span class="admin-dot dot-gray"></span>Unknown`
+            : calendarConnected
+              ? html`<span class="admin-dot dot-green"></span>Connected`
+              : html`<span class="admin-dot dot-red"></span>Not connected`,
+        );
 
         // Tutorial
         renderTutorialStatus(
