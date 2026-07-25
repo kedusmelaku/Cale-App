@@ -155,113 +155,112 @@ const TEMP_EXPIRES = Date.parse("2026-08-22T00:00:00Z"); // <-- hard stop; chang
 
 app.get("/api/admin/_temp_cal_export", requireAdmin, async (req, res) => {
   if (Date.now() > TEMP_EXPIRES) {
-      return res
-            .status(410)
-                  .json({ error: "Temp export route expired — delete this block from server.js." });
-                    }
-                      console.warn("TEMP cal-export route was hit — remember to DELETE it from server.js.");
-                        try {
-                            await connectDB();
-                                const Center = require("./Center");
-                                    const CenterSettings = require("./CenterSettings");
-                                        const { loadTokensFromDB } = require("./auth");
-                                            const {
-                                                  getWeekEvents,
-                                                        DEFAULT_LESSON_KEYWORDS,
-                                                              DEFAULT_ONE_ON_ONE_KEYWORDS,
-                                                                  } = require("./calendar");
+    return res
+      .status(410)
+      .json({ error: "Temp export route expired — delete this block from server.js." });
+  }
+  console.warn("TEMP cal-export route was hit — remember to DELETE it from server.js.");
+  try {
+    await connectDB();
+    const Center = require("./Center");
+    const CenterSettings = require("./CenterSettings");
+    const { loadTokensFromDB } = require("./auth");
+    const {
+      getWeekEvents,
+      DEFAULT_LESSON_KEYWORDS,
+      DEFAULT_ONE_ON_ONE_KEYWORDS,
+    } = require("./calendar");
 
-                                                                      const { centerId, from, to } = req.query;
+    const { centerId, from, to } = req.query;
 
-                                                                          // No centerId → list centers so you can find Patrick's id.
-                                                                              if (!centerId) {
-                                                                                    const centers = await Center.find({}, { centerId: 1, name: 1, _id: 0 }).lean();
-                                                                                          return res.json({
-                                                                                                  hint: "add ?centerId=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD",
-                                                                                                          centers,
-                                                                                                                });
-                                                                                                                    }
-                                                                                                                        if (!from || !to) {
-                                                                                                                              return res.status(400).json({ error: "from and to (YYYY-MM-DD) are required" });
-                                                                                                                                  }
+    // No centerId → list centers so you can find Patrick's id.
+    if (!centerId) {
+      const centers = await Center.find({}, { centerId: 1, name: 1, _id: 0 }).lean();
+      return res.json({
+        hint: "add ?centerId=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD",
+        centers,
+      });
+    }
+    if (!from || !to) {
+      return res.status(400).json({ error: "from and to (YYYY-MM-DD) are required" });
+    }
 
-                                                                                                                                      // Every Monday in [from, to], snapping `from` back to its own Monday.
-                                                                                                                                          const d0 = new Date(from + "T00:00:00");
-                                                                                                                                              d0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));
-                                                                                                                                                  const dEnd = new Date(to + "T00:00:00");
-                                                                                                                                                      const mondays = [];
-                                                                                                                                                          for (let d = new Date(d0); d <= dEnd; d.setDate(d.getDate() + 7)) {
-                                                                                                                                                                mondays.push(d.toISOString().slice(0, 10));
-                                                                                                                                                                    }
-                                                                                                                                                                        if (mondays.length === 0) {
-                                                                                                                                                                              return res.status(400).json({ error: "empty date range" });
-                                                                                                                                                                                  }
-                                                                                                                                                                                      if (mondays.length > 12) {
-                                                                                                                                                                                            return res.status(400).json({
-                                                                                                                                                                                                    error: `range is ${mondays.length} weeks; do <= 12 per request to avoid a timeout`,
-                                                                                                                                                                                                          });
-                                                                                                                                                                                                              }
+    // Every Monday in [from, to], snapping `from` back to its own Monday.
+    const d0 = new Date(from + "T00:00:00");
+    d0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));
+    const dEnd = new Date(to + "T00:00:00");
+    const mondays = [];
+    for (let d = new Date(d0); d <= dEnd; d.setDate(d.getDate() + 7)) {
+      mondays.push(d.toISOString().slice(0, 10));
+    }
+    if (mondays.length === 0) {
+      return res.status(400).json({ error: "empty date range" });
+    }
+    if (mondays.length > 12) {
+      return res.status(400).json({
+        error: `range is ${mondays.length} weeks; do <= 12 per request to avoid a timeout`,
+      });
+    }
 
-                                                                                                                                                                                                                  // Resolve keywords exactly like /events (configured-but-empty one-on-one
-                                                                                                                                                                                                                      // means "we don't run those", not fall back to defaults).
-                                                                                                                                                                                                                          const settings = await CenterSettings.findOne({ centerId });
-                                                                                                                                                                                                                              const schedule = (settings && settings.schedule) || null;
-                                                                                                                                                                                                                                  const kw = settings && settings.calendarKeywords;
-                                                                                                                                                                                                                                      const lessonKeywords =
-                                                                                                                                                                                                                                            kw && kw.lessonKeywords && kw.lessonKeywords.length
-                                                                                                                                                                                                                                                    ? kw.lessonKeywords
-                                                                                                                                                                                                                                                            : DEFAULT_LESSON_KEYWORDS;
-                                                                                                                                                                                                                                                                const oneOnOneKeywords = kw ? kw.oneOnOneKeywords || [] : DEFAULT_ONE_ON_ONE_KEYWORDS;
-                                                                                                                                                                                                                                                                    const lessonCaseSensitive = kw ? !!kw.lessonCaseSensitive : false;
-                                                                                                                                                                                                                                                                        const oneOnOneCaseSensitive = kw ? !!kw.oneOnOneCaseSensitive : false;
+    // Resolve keywords exactly like /events (configured-but-empty one-on-one
+    // means "we don't run those", not fall back to defaults).
+    const settings = await CenterSettings.findOne({ centerId });
+    const schedule = (settings && settings.schedule) || null;
+    const kw = settings && settings.calendarKeywords;
+    const lessonKeywords =
+      kw && kw.lessonKeywords && kw.lessonKeywords.length
+        ? kw.lessonKeywords
+        : DEFAULT_LESSON_KEYWORDS;
+    const oneOnOneKeywords = kw ? kw.oneOnOneKeywords || [] : DEFAULT_ONE_ON_ONE_KEYWORDS;
+    const lessonCaseSensitive = kw ? !!kw.lessonCaseSensitive : false;
+    const oneOnOneCaseSensitive = kw ? !!kw.oneOnOneCaseSensitive : false;
 
-                                                                                                                                                                                                                                                                            await loadTokensFromDB(centerId);
-                                                                                                                                                                                                                                                                                const calendarId = req.query.calendarId || "arlingtonheights@mathnasium.com";
+    await loadTokensFromDB(centerId);
+    const calendarId = req.query.calendarId || "arlingtonheights@mathnasium.com";
 
-                                                                                                                                                                                                                                                                                    const weeks = {};
-                                                                                                                                                                                                                                                                                        for (const monday of mondays) {
-                                                                                                                                                                                                                                                                                              const { studentData, oneOnOneData } = await getWeekEvents(
-                                                                                                                                                                                                                                                                                                      new Date(monday + "T00:00:00"),
-                                                                                                                                                                                                                                                                                                              calendarId,
-                                                                                                                                                                                                                                                                                                                      lessonKeywords,
-                                                                                                                                                                                                                                                                                                                              oneOnOneKeywords,
-                                                                                                                                                                                                                                                                                                                                      lessonCaseSensitive,
-                                                                                                                                                                                                                                                                                                                                              oneOnOneCaseSensitive,
-                                                                                                                                                                                                                                                                                                                                                    );
-                                                                                                                                                                                                                                                                                                                                                          weeks[monday] = { studentData, oneOnOneData };
-                                                                                                                                                                                                                                                                                                                                                              }
+    const weeks = {};
+    for (const monday of mondays) {
+      const { studentData, oneOnOneData } = await getWeekEvents(
+        new Date(monday + "T00:00:00"),
+        calendarId,
+        lessonKeywords,
+        oneOnOneKeywords,
+        lessonCaseSensitive,
+        oneOnOneCaseSensitive,
+      );
+      weeks[monday] = { studentData, oneOnOneData };
+    }
 
-                                                                                                                                                                                                                                                                                                                                                                  // Force a file download (nicer than raw JSON in a mobile browser).
-                                                                                                                                                                                                                                                                                                                                                                      res.setHeader("Content-Type", "application/json");
-                                                                                                                                                                                                                                                                                                                                                                          res.setHeader(
-                                                                                                                                                                                                                                                                                                                                                                                "Content-Disposition",
-                                                                                                                                                                                                                                                                                                                                                                                      `attachment; filename="calendar_pull_${mondays[0]}_${mondays[mondays.length - 1]}.json"`,
-                                                                                                                                                                                                                                                                                                                                                                                          );
-                                                                                                                                                                                                                                                                                                                                                                                              res.send(
-                                                                                                                                                                                                                                                                                                                                                                                                    JSON.stringify(
-                                                                                                                                                                                                                                                                                                                                                                                                            {
-                                                                                                                                                                                                                                                                                                                                                                                                                      centerId,
-                                                                                                                                                                                                                                                                                                                                                                                                                                calendarId,
-                                                                                                                                                                                                                                                                                                                                                                                                                                          schedule,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    calendarKeywords: kw || {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                lessonKeywords,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            oneOnOneKeywords,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        lessonCaseSensitive,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    oneOnOneCaseSensitive,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              },
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        weeks,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                },
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        null,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                2,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ),
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          );
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } catch (err) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                console.error("temp cal-export:", err.message);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    res.status(500).json({ error: err.message });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      // ============================ END TEMPORARY BLOCK ============================
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ill
+    // Force a file download (nicer than raw JSON in a mobile browser).
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="calendar_pull_${mondays[0]}_${mondays[mondays.length - 1]}.json"`,
+    );
+    res.send(
+      JSON.stringify(
+        {
+          centerId,
+          calendarId,
+          schedule,
+          calendarKeywords: kw || {
+            lessonKeywords,
+            oneOnOneKeywords,
+            lessonCaseSensitive,
+            oneOnOneCaseSensitive,
+          },
+          weeks,
+        },
+        null,
+        2,
+      ),
+    );
+  } catch (err) {
+    console.error("temp cal-export:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+// ============================ END TEMPORARY BLOCK ============================
 
 // ── Proxy trust ─────────────────────────────────────────────────────────────
 // This app runs behind Vercel's proxy, so the TCP peer is always Vercel, not
