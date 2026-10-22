@@ -29,52 +29,41 @@ Each center has a manager account. Employees submit availability through a publi
 | Calendar  | Google Calendar API (`googleapis`, OAuth 2.0) |
 | Security  | `helmet`, `express-rate-limit` |
 | Front end | Static HTML/CSS/JS in `public/` (no build step) |
-| Hosting   | Built for Vercel (serverless); also runs as a regular Node server |
+| Hosting   | Vercel (serverless), at app.usecale.com |
 
 ---
 
-## Getting started
+## Live app
 
-### Prerequisites
+Cale runs at **<https://app.usecale.com>** and is deployed on Vercel.
 
-- Node.js 18+
-- A MongoDB database (for example, MongoDB Atlas)
-- A Google Cloud OAuth 2.0 client (type "Web application") with the Google Calendar API enabled
+- Manager sign-in: <https://app.usecale.com/login>
+- Admin console: <https://app.usecale.com/admin/login>
+- Employee availability form: `https://app.usecale.com/availability/<centerId>`
 
-### Install
+---
 
-```bash
-git clone https://github.com/kedusmelaku/Cale-App.git
-cd Cale-App
-npm install
-```
+## Deployment
 
-### Environment variables
+Cale is hosted on **Vercel** as a serverless Express app. These environment variables are set in the Vercel project:
 
-Create a `.env` file in the project root (it is already in `.gitignore`):
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `MONGODB_URI` | yes | MongoDB connection string |
+| `JWT_SECRET` | yes | Signs manager and admin session cookies |
+| `ADMIN_PASSWORD` | yes | Password for the admin console |
+| `GOOGLE_CREDENTIALS` | yes | Google OAuth client JSON (Web application type, Calendar API enabled), as one line |
+| `OAUTH_REDIRECT_URI` | no | Overrides the first redirect URI in `GOOGLE_CREDENTIALS`; should be `https://app.usecale.com/oauth/callback` |
 
-```env
-# Required
-MONGODB_URI=mongodb+srv://user:pass@cluster.example.mongodb.net/cale
-JWT_SECRET=a-long-random-string
-ADMIN_PASSWORD=your-admin-console-password
+The server refuses to start if `JWT_SECRET` or `ADMIN_PASSWORD` is missing.
 
-# Google OAuth client JSON (the downloaded credentials file, as one line)
-GOOGLE_CREDENTIALS={"web":{"client_id":"...","client_secret":"...","redirect_uris":["http://localhost:3000/oauth/callback"]}}
+The Google OAuth client's authorized redirect URIs must include `https://app.usecale.com/oauth/callback`.
 
-# Optional: overrides the first redirect URI in GOOGLE_CREDENTIALS
-OAUTH_REDIRECT_URI=http://localhost:3000/oauth/callback
-```
+How the app handles running serverless:
 
-The server will not start if `JWT_SECRET` or `ADMIN_PASSWORD` is missing.
-
-### Run
-
-```bash
-npm start
-```
-
-The app runs at <http://localhost:3000>. Session cookies are set with the `Secure` flag, so use `localhost` (which browsers treat as secure) or HTTPS.
+- MongoDB connections are reused across warm invocations (`connectDB()` in `server.js`).
+- Google OAuth tokens are stored in MongoDB, not in memory, so the calendar connection survives cold starts and is shared across instances.
+- Rate-limit counters are also stored in MongoDB for the same reason.
 
 ---
 
@@ -174,18 +163,6 @@ MONGODB_URI=... GOOGLE_CREDENTIALS=... CENTER_ID=<centerId> \
 ```
 
 Optional: `ROSTERS` (input path) and `OUT` (output path).
-
----
-
-## Deployment
-
-Cale is built for **Vercel**:
-
-- MongoDB connections are reused across warm invocations (`connectDB()` in `server.js`).
-- Google OAuth tokens are stored in MongoDB, not in memory, so the calendar connection survives cold starts and is shared across instances.
-- Rate-limit counters are stored in MongoDB for the same reason.
-
-Set the environment variables above in your Vercel project, and add your production `/oauth/callback` URL to the Google OAuth client's authorized redirect URIs.
 
 ---
 
