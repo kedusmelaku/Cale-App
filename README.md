@@ -9,7 +9,7 @@ Each center has a manager account. Employees submit availability through a publi
 ## Features
 
 - **Demand-driven scheduling.** Student counts per 30-minute slot come from the center's Google Calendar. The engine targets a 1:3 instructor-to-student ratio and adds one extra instructor for each slot with a one-on-one session.
-- **Employee availability form.** Employees go to `/availability/<centerId>`, enter their 6-digit PIN, and submit their availability for the upcoming week. Submissions are only accepted while the center's submission window is open.
+- **Employee availability form.** Employees go to `/availability/<centerId>`, enter their 6-digit PIN, and submit their availability for the upcoming week. If the center has set a submission window, submissions are only accepted while it is open. If no window is set, submissions are accepted at any time.
 - **Priority levels.** Employees can be Normal, Priority, or High Priority. Higher priority means they get assigned first. Among Normal workers, those with less availability go first, and earlier submissions win ties.
 - **Configurable operating hours.** Each center sets which days it is open and its hours, with up to two blocks per day (for a day with a gap in the middle). There are separate **school-year** and **summer** schedules, chosen automatically by a recurring summer date range or set by hand.
 - **Understaffing warnings.** The generated schedule lists every 30-minute span where fewer workers are assigned than needed, and by how many.
@@ -82,7 +82,7 @@ How the app handles running serverless:
 
 All times are stored as **minutes since midnight** (24-hour), for example `540` = 9:00 AM. AM/PM only exists in the display.
 
-The main engine is in `Day.js` / `Week.js`:
+The scheduling algorithm is in `Day.js`. `Week.js` just builds one `Day` per open day of the center's active schedule.
 
 1. **Demand.** Each 30-minute slot needs `ceil(students / 3)` workers, plus 1 if the slot has a one-on-one.
 2. **Decomposition.** Each operating block's demand curve is split into horizontal levels, one per worker needed.
@@ -103,7 +103,8 @@ The main engine is in `Day.js` / `Week.js`:
 ├── auth.js              # Google OAuth2 client; tokens stored in MongoDB
 ├── calendar.js          # Fetches calendar events and turns them into per-slot demand
 ├── scheduleConfig.js    # Operating-schedule defaults, validation, active-variant logic
-├── Day.js / Week.js     # Main scheduling engine
+├── Day.js               # Scheduling algorithm
+├── Week.js              # Builds the week's Day objects from the center's schedule
 ├── SimplifiedDay.js / SimplifiedWeek.js  # Older block-based engine (not used by the UI)
 ├── User.js              # Engine representation of an employee
 ├── rateLimiters.js      # Rate limiters for logins and PIN lookups
