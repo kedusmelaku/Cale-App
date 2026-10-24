@@ -15,12 +15,12 @@
 // address. What actually secures the PIN endpoint is the PIN's own length —
 // see dashboard.html's generateUniquePin.
 //
-// Every request counts, successes included — a limiter that refunded successes
+// Every request counts, successes included; a limiter that refunded successes
 // would let anyone holding one valid credential farm the endpoint. Instead, the
 // two LOGIN routes call clearRateLimit() once a password actually checks out,
 // which wipes that key's counter entirely. So honest users who fumble their
-// password a few times and then get in carry no penalty, while a guesser — who
-// never succeeds — keeps accumulating. See clearRateLimit() at the bottom for
+// password a few times and then get in carry no penalty, while a guesser, who
+// never succeeds, keeps accumulating. See clearRateLimit() at the bottom for
 // why the PIN lookup deliberately does NOT do this.
 //
 // TUNING: the numbers in LIMITS are the knobs. They're deliberately in one
@@ -58,7 +58,7 @@ const LIMITS = {
 
   // Change-password. Reached either right after login (holding a valid
   // change-password token) or from the dashboard. It isn't a credential
-  // oracle the way login/PIN are -- the token itself isn't guessable -- but
+  // oracle the way login/PIN are, the token itself isn't guessable, but
   // it's still an unauthenticated-by-cookie endpoint an attacker could hit
   // if they somehow obtained a token, so it gets the same speed-bump
   // treatment as the others.
@@ -84,7 +84,7 @@ class MongoStore {
   // This is a single aggregation-pipeline update rather than a read-then-write
   // precisely because it has to be atomic: two instances handling two guesses
   // at the same moment must not both read "hits: 4" and both write "hits: 5",
-  // which is how a limit of 5 quietly becomes a limit of 10 under exactly the
+  // which is how a limit of 5 becomes a limit of 10 under exactly the
   // concurrent load an attacker generates. $$NOW is evaluated by the server, so
   // the window comparison doesn't depend on any instance's clock either.
   async increment(key) {
@@ -94,7 +94,7 @@ class MongoStore {
       [
         {
           $set: {
-            // Still inside the window → add one. Otherwise this is the first
+            // Still inside the window -> add one. Otherwise this is the first
             // hit of a fresh window.
             hits: {
               $cond: [
@@ -115,23 +115,12 @@ class MongoStore {
       {
         upsert: true,
         new: true,
-        // REQUIRED by Mongoose 9. Passing an aggregation pipeline (an array)
-        // to findOneAndUpdate silently worked in Mongoose 8 and earlier; 9
-        // throws unless you opt in explicitly:
-        //   "Cannot pass an array to query updates unless the
-        //    `updatePipeline` option is set."
-        // Without this every call to increment() throws, which — because the
-        // limiter sits in front of both login routes — took the whole app's
-        // auth down. See lib/query.js:3528 in mongoose 9.
         updatePipeline: true,
       },
     );
     return { totalHits: doc.hits, resetTime: doc.expiresAt };
   }
 
-  // Required by the Store interface. Nothing calls it while every limiter
-  // counts all requests, but a future limiter using skipSuccessfulRequests
-  // would need it.
   async decrement(key) {
     await RateLimit.findOneAndUpdate(
       { key, hits: { $gt: 0 } },
@@ -197,7 +186,7 @@ function build({ windowMs, max }, keyGenerator, message) {
     // The reasoning: this limiter is a speed bump against casual guessing, not
     // the thing securing the PIN (its length does that). Trading "an attacker
     // gets un-throttled while Mongo is unreachable" against "no customer can
-    // sign in while Mongo is unreachable" is not a close call — and if Mongo is
+    // sign in while Mongo is unreachable" is not a close call, and if Mongo is
     // down, login is broken anyway, since it needs the DB to check the password.
     //
     // NOTE: this only covers STORE failures. Actually hitting the limit still

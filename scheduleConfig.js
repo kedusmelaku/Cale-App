@@ -26,7 +26,7 @@ const DAY_FULL = {
   friday: "Friday", saturday: "Saturday", sunday: "Sunday",
 };
 
-// blocks ([{start,end}] minutes) → flat array of slot-start minutes (30-min steps).
+// blocks ([{start,end}] minutes) -> flat array of slot-start minutes (30-min steps).
 function slotsForBlocks(blocks) {
   const slots = [];
   for (const b of (blocks || []).slice().sort((a, b) => a.start - b.start)) {
@@ -35,7 +35,7 @@ function slotsForBlocks(blocks) {
   return slots;
 }
 
-// A schedule variant's `days` map → the day configs the engine builds a week
+// A schedule variant's `days` map -> the day configs the engine builds a week
 // from: one entry per OPEN day, in weekday order, each with sorted operating
 // blocks, the flattened slot-start minutes, and the candidate shift-start
 // minutes used to build shift templates. Shift starts include the per-priority
@@ -64,8 +64,7 @@ const MAX_TIME = 1440;   // 12:00 AM next day (end-exclusive upper bound)
 const STEP = 30;         // half-hour granularity
 
 // Default minimum shift length ultra mode will ever produce, in minutes.
-// 2 hours reproduces what Kedus has observed at his own center ("never seen
-// a shift under 2 hours") -- but this is only the DEFAULT a fresh variant
+// 2 hours reproduces what I observed at my center, but this is only the DEFAULT a fresh variant
 // starts with, not a hardcoded constant the algorithm itself relies on. Each
 // center can change it via admin.html, since "how short a shift a manager
 // tolerates" is a fact about that specific center, not a judgment call about
