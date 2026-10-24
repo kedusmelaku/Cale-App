@@ -285,8 +285,7 @@ async function requireAuth(req, res, next) {
     }
   } catch (err) {
     // FAIL OPEN, deliberately — same reasoning as passOnStoreError in
-    // rateLimiters.js, and bought by the same outage (see the handoff's
-    // "incident worth remembering").
+    // rateLimiters.js, and bought by the same outage.
     //
     // The trade: if Mongo is unreachable, a frozen center gets through this
     // check. But EVERY route behind this middleware reads its data from
@@ -1267,8 +1266,7 @@ app.get("/api/admin/centers", requireAdmin, async (req, res) => {
     await connectDB();
     const centers = await Center.find({}, { passwordHash: 0 }); // never send hashes
     // tutorialCompleted lives on CenterSettings, a separate collection keyed
-    // by the same centerId string (see the handoff notes on why this isn't
-    // a real relational reference) — so the list-view status needs a second
+    // by the same centerId string — so the list-view status needs a second
     // query and a merge rather than a single find().
     const settingsRows = await CenterSettings.find(
       {},
