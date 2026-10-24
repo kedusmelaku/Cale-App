@@ -3410,12 +3410,27 @@
         }
       }
 
+      // Start the week picker on whatever week the availability form was for
+      async function prefillWeekFromForm() {
+        try {
+          const res = await fetch("/center-settings");
+          const data = await res.json();
+          const wk = data.data && data.data.formWeekOf;
+          const dateInput = document.getElementById("week-date");
+          if (wk && !dateInput.value) dateInput.value = wk;
+        } catch (e) {
+          console.warn("Could not load form week:", e.message);
+        }
+      }
+
       // ── Init ───────────────────────────────────────────────
       applyTheme();
       checkCalendarStatus();
 
       // Load employees and reconstruct availability from saved days
-      loadEmployees()
+      // Week has to be filled in first, loadEmployees uses it to fetch submissions
+      prefillWeekFromForm()
+        .then(() => loadEmployees())
         .then(async () => {
           await loadSchedule();
           await loadCenterSettingsForTutorial();

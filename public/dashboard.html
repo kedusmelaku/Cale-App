@@ -357,8 +357,12 @@
         </div>
 
         <div class="wm-row">
-          <label class="field-label">Week of</label>
-          <div class="wm-readonly-date" id="wm-week-of"></div>
+          <label class="field-label" for="wm-week-of">Week of (Monday)</label>
+          <input
+            type="date"
+            id="wm-week-of"
+            class="av-datetime-input"
+            onchange="onFormWeekChange(this.value)" />
         </div>
 
         <div class="wm-row">
@@ -2765,9 +2769,7 @@
         if (summary) summary.textContent = formatFormSummary(_centerSettings);
         if (weekTarget) {
           if (_centerSettings?.windowOpen) {
-            const monday = getMondayStrictlyAfter(
-              new Date(_centerSettings.windowOpen),
-            );
+            const monday = getFormWeekOf();
             const d = new Date(monday + "T00:00:00");
             const label = d.toLocaleDateString("en-US", {
               month: "long",
@@ -2884,19 +2886,12 @@
         document.getElementById("wm-close-auto-btn").classList.remove("active");
         document.getElementById("wm-close-row").style.display = "none";
         document.getElementById("wm-copied-msg").style.display = "none";
-        // Set week-of readonly display
-        document.getElementById("wm-week-of").textContent = (() => {
-          const d = new Date();
-          const day = d.getDay();
-          const diff = day === 1 ? 0 : (8 - day) % 7;
-          const mon = new Date(d);
-          mon.setDate(d.getDate() + diff);
-          return mon.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          });
-        })();
+        // Keep the saved week if it hasn't passed yet, otherwise start on
+        // next week so last week's pick doesn't carry over
+        const savedWeek = getFormWeekOf();
+        const thisMonday = getMondayOfWeek(new Date());
+        document.getElementById("wm-week-of").value =
+          savedWeek >= thisMonday ? savedWeek : getNextMondayStr();
 
         const now = new Date();
         const state = getFormState(_centerSettings);
@@ -2978,6 +2973,8 @@
       }
 
       async function activateForm() {
+        const weekVal = document.getElementById("wm-week-of").value;
+        if (!weekVal) return alert("Please choose the week this form is for.");
         const openVal = document.getElementById("wm-open").value;
         if (!openVal) return alert("Please set an open time.");
         const closeVal =
@@ -2994,6 +2991,7 @@
             body: JSON.stringify({
               windowOpen: new Date(openVal).toISOString(),
               windowClose: closeVal ? new Date(closeVal).toISOString() : null,
+              formWeekOf: weekVal,
             }),
           });
           const data = await res.json();
@@ -3057,9 +3055,7 @@
       async function loadSubmissions(force = false) {
         if (settings.demo) return;
         try {
-          const weekOf = _centerSettings?.windowOpen
-            ? getMondayStrictlyAfter(new Date(_centerSettings.windowOpen))
-            : getNextMondayStr();
+          const weekOf = getFormWeekOf();
           const res = await fetch(`/submissions?weekOf=${weekOf}`);
           // See loadEmployees -- an HTTP error would otherwise read as
           // "nobody has submitted yet".
@@ -3146,6 +3142,22 @@
         const m = String(monday.getMonth() + 1).padStart(2, "0");
         const d = String(monday.getDate()).padStart(2, "0");
         return `${y}-${m}-${d}`;
+      }
+
+      // Week the availability form is for. Uses the week picked in the form
+      // modal, and falls back to the old rule if one was never picked.
+      function getFormWeekOf() {
+        if (_centerSettings?.formWeekOf) return _centerSettings.formWeekOf;
+        return _centerSettings?.windowOpen
+          ? getMondayStrictlyAfter(new Date(_centerSettings.windowOpen))
+          : getNextMondayStr();
+      }
+
+      // If someone picks a day that isn't a Monday, move it back to that week's Monday
+      function onFormWeekChange(val) {
+        if (!val) return;
+        const monday = getMondayOfWeek(val + "T00:00:00");
+        if (monday !== val) document.getElementById("wm-week-of").value = monday;
       }
 
       function renderSubmissions() {
@@ -3369,9 +3381,7 @@
           if (submissionWorkers.length === 0) return;
 
           // Get next monday for events fetch
-          const weekOf = _centerSettings?.windowOpen
-            ? getMondayStrictlyAfter(new Date(_centerSettings.windowOpen))
-            : getNextMondayStr();
+          const weekOf = getFormWeekOf();
 
           const calId = settings.calendarId || "";
           const evRes = await fetch(
