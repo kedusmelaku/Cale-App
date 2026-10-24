@@ -68,8 +68,7 @@ const STEP = 30;         // half-hour granularity
 // starts with, not a hardcoded constant the algorithm itself relies on. Each
 // center can change it via admin.html, since "how short a shift a manager
 // tolerates" is a fact about that specific center, not a judgment call about
-// algorithm behavior (see the handoff doc's "configure the facts, decide the
-// philosophy" principle).
+// algorithm behavior.
 const DEFAULT_MIN_SHIFT_LENGTH = 120;
 
 // Default operating window reproduces the app's original hardcoded behavior:

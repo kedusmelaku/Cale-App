@@ -278,7 +278,7 @@ class Day {
         }
 
         // Earliest windows get first pick of workers; ties on start go to the
-        // WIDER window (see the ordering-bug writeup in the handoff doc).
+        // WIDER window.
         windows.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
 
         // RELAY COVERING (unchanged): cover each window with a handoff chain,
