@@ -2,7 +2,7 @@
 // Generates the one-time temporary passwords an admin hands a manager on
 // center creation or password reset. These are meant to be READ ALOUD OR
 // TEXTED and TYPED ONCE, then immediately replaced — so "easy to type
-// correctly" matters more here than raw entropy the way it does for the
+// correctly" matters more here than raw randomness the way it does for the
 // employee PIN (see rateLimiters.js's comment on that tradeoff).
 //
 // Shape: two words + a two-digit number, hyphen-joined, e.g. "maple-otter-47".

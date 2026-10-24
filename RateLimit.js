@@ -25,7 +25,7 @@ const rateLimitSchema = new mongoose.Schema({
 
 // TTL index: Mongo removes each document once expiresAt passes.
 // NOTE: Mongo's TTL monitor runs about once a minute, so documents linger
-// briefly after expiry. That's harmless — increment() below compares
+// briefly after expiry. That's harmless, increment() below compares
 // expiresAt itself and starts a fresh window regardless of whether the old
 // document has actually been reaped yet.
 rateLimitSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

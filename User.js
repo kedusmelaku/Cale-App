@@ -29,7 +29,7 @@ class User {
 
     // Availability-based points = total available hours across the week.
     // basePoints preserves this permanently so switching priority back to
-    // Normal (0) later can restore it -- applyPriority() only overwrites
+    // Normal (0) later can restore it, applyPriority() only overwrites
     // `points` for levels 1/2, so without a stored original, a worker once
     // set to Priority/High could never correctly return to Normal.
     this.points = 0;

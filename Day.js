@@ -7,15 +7,15 @@
 //     (0/undefined = no minimum). Per-variant config via scheduleConfig.js.
 //   shiftStarts = [min, ...] the per-priority default start times (same list
 //     SimplifiedDay's block templates are built from). Used ONLY as snap
-//     anchors so shift edges land on human-standard start times -- they never
+//     anchors so shift edges land on human-standard start times, they never
 //     create or remove demand.
 //
-// The unified design, in one paragraph: decompose each block's demand curve
+// The unified design: decompose each block's demand curve
 // into levels (stack of horizontal strips), exactly as before. Then, instead
-// of the old margin rule that silently DELETED any short interior strip --
+// of the old margin rule that silently DELETED any short interior strip,
 // the root cause of "scheduled 1 when 3 were needed", because a genuine
 // 2-slot spike of +2 lost BOTH its strips and never even hit the
-// understaffing banner (workersNeeded was derived from surviving windows) --
+// understaffing banner (workersNeeded was derived from surviving windows),
 // three rules apply:
 //
 //   1. DIP MERGE: within one level, two runs separated by a gap shorter than
@@ -25,7 +25,7 @@
 //      slight overstaffing of the dip.)
 //   2. CAPPED ABSORPTION: a short interior run may be dropped ONLY if it is
 //      the topmost strip of the spike at every slot it covers (target ===
-//      level) and no slot has already absorbed a drop -- i.e. total absorbed
+//      level) and no slot has already absorbed a drop, i.e. total absorbed
 //      demand is capped at ABSORB_CAP (1) worker per slot. That's the human
 //      judgment "let the ratio stretch to ~3.5:1 for half an hour". Anything
 //      deeper is REAL demand and falls through to rule 3. Absorbed demand is
@@ -33,7 +33,7 @@
 //      stays honest: nothing can be silently hidden from the banner anymore.
 //   3. EXTEND + SNAP: every surviving window is extended to minShiftLength
 //      (toward the "almost needed" side, as before), then its edges snap
-//      OUTWARD to the nearest anchor within SNAP_TOLERANCE -- anchors being
+//      OUTWARD to the nearest anchor within SNAP_TOLERANCE, anchors being
 //      the block open/close and the configured default shift starts. Snapping
 //      only ever widens a window (never trims below demand), trading a little
 //      overstaffing for shifts that read like shifts: 4:00-8:00, not
@@ -53,7 +53,7 @@ const ABSORB_CAP = 1;
 // How LONG (in slots) a blip may be and still qualify for absorption. 1 = only
 // a single 30-minute +1 wobble is ever absorbed; anything that persists a full
 // hour is real demand and gets staffed (with a minimum-length shift). This is
-// deliberately NOT the margin/minShiftLength dial -- absorbing demand and
+// deliberately NOT the margin/minShiftLength dial, absorbing demand and
 // merging dips are different judgments with different safe durations.
 const ABSORB_MAX_SLOTS = 1;
 
@@ -78,7 +78,7 @@ class Day {
                         // demand-curve target MINUS any deliberate capped
                         // absorption (never more than ABSORB_CAP). Unlike the
                         // old design, suppression can no longer hide demand
-                        // from this number -- an unstaffable spike shows up
+                        // from this number, an unstaffable spike shows up
                         // in the banner instead of silently disappearing.
     }));
   }
@@ -111,7 +111,7 @@ class Day {
     }
   }
 
-  // Splits `this.slots` into maximal contiguous runs (a two-block day has a
+  // Splits `this.slots` into maximum contiguous runs (a two-block day has a
   // real gap in the time sequence between blocks, which is exactly where
   // this splits).
   _splitIntoBlocks() {
@@ -130,7 +130,7 @@ class Day {
 
   // Raw per-slot target headcount. A one-on-one slot pulls one instructor off
   // the floor; the group students that instructor would have covered are
-  // passed onto the rest of the team -- so the target is the normal 1:3 ratio
+  // passed onto the rest of the team, so the target is the normal 1:3 ratio
   // PLUS the number of instructors pulled (always 1 today; calendar.js's
   // oneOnOneData is a boolean, not a count).
   _rawTarget(slot) {
@@ -139,7 +139,7 @@ class Day {
   }
 
   // All runs (as [startIdx, endIdx) into blockSlots) where at least `level`
-  // workers are needed. No filtering here -- merging/absorption/extension
+  // workers are needed. No filtering here, merging/absorption/extension
   // decide each run's fate downstream.
   _levelRuns(blockSlots, target, level) {
     const runs = [];
@@ -156,7 +156,7 @@ class Day {
   }
 
   // DIP MERGE: two same-level runs separated by a gap shorter than
-  // marginSlots become one window -- keep the person through the lull
+  // marginSlots become one window, keep the person through the lull
   // instead of fragmenting the level across two workers. Runs arrive sorted
   // by start (guaranteed by _levelRuns' left-to-right sweep).
   _mergeCloseRuns(runs, marginSlots) {
@@ -173,7 +173,7 @@ class Day {
 
   // CAPPED ABSORPTION: may this short interior run be absorbed (not staffed)?
   // Only if it's the topmost strip of the spike everywhere it stands
-  // (target === level -- so at most one strip per slot can ever qualify), no
+  // (target === level, so at most one strip per slot can ever qualify), no
   // slot in it has already absorbed its cap, and the blip is genuinely brief
   // (ABSORB_MAX_SLOTS). Edge-touching runs are never absorbed (edge trimming
   // is real observed demand, handled by extension/snapping).
@@ -208,7 +208,7 @@ class Day {
   // SNAP_TOLERANCE. Anchors = block open, block close, and any configured
   // default shift start inside the block. Only ever widens the window (start
   // can move earlier, end can move later), so demand coverage is never
-  // reduced -- the cost is a little deliberate overstaffing in exchange for
+  // reduced, the cost is a little deliberate overstaffing in exchange for
   // shifts that look like shifts (4:00-8:00, not 4:30-7:30). An edge already
   // sitting on an anchor stays put (distance 0 picks itself).
   _snapToAnchors(blockSlots, start, end) {
@@ -239,7 +239,7 @@ class Day {
     for (const day of week) {
       const minSlots = day.minShiftLength ? Math.max(1, Math.round(day.minShiftLength / 30)) : 1;
       // Margin (dip-merge distance + "short run" threshold) stays anchored to
-      // the same configured minimum shift length -- one dial, not two.
+      // the same configured minimum shift length, one dial, not two.
       const marginSlots = minSlots;
 
       const blocks = day._splitIntoBlocks();
@@ -265,7 +265,7 @@ class Day {
             }
             // Snap FIRST so the widening the snap already does counts toward
             // the minimum shift length (extending first and snapping after
-            // stacks both widenings -- up to 4-hour shifts for a 1-hour
+            // stacks both widenings, up to 4-hour shifts for a 1-hour
             // spike). Then extend only whatever's still short, and snap once
             // more in case extension pushed an edge off its anchor.
             let [es, ee] = day._snapToAnchors(blockSlots, s, e);
@@ -336,9 +336,9 @@ class Day {
           }
         }
 
-        // Honest decided target: raw demand minus deliberate capped
+        // Decided target: raw demand minus deliberate capped
         // absorption. NOT derived from surviving-window counts (extension and
-        // snapping widen windows past demand -- unfilled padding is not a
+        // snapping widen windows past demand, unfilled padding is not a
         // shortfall), and no longer able to lose real demand the way the old
         // suppression could.
         for (let i = 0; i < blockSlots.length; i++) {
