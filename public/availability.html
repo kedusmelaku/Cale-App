@@ -399,6 +399,7 @@
       let _weekOf = null;
       let _windowOpen = null;
       let _windowClose = null;
+      let _formWeekOf = null; // week the manager picked, if any
       let _sched = null; // buildSchedule() view of the center's active variant
       let _defaults = null; // per-priority default windows [{start,end} x3]
 
@@ -430,6 +431,7 @@
           const s = data.data;
           _windowOpen  = (s && s.windowOpen)  ? new Date(s.windowOpen)  : null;
           _windowClose = (s && s.windowClose) ? new Date(s.windowClose) : null;
+          _formWeekOf  = (s && s.formWeekOf) || null;
         } catch (e) {
           console.warn("Could not load center settings:", e.message);
         }
@@ -446,10 +448,7 @@
           _sched = buildSchedule(null);
         }
 
-        // Determine weekOf from window open date, or default to next Monday
-        _weekOf = _windowOpen
-          ? getMondayStrictlyAfter(_windowOpen)
-          : getNextMonday();
+        _weekOf = resolveWeekOf();
 
         updateWindowStatus();
       })();
@@ -486,6 +485,13 @@
         const m = String(monday.getMonth() + 1).padStart(2, "0");
         const d = String(monday.getDate()).padStart(2, "0");
         return `${y}-${m}-${d}`;
+      }
+
+      // Week picked by the manager if there is one, otherwise the Monday after
+      // the form opens, otherwise next Monday
+      function resolveWeekOf() {
+        if (_formWeekOf) return _formWeekOf;
+        return _windowOpen ? getMondayStrictlyAfter(_windowOpen) : getNextMonday();
       }
 
       function formatDate(dateStr) {
@@ -553,7 +559,8 @@
           const s = await fetch(`/center-settings/${_centerId}`).then(r => r.json());
           _windowOpen  = s.data?.windowOpen  ? new Date(s.data.windowOpen)  : null;
           _windowClose = s.data?.windowClose ? new Date(s.data.windowClose) : null;
-          _weekOf = _windowOpen ? getMondayStrictlyAfter(_windowOpen) : getNextMonday();
+          _formWeekOf  = s.data?.formWeekOf || null;
+          _weekOf = resolveWeekOf();
           updateWindowStatus();
         } catch (e) {
           console.warn("Could not refresh center settings:", e.message);

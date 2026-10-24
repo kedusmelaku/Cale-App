@@ -107,6 +107,11 @@ const centerSettingsSchema = new mongoose.Schema({
   windowOpen: { type: Date, default: null },
   windowClose: { type: Date, default: null },
 
+  // Monday ("YYYY-MM-DD") of the week the availability form is for. Set from
+  // the Configure Availability Form modal. null means it was never picked, so
+  // the old rule applies (Monday after windowOpen, or next Monday).
+  formWeekOf: { type: String, default: null },
+
   // Per-center operating schedule (operating days, hours, and blocks).
   // null on legacy documents created before this feature — callers should
   // fall back to scheduleConfig.defaultSchedule() when this is absent.
