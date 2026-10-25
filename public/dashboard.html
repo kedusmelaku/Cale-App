@@ -396,12 +396,30 @@
         </div>
 
         <div class="wm-activate-wrap">
-          <button class="btn-primary wm-activate-btn" onclick="activateForm()">
-            Activate &amp; Copy Link
-          </button>
-          <div class="wm-copied-msg" id="wm-copied-msg" style="display: none">
-            ✓ Link copied to clipboard
+          <div class="wm-activate-row">
+            <button class="btn-primary wm-activate-btn" onclick="activateForm()">
+              Activate
+            </button>
+            <button
+              class="btn-secondary wm-copy-btn"
+              onclick="copyLinkFromModal()"
+              title="Copy form link"
+              aria-label="Copy form link">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true">
+                <rect x="8" y="2" width="8" height="4" rx="1" />
+                <path
+                  d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              </svg>
+            </button>
           </div>
+          <div class="wm-copied-msg" id="wm-copied-msg" style="display: none"></div>
         </div>
       </div>
     </div>
@@ -2998,13 +3016,25 @@
           _centerSettings = data.data;
           updateFormCard();
           updateStatusPills();
-          // Copy link to clipboard
-          const link = window.location.origin + "/availability/" + _centerId;
-          navigator.clipboard.writeText(link).catch(() => {});
-          document.getElementById("wm-copied-msg").style.display = "block";
+          showModalMsg("✓ Form activated");
         } catch (e) {
           alert("Something went wrong. Please try again.");
         }
+      }
+
+      // Copy button next to Activate in the form modal
+      function copyLinkFromModal() {
+        const link = window.location.origin + "/availability/" + _centerId;
+        navigator.clipboard
+          .writeText(link)
+          .then(() => showModalMsg("✓ Link copied to clipboard"))
+          .catch(() => alert("Couldn't copy the link. Use Copy Link on the dashboard instead."));
+      }
+
+      function showModalMsg(text) {
+        const msg = document.getElementById("wm-copied-msg");
+        msg.textContent = text;
+        msg.style.display = "block";
       }
 
       function copyAvLink() {
