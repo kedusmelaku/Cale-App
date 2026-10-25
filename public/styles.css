@@ -3431,10 +3431,27 @@ body.tut-active .db-sub-pop {
   gap: 10px;
   align-items: flex-start;
 }
-.wm-activate-btn {
+/* Activate takes most of the row, copy icon button sits on the right */
+.wm-activate-row {
+  display: flex;
+  gap: 8px;
   width: 100%;
+}
+.wm-activate-btn {
+  flex: 1;
   padding: 12px;
   font-size: 0.9rem;
+}
+.wm-copy-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+}
+.wm-copy-btn svg {
+  width: 18px;
+  height: 18px;
 }
 .wm-copied-msg {
   font-size: 0.82rem;
