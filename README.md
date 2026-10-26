@@ -109,8 +109,6 @@ The scheduling algorithm is in `Day.js`. `Week.js` just builds one `Day` per ope
 ├── User.js              # Engine representation of an employee
 ├── rateLimiters.js      # Rate limiters for logins and PIN lookups
 ├── tempPassword.js      # Temporary-password generator for admin resets
-├── pull_calendar.js     # Offline script: exports calendar data for testing the algorithm
-├── rosters.json         # Historical roster data used by pull_calendar.js
 │
 ├── Center.js            # Mongoose model: center, manager password, freeze state
 ├── CenterSettings.js    # Mongoose model: submission window, schedule, keywords
