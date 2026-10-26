@@ -167,4 +167,4 @@ Optional: `ROSTERS` (input path) and `OUT` (output path).
 
 ## License
 
-ISC
+AGPL-3.0
