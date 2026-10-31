@@ -153,10 +153,6 @@ The scheduling algorithm is in `Day.js`. `Week.js` just builds one `Day` per ope
 ---
 
 
-Optional: `ROSTERS` (input path) and `OUT` (output path).
-
----
-
 ## License
 
 AGPL-3.0
