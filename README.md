@@ -152,14 +152,6 @@ The scheduling algorithm is in `Day.js`. `Week.js` just builds one `Day` per ope
 
 ---
 
-## Utility script: `pull_calendar.js`
-
-Exports a center's Google Calendar demand for every week listed in `rosters.json`, writing `calendar_pull.json`. This is useful for testing the scheduling algorithm against real history. It uses the app's own calendar classification, so results match `/events` and `/generate`.
-
-```bash
-MONGODB_URI=... GOOGLE_CREDENTIALS=... CENTER_ID=<centerId> \
-  CALENDAR_ID=<calendar id> node pull_calendar.js
-```
 
 Optional: `ROSTERS` (input path) and `OUT` (output path).
 
